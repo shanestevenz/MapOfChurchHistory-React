@@ -44,4 +44,4 @@ Apply migrations with `npx supabase db push`. The fixed initial-content migratio
 
 Create hosted curator accounts through Supabase Auth, promote them using a trusted SQL session, and have each curator enroll TOTP at `/admin`. Never expose `SUPABASE_SECRET_KEY`, the database password, or `TURNSTILE_SECRET_KEY` to browser code or a `NEXT_PUBLIC_` variable.
 
-Follow [docs/production-readiness-checklist.md](docs/production-readiness-checklist.md) for the first deployment and [docs/operations-runbook.md](docs/operations-runbook.md) for incidents, backup tests, and recurring maintenance.
+Follow [docs/production-readiness-checklist.md](docs/production-readiness-checklist.md) for the first deployment, [docs/supabase-production-database-setup.md](docs/supabase-production-database-setup.md) for safely creating the hosted tables, and [docs/operations-runbook.md](docs/operations-runbook.md) for incidents, backup tests, and recurring maintenance.
