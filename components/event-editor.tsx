@@ -39,6 +39,7 @@ import type {
   EventKind,
   ExternalLink,
   TimelineEvent,
+  TimelineGroup,
   TraditionId,
 } from '@/lib/timeline-types'
 import { cn } from '@/lib/utils'
@@ -66,10 +67,11 @@ interface EventEditorProps {
   /** null means "create a new event". */
   event: TimelineEvent | null
   events: TimelineEvent[]
+  groups: TimelineGroup[]
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (event: TimelineEvent) => void
-  onDelete: (id: string) => void
+  onSave: (event: TimelineEvent) => Promise<void>
+  onDelete: (id: string) => Promise<void>
 }
 
 const BLANK: TimelineEvent = {
@@ -90,6 +92,7 @@ const BLANK: TimelineEvent = {
 export function EventEditor({
   event,
   events,
+  groups,
   open,
   onOpenChange,
   onSave,
@@ -98,6 +101,7 @@ export function EventEditor({
   const isNew = event === null
   const [draft, setDraft] = React.useState<TimelineEvent>(event ?? BLANK)
   const [figures, setFigures] = React.useState('')
+  const [isSaving, setIsSaving] = React.useState(false)
   const fileRef = React.useRef<HTMLInputElement>(null)
 
   // Reload the form whenever a different event is opened.
@@ -123,8 +127,8 @@ export function EventEditor({
 
   const handleUpload = (file: File | undefined) => {
     if (!file) return
-    if (!file.type.startsWith('image/')) {
-      toast.error('That file is not an image.')
+    if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)) {
+      toast.error('Choose a PNG, JPEG, WebP, or GIF image.')
       return
     }
     if (file.size > MAX_IMAGE_BYTES) {
@@ -138,7 +142,7 @@ export function EventEditor({
     reader.readAsDataURL(file)
   }
 
-  const submit = () => {
+  const submit = async () => {
     if (!draft.title.trim()) {
       toast.error('An event needs a title.')
       return
@@ -151,6 +155,18 @@ export function EventEditor({
       toast.error('Enter a numeric year for ordering.')
       return
     }
+    if (draft.year < -10000 || draft.year > 10000) {
+      toast.error('The ordering year must be between -10000 and 10000.')
+      return
+    }
+    if (draft.title.trim().length > 200 || draft.dateLabel.trim().length > 100) {
+      toast.error('The title or date label is too long.')
+      return
+    }
+    if (!draft.summary.trim() || draft.summary.trim().length > 2_000 || draft.detail.trim().length > 50_000) {
+      toast.error('Add a summary and keep the event text within its length limits.')
+      return
+    }
 
     const id = draft.id || slugify(draft.title)
     if (isNew && events.some((candidate) => candidate.id === id)) {
@@ -158,21 +174,53 @@ export function EventEditor({
       return
     }
 
-    onSave({
+    const keyFigures = figures.split(',').map((figure) => figure.trim()).filter(Boolean)
+    if (keyFigures.length > 50 || keyFigures.some((figure) => figure.length > 200)) {
+      toast.error('Use no more than 50 key figures, with shorter names.')
+      return
+    }
+    if (draft.parents.length > 10 || new Set(draft.parents).size !== draft.parents.length) {
+      toast.error('Use no more than 10 unique parent events.')
+      return
+    }
+    const links = (draft.links ?? []).filter((link) => link.label.trim() && link.url.trim())
+    if (links.length > 20) {
+      toast.error('Use no more than 20 external links.')
+      return
+    }
+    for (const link of links) {
+      try {
+        const url = new URL(link.url)
+        if (url.protocol !== 'https:' || url.username || url.password) throw new Error('unsafe')
+      } catch {
+        toast.error('Every external link must be a valid HTTPS URL without embedded credentials.')
+        return
+      }
+      if (link.label.trim().length > 300 || link.url.length > 2_048) {
+        toast.error('An external link is too long.')
+        return
+      }
+    }
+
+    setIsSaving(true)
+    try {
+      await onSave({
       ...draft,
       id,
       title: draft.title.trim(),
       dateLabel: draft.dateLabel.trim(),
-      keyFigures: figures
-        .split(',')
-        .map((figure) => figure.trim())
-        .filter(Boolean),
-      links: (draft.links ?? []).filter(
-        (link) => link.label.trim() && link.url.trim(),
-      ),
-    })
-    onOpenChange(false)
-    toast.success(isNew ? 'Event added to the timeline.' : 'Event updated.')
+      summary: draft.summary.trim(),
+      detail: draft.detail.trim(),
+      keyFigures,
+      links: links.map((link) => ({ label: link.label.trim(), url: link.url.trim() })),
+      })
+      onOpenChange(false)
+      toast.success(isNew ? 'Event added to the timeline.' : 'Event updated.')
+    } catch {
+      toast.error('The event could not be saved. Check your session and try again.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const setLink = (index: number, patch: Partial<ExternalLink>) => {
@@ -189,8 +237,7 @@ export function EventEditor({
             {isNew ? 'Add an event' : 'Edit event'}
           </DialogTitle>
           <DialogDescription>
-            Changes are saved in this browser only. Use Export in the editor bar
-            to keep a copy.
+            Changes are saved to the curator database after validation.
           </DialogDescription>
         </DialogHeader>
 
@@ -286,6 +333,44 @@ export function EventEditor({
           </div>
 
           <Field>
+            <FieldLabel>Progressive detail group</FieldLabel>
+            <Select
+              items={[
+                { value: 'none', label: 'Main timeline (no group)' },
+                ...groups.map((group) => ({
+                  value: group.id,
+                  label: group.title,
+                })),
+              ]}
+              value={draft.groupId ?? 'none'}
+              onValueChange={(value) =>
+                update(
+                  'groupId',
+                  !value || value === 'none' ? undefined : value,
+                )
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="none">Main timeline (no group)</SelectItem>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.title}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <FieldDescription>
+              Group membership controls progressive visibility only. It does
+              not create a parent connection.
+            </FieldDescription>
+          </Field>
+
+          <Field>
             <FieldLabel htmlFor="event-summary">Summary</FieldLabel>
             <Textarea
               id="event-summary"
@@ -353,7 +438,7 @@ export function EventEditor({
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/gif"
                 className="sr-only"
                 onChange={(e) => handleUpload(e.target.files?.[0])}
               />
@@ -486,27 +571,36 @@ export function EventEditor({
             <Button
               variant="ghost"
               className="text-destructive sm:mr-auto"
-              onClick={() => {
-                onDelete(draft.id)
-                onOpenChange(false)
-                toast.success('Event removed from the timeline.')
+              disabled={isSaving}
+              onClick={async () => {
+                if (!window.confirm(`Delete “${draft.title}”? This cannot be undone from the editor.`)) return
+                setIsSaving(true)
+                try {
+                  await onDelete(draft.id)
+                  onOpenChange(false)
+                  toast.success('Event removed from the timeline.')
+                } catch {
+                  toast.error('The event could not be deleted. Check your session and try again.')
+                } finally {
+                  setIsSaving(false)
+                }
               }}
             >
               <TrashIcon data-icon="inline-start" />
               Delete
             </Button>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={submit}>
+          <Button onClick={() => void submit()} disabled={isSaving}>
             {isNew ? (
               <>
                 <PlusIcon data-icon="inline-start" />
-                Add event
+                {isSaving ? 'Adding…' : 'Add event'}
               </>
             ) : (
-              'Save changes'
+              isSaving ? 'Saving…' : 'Save changes'
             )}
           </Button>
         </DialogFooter>

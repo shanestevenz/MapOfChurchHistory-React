@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  agentRules: false,
+  productionBrowserSourceMaps: false,
   images: {
     unoptimized: true,
   },
@@ -24,11 +23,7 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
           },
-          {
-            key: 'Content-Security-Policy-Report-Only',
-            value:
-              "default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'",
-          },
+          { key: 'X-Frame-Options', value: 'DENY' },
         ],
       },
     ]

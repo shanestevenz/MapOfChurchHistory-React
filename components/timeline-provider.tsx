@@ -1,250 +1,140 @@
 'use client'
 
 import * as React from 'react'
-import { DATA_VERSION, SEED_EVENTS } from '@/lib/timeline-data'
-import type { EditSuggestion, TimelineEvent } from '@/lib/timeline-types'
-
-const STORAGE_KEY = 'church-timeline/v1'
-const ADMIN_KEY = 'church-timeline/admin'
-const SUGGESTIONS_KEY = 'church-timeline/suggestions'
-
-/**
- * Local-only editor passcode. There is no backend yet, so this gate simply
- * hides the editing tools from ordinary visitors — it is not real security.
- */
-export const ADMIN_PASSCODE = 'ecclesia'
+import { toast } from 'sonner'
+import { SEED_EVENTS, TIMELINE_GROUPS } from '@/lib/timeline-data'
+import type { EditSuggestion, TimelineEvent, TimelineGroup } from '@/lib/timeline-types'
+import { createClient } from '@/lib/supabase/client'
+import { eventToDatabase, fetchEvents, fetchGroups, fetchSuggestions, groupToDatabase } from '@/lib/supabase/timeline'
 
 interface TimelineContextValue {
-  events: TimelineEvent[]
-  isAdmin: boolean
-  hydrated: boolean
-  hasLocalEdits: boolean
-  signIn: (passcode: string) => boolean
-  signOut: () => void
-  saveEvent: (event: TimelineEvent) => void
-  deleteEvent: (id: string) => void
-  resetToSeed: () => void
-  replaceAll: (events: TimelineEvent[]) => void
-  suggestions: EditSuggestion[]
-  pendingCount: number
+  events: TimelineEvent[]; isAdmin: boolean; hydrated: boolean; hasLocalEdits: boolean
+  groups: TimelineGroup[]
+  signOut: () => Promise<void>
+  saveEvent: (event: TimelineEvent) => Promise<void>; deleteEvent: (id: string) => Promise<void>
+  resetToSeed: () => Promise<void>; replaceAll: (events: TimelineEvent[]) => Promise<void>
+  suggestions: EditSuggestion[]; pendingCount: number
   submitSuggestion: (
     suggestion: Omit<EditSuggestion, 'id' | 'createdAt' | 'status'>,
-  ) => void
-  approveSuggestion: (id: string) => void
-  declineSuggestion: (id: string) => void
+    turnstileToken: string,
+  ) => Promise<void>
+  approveSuggestion: (id: string) => Promise<void>; declineSuggestion: (id: string) => Promise<void>
+  saveGroup: (group: TimelineGroup) => Promise<void>; deleteGroup: (id: string) => Promise<void>
 }
 
 const TimelineContext = React.createContext<TimelineContextValue | null>(null)
 
-function isEventArray(value: unknown): value is TimelineEvent[] {
-  return (
-    Array.isArray(value) &&
-    value.every(
-      (item) =>
-        typeof item === 'object' &&
-        item !== null &&
-        typeof (item as TimelineEvent).id === 'string' &&
-        typeof (item as TimelineEvent).title === 'string',
-    )
-  )
-}
-
 export function TimelineProvider({ children }: { children: React.ReactNode }) {
   const [events, setEvents] = React.useState<TimelineEvent[]>(SEED_EVENTS)
+  const [groups, setGroups] = React.useState<TimelineGroup[]>(TIMELINE_GROUPS)
+  const [suggestions, setSuggestions] = React.useState<EditSuggestion[]>([])
   const [isAdmin, setIsAdmin] = React.useState(false)
   const [hydrated, setHydrated] = React.useState(false)
-  const [hasLocalEdits, setHasLocalEdits] = React.useState(false)
-  const [suggestions, setSuggestions] = React.useState<EditSuggestion[]>([])
+  const supabase = React.useMemo(() => createClient(), [])
 
-  // Read persisted state after mount so server and client markup match.
+  const loadEvents = React.useCallback(async () => {
+    const [nextEvents, nextGroups] = await Promise.all([
+      fetchEvents(supabase),
+      fetchGroups(supabase),
+    ])
+    if (nextEvents.length) setEvents(nextEvents)
+    setGroups(nextGroups)
+  }, [supabase])
+
+  const loadPrivateState = React.useCallback(async (userId?: string) => {
+    if (!userId) { setIsAdmin(false); setSuggestions([]); return }
+    const [{ data, error }, assurance] = await Promise.all([
+      supabase.from('profiles').select('role').eq('id', userId).single(),
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+    ])
+    if (error) throw error
+    if (assurance.error) throw assurance.error
+    const curator = data.role === 'curator' && assurance.data.currentLevel === 'aal2'
+    setIsAdmin(curator)
+    setSuggestions(curator ? await fetchSuggestions(supabase) : [])
+  }, [supabase])
+
   React.useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (isEventArray(parsed?.events)) {
-          setEvents(parsed.events)
-          setHasLocalEdits(true)
-        }
+    let active = true
+    Promise.all([loadEvents(), supabase.auth.getUser()])
+      .then(async ([, result]) => { if (active) await loadPrivateState(result.data.user?.id) })
+      .catch(() => toast.error('Could not load the timeline. Check your connection and try again.'))
+      .finally(() => active && setHydrated(true))
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) void loadPrivateState(session?.user?.id)
+    })
+    return () => { active = false; data.subscription.unsubscribe() }
+  }, [loadEvents, loadPrivateState, supabase])
+
+  const review = React.useCallback(async (id: string, decision: 'approved' | 'declined') => {
+    const { error } = await supabase.rpc('review_edit_suggestion', { suggestion_id: id, decision })
+    if (error) throw error
+    await Promise.all([loadEvents(), fetchSuggestions(supabase).then(setSuggestions)])
+  }, [loadEvents, supabase])
+
+  const value = React.useMemo<TimelineContextValue>(() => ({
+    events, groups, isAdmin, hydrated, hasLocalEdits: false,
+    signOut: async () => { await supabase.auth.signOut(); setIsAdmin(false); setSuggestions([]) },
+    saveEvent: async (event) => {
+      const { error } = await supabase.rpc('save_timeline_event', { event_data: eventToDatabase(event), parent_ids: event.parents })
+      if (error) throw error
+      await loadEvents()
+    },
+    deleteEvent: async (id) => {
+      const { error } = await supabase.rpc('delete_timeline_event', { target_id: id })
+      if (error) throw error
+      await loadEvents()
+    },
+    resetToSeed: loadEvents,
+    replaceAll: async (next) => {
+      for (const event of next) {
+        const { error } = await supabase.rpc('save_timeline_event', { event_data: eventToDatabase(event), parent_ids: event.parents })
+        if (error) throw error
       }
-      const rawSuggestions = window.localStorage.getItem(SUGGESTIONS_KEY)
-      if (rawSuggestions) {
-        const parsed = JSON.parse(rawSuggestions)
-        if (Array.isArray(parsed)) setSuggestions(parsed as EditSuggestion[])
+      await loadEvents()
+    },
+    suggestions,
+    pendingCount: suggestions.filter((item) => item.status === 'pending').length,
+    submitSuggestion: async (draft, turnstileToken) => {
+      const response = await fetch('/api/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId: draft.eventId,
+          contributor: draft.contributor,
+          note: draft.note,
+          source: draft.source ?? null,
+          changes: draft.changes.map(({ field, after }) => ({ field, after })),
+          turnstileToken,
+        }),
+      })
+      if (!response.ok) {
+        const result = await response.json().catch(() => null) as { error?: string } | null
+        throw new Error(result?.error ?? 'The suggestion could not be submitted.')
       }
-      setIsAdmin(window.sessionStorage.getItem(ADMIN_KEY) === 'true')
-    } catch {
-      // Corrupt or unavailable storage — fall back to the seed timeline.
-    }
-    setHydrated(true)
-  }, [])
+    },
+    saveGroup: async (group) => {
+      const { error } = await supabase.rpc('save_timeline_group', {
+        group_data: groupToDatabase(group),
+      })
+      if (error) throw error
+      await loadEvents()
+    },
+    deleteGroup: async (id) => {
+      const { error } = await supabase.rpc('delete_timeline_group', {
+        target_id: id,
+      })
+      if (error) throw error
+      await loadEvents()
+    },
+    approveSuggestion: (id) => review(id, 'approved'), declineSuggestion: (id) => review(id, 'declined'),
+  }), [events, groups, hydrated, isAdmin, loadEvents, review, suggestions, supabase])
 
-  const persist = React.useCallback((next: TimelineEvent[]) => {
-    setEvents(next)
-    setHasLocalEdits(true)
-    try {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ version: DATA_VERSION, events: next }),
-      )
-    } catch {
-      // Quota exceeded (usually a large uploaded image) — keep in memory only.
-    }
-  }, [])
-
-  const persistSuggestions = React.useCallback((next: EditSuggestion[]) => {
-    setSuggestions(next)
-    try {
-      window.localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(next))
-    } catch {
-      // Keep in memory only if storage is unavailable.
-    }
-  }, [])
-
-  const value = React.useMemo<TimelineContextValue>(
-    () => ({
-      events,
-      isAdmin,
-      hydrated,
-      hasLocalEdits,
-      signIn: (passcode) => {
-        const ok = passcode.trim().toLowerCase() === ADMIN_PASSCODE
-        if (ok) {
-          setIsAdmin(true)
-          try {
-            window.sessionStorage.setItem(ADMIN_KEY, 'true')
-          } catch {
-            // Ignore storage failures; the session still works in memory.
-          }
-        }
-        return ok
-      },
-      signOut: () => {
-        setIsAdmin(false)
-        try {
-          window.sessionStorage.removeItem(ADMIN_KEY)
-        } catch {
-          // Ignore.
-        }
-      },
-      saveEvent: (event) => {
-        const exists = events.some((candidate) => candidate.id === event.id)
-        persist(
-          exists
-            ? events.map((candidate) =>
-                candidate.id === event.id ? event : candidate,
-              )
-            : [...events, event],
-        )
-      },
-      deleteEvent: (id) => {
-        persist(
-          events
-            .filter((event) => event.id !== id)
-            .map((event) => ({
-              ...event,
-              parents: event.parents.filter((parent) => parent !== id),
-            })),
-        )
-      },
-      resetToSeed: () => {
-        setEvents(SEED_EVENTS)
-        setHasLocalEdits(false)
-        try {
-          window.localStorage.removeItem(STORAGE_KEY)
-        } catch {
-          // Ignore.
-        }
-      },
-      replaceAll: (next) => persist(next),
-
-      suggestions,
-      pendingCount: suggestions.filter((item) => item.status === 'pending')
-        .length,
-
-      submitSuggestion: (draft) => {
-        persistSuggestions([
-          {
-            ...draft,
-            id: `sug-${Date.now().toString(36)}-${Math.random()
-              .toString(36)
-              .slice(2, 7)}`,
-            createdAt: new Date().toISOString(),
-            status: 'pending',
-          },
-          ...suggestions,
-        ])
-      },
-
-      approveSuggestion: (id) => {
-        const suggestion = suggestions.find((item) => item.id === id)
-        if (!suggestion) return
-        const target = events.find((item) => item.id === suggestion.eventId)
-
-        if (target) {
-          const patched: TimelineEvent = { ...target }
-          for (const change of suggestion.changes) {
-            patched[change.field] = change.after
-          }
-          if (suggestion.source) {
-            const existing = patched.links ?? []
-            // Avoid duplicating a citation that is already listed.
-            if (!existing.some((link) => link.url === suggestion.source!.url)) {
-              patched.links = [...existing, suggestion.source]
-            }
-          }
-          persist(
-            events.map((item) => (item.id === patched.id ? patched : item)),
-          )
-        }
-
-        persistSuggestions(
-          suggestions.map((item) =>
-            item.id === id
-              ? {
-                  ...item,
-                  status: 'approved',
-                  reviewedAt: new Date().toISOString(),
-                }
-              : item,
-          ),
-        )
-      },
-
-      declineSuggestion: (id) => {
-        persistSuggestions(
-          suggestions.map((item) =>
-            item.id === id
-              ? {
-                  ...item,
-                  status: 'declined',
-                  reviewedAt: new Date().toISOString(),
-                }
-              : item,
-          ),
-        )
-      },
-    }),
-    [
-      events,
-      isAdmin,
-      hydrated,
-      hasLocalEdits,
-      persist,
-      suggestions,
-      persistSuggestions,
-    ],
-  )
-
-  return (
-    <TimelineContext.Provider value={value}>{children}</TimelineContext.Provider>
-  )
+  return <TimelineContext.Provider value={value}>{children}</TimelineContext.Provider>
 }
 
 export function useTimeline() {
   const context = React.useContext(TimelineContext)
-  if (!context) {
-    throw new Error('useTimeline must be used inside a TimelineProvider')
-  }
+  if (!context) throw new Error('useTimeline must be used inside a TimelineProvider')
   return context
 }

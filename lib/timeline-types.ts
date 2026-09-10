@@ -53,6 +53,17 @@ export interface TimelineEvent {
   detail: string
   keyFigures?: string[]
   links?: ExternalLink[]
+  /** Presentation-only grouping; unlike parents, this creates no graph edge. */
+  groupId?: string
+}
+
+export interface TimelineGroup {
+  id: string
+  title: string
+  dateLabel: string
+  startYear: number
+  endYear: number
+  autoExpandZoom: number
 }
 
 export interface TimelineData {

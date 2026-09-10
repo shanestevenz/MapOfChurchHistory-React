@@ -19,6 +19,7 @@ import {
 import { TRADITION_MAP } from '@/lib/timeline-data'
 import { traditionColor } from '@/lib/timeline-layout'
 import type { TimelineEvent } from '@/lib/timeline-types'
+import { safeHttpsUrl } from '@/lib/safe-url'
 
 interface EventDetailPanelProps {
   event: TimelineEvent | null
@@ -138,10 +139,12 @@ export function EventDetailPanel({
                       Places to learn more
                     </h3>
                     <div className="flex flex-col gap-2">
-                      {event.links.map((link) => (
-                        <a
-                          key={link.url}
-                          href={link.url}
+                      {event.links.map((link) => {
+                        const safeUrl = safeHttpsUrl(link.url)
+                        if (!safeUrl) return null
+                        return <a
+                          key={safeUrl}
+                          href={safeUrl}
                           target="_blank"
                           rel="noreferrer noopener"
                           className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card/60 px-3 py-2.5 text-sm transition-colors hover:border-primary/50 hover:bg-accent"
@@ -149,7 +152,7 @@ export function EventDetailPanel({
                           <span className="text-pretty">{link.label}</span>
                           <ExternalLinkIcon className="size-4 shrink-0 text-muted-foreground" />
                         </a>
-                      ))}
+                      })}
                     </div>
                   </div>
                 </>

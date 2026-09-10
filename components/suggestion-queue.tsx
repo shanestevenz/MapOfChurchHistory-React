@@ -24,6 +24,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SUGGESTABLE_FIELDS } from '@/lib/timeline-types'
 import type { EditSuggestion } from '@/lib/timeline-types'
+import { safeHttpsUrl } from '@/lib/safe-url'
 
 const FIELD_LABEL = Object.fromEntries(
   SUGGESTABLE_FIELDS.map(({ field, label }) => [field, label]),
@@ -36,6 +37,7 @@ interface SuggestionQueueProps {
 
 export function SuggestionQueue({ open, onOpenChange }: SuggestionQueueProps) {
   const { suggestions, approveSuggestion, declineSuggestion } = useTimeline()
+  const [workingId, setWorkingId] = React.useState<string | null>(null)
 
   const pending = suggestions.filter((item) => item.status === 'pending')
   const reviewed = suggestions.filter((item) => item.status !== 'pending')
@@ -93,13 +95,28 @@ export function SuggestionQueue({ open, onOpenChange }: SuggestionQueueProps) {
                   <SuggestionCard
                     key={suggestion.id}
                     suggestion={suggestion}
-                    onApprove={() => {
-                      approveSuggestion(suggestion.id)
-                      toast.success('Suggestion approved and applied.')
+                    busy={workingId === suggestion.id}
+                    onApprove={async () => {
+                      setWorkingId(suggestion.id)
+                      try {
+                        await approveSuggestion(suggestion.id)
+                        toast.success('Suggestion approved and applied.')
+                      } catch {
+                        toast.error('The suggestion could not be approved. Refresh your session and try again.')
+                      } finally {
+                        setWorkingId(null)
+                      }
                     }}
-                    onDecline={() => {
-                      declineSuggestion(suggestion.id)
-                      toast.success('Suggestion declined.')
+                    onDecline={async () => {
+                      setWorkingId(suggestion.id)
+                      try {
+                        await declineSuggestion(suggestion.id)
+                        toast.success('Suggestion declined.')
+                      } catch {
+                        toast.error('The suggestion could not be declined. Refresh your session and try again.')
+                      } finally {
+                        setWorkingId(null)
+                      }
                     }}
                   />
                 ))}
@@ -138,12 +155,17 @@ function SuggestionCard({
   suggestion,
   onApprove,
   onDecline,
+  busy = false,
 }: {
   suggestion: EditSuggestion
-  onApprove?: () => void
-  onDecline?: () => void
+  onApprove?: () => void | Promise<void>
+  onDecline?: () => void | Promise<void>
+  busy?: boolean
 }) {
   const isPending = suggestion.status === 'pending'
+  const safeSourceUrl = suggestion.source
+    ? safeHttpsUrl(suggestion.source.url)
+    : null
 
   return (
     <article className="flex flex-col gap-3 rounded-xl border border-border bg-card/60 p-4">
@@ -197,9 +219,9 @@ function SuggestionCard({
         </div>
       )}
 
-      {suggestion.source && (
+      {suggestion.source && safeSourceUrl && (
         <a
-          href={suggestion.source.url}
+          href={safeSourceUrl}
           target="_blank"
           rel="noreferrer noopener"
           className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs transition-colors hover:bg-accent"
@@ -213,13 +235,13 @@ function SuggestionCard({
         <>
           <Separator />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={onDecline}>
+            <Button variant="outline" size="sm" onClick={onDecline} disabled={busy}>
               <XIcon data-icon="inline-start" />
               Decline
             </Button>
-            <Button size="sm" onClick={onApprove}>
+            <Button size="sm" onClick={onApprove} disabled={busy}>
               <CheckIcon data-icon="inline-start" />
-              Approve
+              {busy ? 'Working…' : 'Approve'}
             </Button>
           </div>
         </>

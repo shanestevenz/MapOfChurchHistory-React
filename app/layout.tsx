@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { EB_Garamond, Inter } from 'next/font/google'
+import { connection } from 'next/server'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
@@ -44,11 +45,12 @@ export const viewport: Viewport = {
   themeColor: '#14181f',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  await connection()
   return (
     <html
       lang="en"

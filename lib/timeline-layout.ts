@@ -6,8 +6,8 @@ export const COL_WIDTH = 172
 /** Each tradition owns a horizontal band. */
 export const LANE_HEIGHT = 152
 export const NODE_SIZE = 56
-/** Room at the left edge for the sticky branch labels. */
-export const PAD_LEFT = 208
+/** Half a column keeps the first node centred without adding a blank column. */
+export const PAD_LEFT = COL_WIDTH / 2
 export const PAD_RIGHT = 140
 /** Height of the era ruler pinned to the top of the canvas. */
 export const ERA_BAR = 36

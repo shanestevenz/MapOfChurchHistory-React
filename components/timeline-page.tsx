@@ -12,11 +12,12 @@ import { TimelineGraph } from '@/components/timeline-graph'
 import { TimelineLegend } from '@/components/timeline-legend'
 import { useTimeline } from '@/components/timeline-provider'
 import { ZoomControl } from '@/components/zoom-control'
+import { TimelineGroupManager } from '@/components/timeline-group-manager'
 import { Separator } from '@/components/ui/separator'
 import type { TimelineEvent, TraditionId } from '@/lib/timeline-types'
 
 export function TimelinePage() {
-  const { events, isAdmin, saveEvent, deleteEvent } = useTimeline()
+  const { events, groups, isAdmin, saveEvent, deleteEvent } = useTimeline()
 
   const [hidden, setHidden] = React.useState<Set<TraditionId>>(new Set())
   const [selected, setSelected] = React.useState<TimelineEvent | null>(null)
@@ -28,6 +29,7 @@ export function TimelinePage() {
   const [suggestOpen, setSuggestOpen] = React.useState(false)
   const [suggesting, setSuggesting] = React.useState<TimelineEvent | null>(null)
   const [queueOpen, setQueueOpen] = React.useState(false)
+  const [groupsOpen, setGroupsOpen] = React.useState(false)
 
   const counts = React.useMemo(() => {
     const result: Record<string, number> = {}
@@ -106,6 +108,7 @@ export function TimelinePage() {
           <AdminBar
             onAddEvent={() => openEditor(null)}
             onReviewSuggestions={() => setQueueOpen(true)}
+            onManageGroups={() => setGroupsOpen(true)}
           />
         </div>
       </header>
@@ -113,6 +116,7 @@ export function TimelinePage() {
       <main className="relative min-h-0 flex-1 p-3 sm:p-4">
         <TimelineGraph
           events={events}
+          groups={groups}
           hidden={hidden}
           selectedId={selected?.id ?? null}
           isAdmin={isAdmin}
@@ -150,6 +154,7 @@ export function TimelinePage() {
       <EventEditor
         event={editing}
         events={events}
+        groups={groups}
         open={editorOpen}
         onOpenChange={setEditorOpen}
         onSave={saveEvent}
@@ -163,6 +168,7 @@ export function TimelinePage() {
       />
 
       <SuggestionQueue open={queueOpen} onOpenChange={setQueueOpen} />
+      <TimelineGroupManager open={groupsOpen} onOpenChange={setGroupsOpen} />
     </div>
   )
 }

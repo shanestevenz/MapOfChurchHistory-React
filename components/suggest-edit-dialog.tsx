@@ -2,7 +2,12 @@
 
 import * as React from 'react'
 import { SendIcon } from 'lucide-react'
+import Link from 'next/link'
 import { toast } from 'sonner'
+import {
+  TurnstileWidget,
+  type TurnstileWidgetHandle,
+} from '@/components/turnstile-widget'
 import { useTimeline } from '@/components/timeline-provider'
 import { Button } from '@/components/ui/button'
 import {
@@ -61,6 +66,10 @@ export function SuggestEditDialog({
   const [sourceLabel, setSourceLabel] = React.useState('')
   const [sourceUrl, setSourceUrl] = React.useState('')
   const [showNoteError, setShowNoteError] = React.useState(false)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [turnstileToken, setTurnstileToken] = React.useState('')
+  const turnstileRef = React.useRef<TurnstileWidgetHandle>(null)
+  const turnstileRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
 
   // Reset the form whenever a different event is opened for suggestions.
   React.useEffect(() => {
@@ -70,6 +79,8 @@ export function SuggestEditDialog({
     setSourceLabel('')
     setSourceUrl('')
     setShowNoteError(false)
+    setIsSubmitting(false)
+    setTurnstileToken('')
   }, [open, event])
 
   const changes: SuggestionChange[] = React.useMemo(() => {
@@ -84,31 +95,46 @@ export function SuggestEditDialog({
   const hasSource = sourceUrl.trim().length > 0
   const canSubmit = changes.length > 0 || hasSource
 
-  const submit = () => {
+  const submit = async () => {
     if (!event || !canSubmit) return
     if (!note.trim()) {
       setShowNoteError(true)
       return
     }
 
-    submitSuggestion({
-      eventId: event.id,
-      eventTitle: event.title,
-      contributor: contributor.trim() || 'Anonymous',
-      note: note.trim(),
-      changes,
-      source: hasSource
-        ? {
-            label: sourceLabel.trim() || sourceUrl.trim(),
-            url: sourceUrl.trim(),
-          }
-        : undefined,
-    })
+    setIsSubmitting(true)
+    try {
+      await submitSuggestion(
+        {
+          eventId: event.id,
+          eventTitle: event.title,
+          contributor: contributor.trim() || 'Anonymous',
+          note: note.trim(),
+          changes,
+          source: hasSource
+            ? {
+                label: sourceLabel.trim() || sourceUrl.trim(),
+                url: sourceUrl.trim(),
+              }
+            : undefined,
+        },
+        turnstileToken,
+      )
 
-    onOpenChange(false)
-    toast.success('Suggestion submitted for review.', {
-      description: 'A curator will review it before it appears publicly.',
-    })
+      onOpenChange(false)
+      toast.success('Suggestion submitted for review.', {
+        description: 'A curator will review it before it appears publicly.',
+      })
+    } catch (error) {
+      turnstileRef.current?.reset()
+      toast.error('Could not submit the suggestion.', {
+        description: error instanceof Error && error.message.includes('too many')
+          ? 'Too many submissions were received. Please wait and try again later.'
+          : 'Check the form and your connection, then try again.',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -234,6 +260,21 @@ export function SuggestEditDialog({
                   </FieldDescription>
                 </Field>
               </FieldGroup>
+
+              <div className="flex flex-col gap-2">
+                <TurnstileWidget
+                  ref={turnstileRef}
+                  action="suggestion"
+                  onTokenChange={setTurnstileToken}
+                />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Submissions are protected against automated abuse. See the{' '}
+                  <Link href="/privacy" className="underline underline-offset-2">
+                    privacy notice
+                  </Link>
+                  .
+                </p>
+              </div>
             </div>
 
             <DialogFooter className="border-t border-border pt-4">
@@ -245,9 +286,12 @@ export function SuggestEditDialog({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={submit} disabled={!canSubmit}>
+              <Button
+                onClick={() => void submit()}
+                disabled={!canSubmit || isSubmitting || (turnstileRequired && !turnstileToken)}
+              >
                 <SendIcon data-icon="inline-start" />
-                Submit for review
+                {isSubmitting ? 'Submitting…' : 'Submit for review'}
               </Button>
             </DialogFooter>
           </>
