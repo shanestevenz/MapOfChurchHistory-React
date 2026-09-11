@@ -1,47 +1,38 @@
-# Map of Church History
+# Map Of Church History
 
-Interactive church-history timeline built with Next.js 16 and Supabase.
+An illustrated, interactive journey through two thousand years of church history.
 
-## Local development
+The Map of Church History viusally maps councils, schisms, reformations, revivals, missionary movements, and influential people as a branching timeline. Its purpose is to make the relationships between Christian traditions easier to explore without reducing their history to a simple list of dates.
 
-Prerequisites: Node.js, Docker Desktop, Git, and npm.
+## Explore the timeline
 
-```powershell
-Copy-Item .env.example .env.local
-npm install
-npm run db:start
-npx supabase status
-npm run db:seed:generate
-npm run db:reset
-npm run dev
-```
+Move through the timeline chronologically, follow connections between events, focus on individual traditions, and open an event to read its historical context and sources.
 
-Copy the local URL, publishable key, and secret key printed by `npx supabase status` into `.env.local`. The local stack uses ports `54321`–`54327`; Studio is at <http://127.0.0.1:54323>.
+The project currently includes:
 
-The seed creates `curator@localhost.test` with password `local-curator-change-me`. This account is local-only. Visit <http://localhost:3000/admin> and enroll an authenticator app before editing.
+- A visual timeline spanning the early church through the modern era
+- Branches showing historical relationships between Christian traditions
+- Focused sections for periods that benefit from additional detail
+- Event summaries, key figures, longer explanations, and external sources
+- A moderated suggestion system for proposing factual corrections
 
-## Verification commands
+The public website link will be added here when the production deployment is complete.
 
-```powershell
-npm ci
-npm audit --audit-level=moderate
-npm run lint
-npm run typecheck
-npm test
-npm run build
-npm run db:reset
-npm run db:test
-```
+## Historical approach
 
-- `npm run db:seed:generate` regenerates both local seed data and a content-only SQL export.
-- `npm run db:types` regenerates TypeScript types from the local database.
-- `npm run production:check` validates real production environment variables without printing their values.
-- `npm run load:test` performs a small read-only test only after a staging URL is explicitly confirmed.
+Church history contains sincere disagreement about terminology, dates, causation, and the significance of particular events. The timeline aims to be informative, readable, and fair across traditions while recognizing that no single visualization can capture every perspective.
 
-## Production safety
+Corrections and stronger sources may be proposed through the suggestion form on the published website. Suggestions are reviewed before they appear publicly.
 
-Apply migrations with `npx supabase db push`. The fixed initial-content migration contains public timeline content but no Auth account. Never pass `--include-seed` to a production command: `supabase/seed.sql` contains the known local curator.
+## About this repository
 
-Create hosted curator accounts through Supabase Auth, promote them using a trusted SQL session, and have each curator enroll TOTP at `/admin`. Never expose `SUPABASE_SECRET_KEY`, the database password, or `TURNSTILE_SECRET_KEY` to browser code or a `NEXT_PUBLIC_` variable.
+This repository is public for transparency and to make the source behind the project visible. It is not currently open for outside development, pull requests, or feature contributions.
 
-Follow [docs/production-readiness-checklist.md](docs/production-readiness-checklist.md) for the first deployment, [docs/supabase-production-database-setup.md](docs/supabase-production-database-setup.md) for safely creating the hosted tables, and [docs/operations-runbook.md](docs/operations-runbook.md) for incidents, backup tests, and recurring maintenance.
+
+## Technology
+
+The application is built with Next.js, React, TypeScript, and Supabase. Security-sensitive operations are protected with database authorization, row-level security, curator multi-factor authentication, server-side validation, CAPTCHA, and request limiting.
+
+## License and reuse
+
+No open-source license is currently granted. Unless a license is added later, the source code and original project content remain all rights reserved. Viewing this public repository does not grant permission to copy, redistribute, modify, or republish the project.
