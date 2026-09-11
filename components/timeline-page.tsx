@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { MouseIcon } from 'lucide-react'
+import Link from 'next/link'
+import { MapIcon, MouseIcon } from 'lucide-react'
 import { AdminBar } from '@/components/admin-bar'
 import { EventDetailPanel } from '@/components/event-detail-panel'
 import { EventDialog } from '@/components/event-dialog'
@@ -13,6 +14,7 @@ import { TimelineLegend } from '@/components/timeline-legend'
 import { useTimeline } from '@/components/timeline-provider'
 import { ZoomControl } from '@/components/zoom-control'
 import { TimelineGroupManager } from '@/components/timeline-group-manager'
+import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import type { TimelineEvent, TraditionId } from '@/lib/timeline-types'
 
@@ -99,6 +101,10 @@ export function TimelinePage() {
             Wheel to zoom · middle-drag to pan
           </p>
           <Separator orientation="vertical" className="hidden h-6 2xl:block" />
+          <Button render={<Link href="/maps" />} variant="ghost" size="sm">
+            <MapIcon />
+            <span className="hidden sm:inline">Maps</span>
+          </Button>
           <TimelineLegend
             hidden={hidden}
             counts={counts}
