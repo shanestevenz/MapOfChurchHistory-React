@@ -41,7 +41,13 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: 2.117.0
-      - run: supabase start
-      - run: npm run db:reset
-      - run: supabase db lint --local --level warning
-      - run: npm run db:test
+      - name: Start local Supabase
+        run: supabase start
+      - name: Confirm local services are ready
+        run: supabase status
+      - name: Replay migrations from an empty database
+        run: npm run db:reset
+      - name: Run database smoke test
+        run: npm run db:test
+      - name: Lint database schema
+        run: supabase db lint --local --level warning

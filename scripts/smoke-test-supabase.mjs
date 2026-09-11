@@ -3,17 +3,13 @@ import { createHmac } from 'node:crypto'
 import { execFileSync, execSync } from 'node:child_process'
 import { createClient } from '@supabase/supabase-js'
 
-const readLocalSecret = () => {
-  if (process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SECRET_KEY.startsWith('replace-')) {
-    return process.env.SUPABASE_SECRET_KEY
-  }
+const readLocalStatus = () => {
   const command = process.platform === 'win32' ? 'npx.cmd' : 'npx'
   const options = { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
   const output = process.platform === 'win32'
     ? execSync('npx.cmd supabase status --output json', options)
     : execFileSync(command, ['supabase', 'status', '--output', 'json'], options)
-  const status = JSON.parse(output)
-  return status.SECRET_KEY ?? status.SERVICE_ROLE_KEY
+  return JSON.parse(output)
 }
 
 const decodeBase32 = (value) => {
@@ -46,9 +42,20 @@ const totp = (secret) => {
   return String(code).padStart(6, '0')
 }
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:55321'
-const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH'
-const secretKey = readLocalSecret()
+const needsLocalStatus = !process.env.NEXT_PUBLIC_SUPABASE_URL
+  || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  || !process.env.SUPABASE_SECRET_KEY
+  || process.env.SUPABASE_SECRET_KEY.startsWith('replace-')
+const localStatus = needsLocalStatus ? readLocalStatus() : {}
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? localStatus.API_URL
+const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  ?? localStatus.PUBLISHABLE_KEY
+  ?? localStatus.ANON_KEY
+const secretKey = process.env.SUPABASE_SECRET_KEY?.startsWith('replace-')
+  ? (localStatus.SECRET_KEY ?? localStatus.SERVICE_ROLE_KEY)
+  : (process.env.SUPABASE_SECRET_KEY ?? localStatus.SECRET_KEY ?? localStatus.SERVICE_ROLE_KEY)
+assert(url, 'Local Supabase API URL is required')
+assert(key, 'Local Supabase publishable key is required')
 assert(secretKey, 'Local Supabase secret key is required')
 
 const anonymous = createClient(url, key, { auth: { persistSession: false } })

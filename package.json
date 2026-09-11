@@ -2,6 +2,7 @@
   "name": "my-project",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.9.2",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -46,10 +47,5 @@
     "supabase": "^2.117.0",
     "tailwindcss": "^4.3.3",
     "typescript": "5.7.3"
-  },
-  "pnpm": {
-    "overrides": {
-      "hono": "4.12.25"
-    }
   }
 }
