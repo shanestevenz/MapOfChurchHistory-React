@@ -35,6 +35,19 @@ export interface ExternalLink {
   url: string
 }
 
+export interface PresentDayProfile {
+  /** Date attached to statistics and contemporary notes. */
+  asOf: string
+  /** A sourced figure, with its reporting scope kept explicit. */
+  membership: string
+  /** Why the figure may not equal every person in the broader tradition. */
+  membershipNote: string
+  /** Where the largest communities or institutional centres are found. */
+  geography: string
+  /** A short, maintainable list of active developments. */
+  currentDevelopments: string[]
+}
+
 export interface TimelineEvent {
   id: string
   /** Numeric year used for ordering. */
@@ -55,6 +68,8 @@ export interface TimelineEvent {
   links?: ExternalLink[]
   /** Presentation-only grouping; unlike parents, this creates no graph edge. */
   groupId?: string
+  /** Local, generated endpoint metadata for a continuing branch. */
+  presentDay?: PresentDayProfile
 }
 
 export interface TimelineGroup {

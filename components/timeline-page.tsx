@@ -14,6 +14,7 @@ import { useTimeline } from '@/components/timeline-provider'
 import { ZoomControl } from '@/components/zoom-control'
 import { TimelineGroupManager } from '@/components/timeline-group-manager'
 import { Separator } from '@/components/ui/separator'
+import { withPresentDayEndpoints } from '@/lib/present-day-data'
 import type { TimelineEvent, TraditionId } from '@/lib/timeline-types'
 
 export function TimelinePage() {
@@ -31,6 +32,11 @@ export function TimelinePage() {
   const [queueOpen, setQueueOpen] = React.useState(false)
   const [groupsOpen, setGroupsOpen] = React.useState(false)
 
+  const displayedEvents = React.useMemo(
+    () => withPresentDayEndpoints(events),
+    [events],
+  )
+
   const counts = React.useMemo(() => {
     const result: Record<string, number> = {}
     for (const event of events) {
@@ -41,7 +47,7 @@ export function TimelinePage() {
 
   const span = React.useMemo(() => {
     const years = events.map((event) => event.year)
-    return { first: Math.min(...years), last: Math.max(...years) }
+    return { first: Math.min(...years) }
   }, [events])
 
   const toggleTradition = (id: TraditionId) => {
@@ -59,12 +65,14 @@ export function TimelinePage() {
   }
 
   const openEditor = (event: TimelineEvent | null) => {
+    if (event?.presentDay) return
     setDialogOpen(false)
     setEditing(event)
     setEditorOpen(true)
   }
 
   const openSuggest = (event: TimelineEvent) => {
+    if (event.presentDay) return
     setDialogOpen(false)
     setPanelOpen(false)
     setSuggesting(event)
@@ -88,7 +96,7 @@ export function TimelinePage() {
               Map of Church History
             </h1>
             <span className="label-caps hidden text-[10px] whitespace-nowrap text-muted-foreground sm:inline">
-              AD {span.first}—{span.last} · {events.length} events
+              AD {span.first}—Present · {events.length} historical events
             </span>
           </div>
         </div>
@@ -115,7 +123,7 @@ export function TimelinePage() {
 
       <main className="relative min-h-0 flex-1 p-3 sm:p-4">
         <TimelineGraph
-          events={events}
+          events={displayedEvents}
           groups={groups}
           hidden={hidden}
           selectedId={selected?.id ?? null}
@@ -144,7 +152,7 @@ export function TimelinePage() {
 
       <EventDetailPanel
         event={selected}
-        events={events}
+        events={displayedEvents}
         open={panelOpen}
         onOpenChange={setPanelOpen}
         onNavigate={(event) => setSelected(event)}

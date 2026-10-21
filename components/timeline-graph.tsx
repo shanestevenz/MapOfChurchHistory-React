@@ -498,6 +498,19 @@ export function TimelineGraph({
               transform: `scale(${renderedZoom})`,
             }}
           >
+            {nodes.some((node) => node.event.presentDay) && (
+              <div
+                className="pointer-events-none absolute inset-y-0 border-x border-primary/20 bg-linear-to-r from-primary/3 via-primary/10 to-primary/3"
+                style={{
+                  left:
+                    (nodes.find((node) => node.event.presentDay)?.x ?? 0) -
+                    COL_WIDTH / 2,
+                  width: COL_WIDTH,
+                }}
+                aria-hidden="true"
+              />
+            )}
+
             {/* This shares the node transform so it cannot lag during zoom. */}
             {groups.map((group) => {
               const members = nodes.filter(
@@ -614,6 +627,7 @@ export function TimelineGraph({
                       aria-label={`${event.title}, ${event.dateLabel}`}
                       className={cn(
                         'group relative flex items-center justify-center rounded-full border-2 bg-card text-foreground transition-transform duration-150 outline-none hover:scale-110 focus-visible:ring-3 focus-visible:ring-ring/50',
+                        event.presentDay && 'border-[3px] bg-primary/10',
                         isSelected && 'scale-110',
                       )}
                       style={{
@@ -622,7 +636,9 @@ export function TimelineGraph({
                         borderColor: color,
                         boxShadow: isSelected
                           ? `0 0 0 5px color-mix(in oklab, ${color} 22%, transparent)`
-                          : undefined,
+                          : event.presentDay
+                            ? `0 0 0 4px color-mix(in oklab, ${color} 16%, transparent)`
+                            : undefined,
                       }}
                     >
                       {event.icon.type === 'image' ? (
@@ -644,7 +660,7 @@ export function TimelineGraph({
                       )}
                     </button>
 
-                    {isAdmin && (
+                    {isAdmin && !event.presentDay && (
                       <button
                         type="button"
                         onClick={() => onEdit(event)}
@@ -673,7 +689,7 @@ export function TimelineGraph({
                       {event.title}
                     </span>
                     <span className="label-caps text-[9px] text-muted-foreground/70">
-                      {KIND_LABEL[event.kind]}
+                      {event.presentDay ? 'Today' : KIND_LABEL[event.kind]}
                     </span>
                   </button>
                 </div>

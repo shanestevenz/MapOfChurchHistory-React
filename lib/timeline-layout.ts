@@ -130,13 +130,21 @@ export function buildLayout(
 
   const slotOf = new Map(lanes.map((lane) => [lane.id, lane.slot]))
 
-  const nodes: PositionedEvent[] = ordered.map((event, col) => ({
-    event,
-    col,
-    x: PAD_LEFT + col * COL_WIDTH,
-    y: laneY(slotOf.get(event.tradition) ?? 0),
-    color: traditionColor(event.tradition),
-  }))
+  // All generated present-day endpoints share one final column. This makes
+  // every living branch visibly continue to the same point in time instead of
+  // staggering nine "today" nodes across unrelated sequential columns.
+  const historicalCount = ordered.filter((event) => !event.presentDay).length
+  let historicalColumn = 0
+  const nodes: PositionedEvent[] = ordered.map((event) => {
+    const col = event.presentDay ? historicalCount : historicalColumn++
+    return {
+      event,
+      col,
+      x: PAD_LEFT + col * COL_WIDTH,
+      y: laneY(slotOf.get(event.tradition) ?? 0),
+      color: traditionColor(event.tradition),
+    }
+  })
 
   const byId = new Map(nodes.map((node) => [node.event.id, node]))
 
@@ -154,7 +162,10 @@ export function buildLayout(
     }
   }
 
-  const width = PAD_LEFT + nodes.length * COL_WIDTH + PAD_RIGHT
+  const columnCount = nodes.length > 0
+    ? Math.max(...nodes.map((node) => node.col)) + 1
+    : 0
+  const width = PAD_LEFT + columnCount * COL_WIDTH + PAD_RIGHT
 
   const eras: Era[] = []
   for (const era of ERAS) {
