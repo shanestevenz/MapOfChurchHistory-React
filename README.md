@@ -1,6 +1,6 @@
 # Map of Church History
 
-Interactive church-history timeline built with Next.js 16 and Supabase.
+Interactive church-history timeline built with Next.js 16 and Supabase. 
 
 ## Local development
 
