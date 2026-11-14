@@ -5,12 +5,33 @@ export type TraditionId =
   | 'undivided'
   | 'catholic'
   | 'protestant'
+  | 'reformed'
   | 'radical'
+  | 'baptist'
   | 'anglican'
   | 'methodist'
   | 'pentecostal'
+  | 'adventist'
+  | 'evangelical'
+  | 'restoration'
+  | 'latter-day-saints'
+  | 'jehovahs-witnesses'
 
-export type ColorFamily = 'gold' | 'sapphire' | 'ruby' | 'emerald' | 'amethyst'
+/** Top-level grouping used by the filter controls. */
+export type TraditionCategory =
+  | 'shared'
+  | 'eastern'
+  | 'western'
+  | 'protestant'
+  | 'other'
+
+export type ColorFamily =
+  | 'gold'
+  | 'sapphire'
+  | 'ruby'
+  | 'emerald'
+  | 'amethyst'
+  | 'copper'
 
 export interface Tradition {
   id: TraditionId
@@ -21,6 +42,28 @@ export interface Tradition {
   /** Horizontal position of the branch, left to right. */
   lane: number
   family: ColorFamily
+  category: TraditionCategory
+  /**
+   * Group this lane visually with neighbouring lanes that name the same id,
+   * under one header with this name and blurb. Each keeps its own lane.
+   */
+  laneGroup?: { id: string; name: string; blurb: string }
+  /**
+   * When and where the branch began, drawn as start markers on its lane. The
+   * first entry is the lane's origin; further entries mark separate movements
+   * that share the lane. If an event is missing (e.g. deleted in the admin),
+   * the lane's earliest event carries the first marker instead.
+   */
+  origins: TraditionOrigin[]
+}
+
+export interface TraditionOrigin {
+  /** The event node the marker sits on. */
+  eventId: string
+  /** Short, human-readable date, e.g. "1609" or "1730s". */
+  dateLabel: string
+  /** Where the movement began, e.g. "Amsterdam". */
+  place: string
 }
 
 export type EventKind = 'event' | 'council' | 'schism' | 'reunion'
@@ -33,6 +76,19 @@ export type EventIcon =
 export interface ExternalLink {
   label: string
   url: string
+}
+
+export interface PresentDayProfile {
+  /** Date attached to statistics and contemporary notes. */
+  asOf: string
+  /** A sourced figure, with its reporting scope kept explicit. */
+  membership: string
+  /** Why the figure may not equal every person in the broader tradition. */
+  membershipNote: string
+  /** Where the largest communities or institutional centres are found. */
+  geography: string
+  /** A short, maintainable list of active developments. */
+  currentDevelopments: string[]
 }
 
 export interface TimelineEvent {
@@ -55,6 +111,8 @@ export interface TimelineEvent {
   links?: ExternalLink[]
   /** Presentation-only grouping; unlike parents, this creates no graph edge. */
   groupId?: string
+  /** Local, generated endpoint metadata for a continuing branch. */
+  presentDay?: PresentDayProfile
 }
 
 export interface TimelineGroup {

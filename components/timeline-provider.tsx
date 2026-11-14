@@ -4,8 +4,7 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import { SEED_EVENTS, TIMELINE_GROUPS } from '@/lib/timeline-data'
 import type { EditSuggestion, TimelineEvent, TimelineGroup } from '@/lib/timeline-types'
-import { createClient } from '@/lib/supabase/client'
-import { eventToDatabase, fetchEvents, fetchGroups, fetchSuggestions, groupToDatabase } from '@/lib/supabase/timeline'
+import { authClient } from '@/lib/auth/client'
 
 interface TimelineContextValue {
   events: TimelineEvent[]; isAdmin: boolean; hydrated: boolean; hasLocalEdits: boolean
@@ -24,73 +23,84 @@ interface TimelineContextValue {
 
 const TimelineContext = React.createContext<TimelineContextValue | null>(null)
 
+async function readJson<T>(response: Response): Promise<T> {
+  const body = await response.json().catch(() => null) as { error?: string } | null
+  if (!response.ok) throw new Error(body?.error ?? 'The request could not be completed.')
+  return body as T
+}
+
+async function runAdminAction(action: Record<string, unknown>) {
+  const response = await fetch('/api/admin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(action),
+  })
+  await readJson(response)
+}
+
 export function TimelineProvider({ children }: { children: React.ReactNode }) {
   const [events, setEvents] = React.useState<TimelineEvent[]>(SEED_EVENTS)
   const [groups, setGroups] = React.useState<TimelineGroup[]>(TIMELINE_GROUPS)
   const [suggestions, setSuggestions] = React.useState<EditSuggestion[]>([])
   const [isAdmin, setIsAdmin] = React.useState(false)
   const [hydrated, setHydrated] = React.useState(false)
-  const supabase = React.useMemo(() => createClient(), [])
 
   const loadEvents = React.useCallback(async () => {
-    const [nextEvents, nextGroups] = await Promise.all([
-      fetchEvents(supabase),
-      fetchGroups(supabase),
-    ])
-    if (nextEvents.length) setEvents(nextEvents)
-    setGroups(nextGroups)
-  }, [supabase])
+    const response = await fetch('/api/timeline', { cache: 'no-store' })
+    const result = await readJson<{ events: TimelineEvent[]; groups: TimelineGroup[] }>(response)
+    if (result.events.length) setEvents(result.events)
+    else setEvents(SEED_EVENTS)
+    setGroups(result.groups.length ? result.groups : TIMELINE_GROUPS)
+  }, [])
 
-  const loadPrivateState = React.useCallback(async (userId?: string) => {
-    if (!userId) { setIsAdmin(false); setSuggestions([]); return }
-    const [{ data, error }, assurance] = await Promise.all([
-      supabase.from('profiles').select('role').eq('id', userId).single(),
-      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
-    ])
-    if (error) throw error
-    if (assurance.error) throw assurance.error
-    const curator = data.role === 'curator' && assurance.data.currentLevel === 'aal2'
+  const loadPrivateState = React.useCallback(async () => {
+    const response = await fetch('/api/admin', { cache: 'no-store' })
+    if (response.status === 401) {
+      setIsAdmin(false)
+      setSuggestions([])
+      return
+    }
+    const result = await readJson<{
+      isAdmin: boolean
+      twoFactorEnabled: boolean
+      suggestions: EditSuggestion[]
+    }>(response)
+    const curator = result.isAdmin && result.twoFactorEnabled
     setIsAdmin(curator)
-    setSuggestions(curator ? await fetchSuggestions(supabase) : [])
-  }, [supabase])
+    setSuggestions(curator ? result.suggestions : [])
+  }, [])
 
   React.useEffect(() => {
     let active = true
-    Promise.all([loadEvents(), supabase.auth.getUser()])
-      .then(async ([, result]) => { if (active) await loadPrivateState(result.data.user?.id) })
+    Promise.all([loadEvents(), loadPrivateState()])
       .catch(() => toast.error('Could not load the timeline. Check your connection and try again.'))
       .finally(() => active && setHydrated(true))
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active) void loadPrivateState(session?.user?.id)
-    })
-    return () => { active = false; data.subscription.unsubscribe() }
-  }, [loadEvents, loadPrivateState, supabase])
+    return () => { active = false }
+  }, [loadEvents, loadPrivateState])
 
   const review = React.useCallback(async (id: string, decision: 'approved' | 'declined') => {
-    const { error } = await supabase.rpc('review_edit_suggestion', { suggestion_id: id, decision })
-    if (error) throw error
-    await Promise.all([loadEvents(), fetchSuggestions(supabase).then(setSuggestions)])
-  }, [loadEvents, supabase])
+    await runAdminAction({ action: 'review-suggestion', id, decision })
+    await Promise.all([loadEvents(), loadPrivateState()])
+  }, [loadEvents, loadPrivateState])
 
   const value = React.useMemo<TimelineContextValue>(() => ({
     events, groups, isAdmin, hydrated, hasLocalEdits: false,
-    signOut: async () => { await supabase.auth.signOut(); setIsAdmin(false); setSuggestions([]) },
+    signOut: async () => {
+      await authClient.signOut()
+      setIsAdmin(false)
+      setSuggestions([])
+    },
     saveEvent: async (event) => {
-      const { error } = await supabase.rpc('save_timeline_event', { event_data: eventToDatabase(event), parent_ids: event.parents })
-      if (error) throw error
+      await runAdminAction({ action: 'save-event', event })
       await loadEvents()
     },
     deleteEvent: async (id) => {
-      const { error } = await supabase.rpc('delete_timeline_event', { target_id: id })
-      if (error) throw error
+      await runAdminAction({ action: 'delete-event', id })
       await loadEvents()
     },
     resetToSeed: loadEvents,
     replaceAll: async (next) => {
-      for (const event of next) {
-        const { error } = await supabase.rpc('save_timeline_event', { event_data: eventToDatabase(event), parent_ids: event.parents })
-        if (error) throw error
-      }
+      for (const event of next) await runAdminAction({ action: 'save-event', event })
       await loadEvents()
     },
     suggestions,
@@ -108,27 +118,19 @@ export function TimelineProvider({ children }: { children: React.ReactNode }) {
           turnstileToken,
         }),
       })
-      if (!response.ok) {
-        const result = await response.json().catch(() => null) as { error?: string } | null
-        throw new Error(result?.error ?? 'The suggestion could not be submitted.')
-      }
+      await readJson(response)
     },
     saveGroup: async (group) => {
-      const { error } = await supabase.rpc('save_timeline_group', {
-        group_data: groupToDatabase(group),
-      })
-      if (error) throw error
+      await runAdminAction({ action: 'save-group', group })
       await loadEvents()
     },
     deleteGroup: async (id) => {
-      const { error } = await supabase.rpc('delete_timeline_group', {
-        target_id: id,
-      })
-      if (error) throw error
+      await runAdminAction({ action: 'delete-group', id })
       await loadEvents()
     },
-    approveSuggestion: (id) => review(id, 'approved'), declineSuggestion: (id) => review(id, 'declined'),
-  }), [events, groups, hydrated, isAdmin, loadEvents, review, suggestions, supabase])
+    approveSuggestion: (id) => review(id, 'approved'),
+    declineSuggestion: (id) => review(id, 'declined'),
+  }), [events, groups, hydrated, isAdmin, loadEvents, review, suggestions])
 
   return <TimelineContext.Provider value={value}>{children}</TimelineContext.Provider>
 }

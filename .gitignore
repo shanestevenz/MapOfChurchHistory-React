@@ -16,4 +16,6 @@ supabase/.temp/
 node_modules
 .next/
 *.tsbuildinfo
+playwright-report/
+test-results/
 .DS_Store
