@@ -1,5 +1,10 @@
 import { TRADITION_MAP, TRADITIONS } from './timeline-data'
-import type { ColorFamily, TimelineEvent, TraditionId } from './timeline-types'
+import type {
+  ColorFamily,
+  TimelineEvent,
+  TraditionId,
+  TraditionOrigin,
+} from './timeline-types'
 
 /** Time runs left to right: one column per event. */
 export const COL_WIDTH = 172
@@ -18,6 +23,7 @@ export const FAMILY_COLOR: Record<ColorFamily, string> = {
   ruby: 'var(--chart-3)',
   emerald: 'var(--chart-4)',
   amethyst: 'var(--chart-5)',
+  copper: 'var(--chart-6)',
 }
 
 export function traditionColor(id: TraditionId): string {
@@ -25,23 +31,50 @@ export function traditionColor(id: TraditionId): string {
   return FAMILY_COLOR[tradition?.family ?? 'gold']
 }
 
-/** Top edge of a lane band, where its name label sits. */
-export function laneTop(slot: number): number {
-  return slot * LANE_HEIGHT
-}
-
-/** Vertical centre of a lane, where its nodes and rail sit. */
-export function laneY(slot: number): number {
-  return slot * LANE_HEIGHT + 58
-}
+/** Space above a lane group for its header. */
+export const GROUP_HEADER = 30
+/** Offset from a lane's top edge to its centre line, where nodes sit. */
+const LANE_CENTRE = 58
 
 export interface PositionedLane {
   id: TraditionId
   name: string
   blurb: string
   slot: number
+  /** Top edge of the lane band, where its name label sits. */
+  top: number
+  /** Vertical centre of the lane, where its nodes and rail sit. */
   y: number
   color: string
+  /** The visual group this lane belongs to, if any. */
+  groupId?: string
+  /** When and where the branch began, for the lane header. */
+  origin?: TraditionOrigin
+  /** Where the branch begins on the canvas; its rail is drawn from here on. */
+  startX: number | null
+}
+
+/** Consecutive lanes drawn together under one header, e.g. Other / Adjacent. */
+export interface PositionedLaneGroup {
+  id: string
+  name: string
+  blurb: string
+  /** Top of the header; the group's lanes follow below it. */
+  top: number
+  bottom: number
+  color: string
+  lanes: TraditionId[]
+}
+
+/** A "began here" flag drawn above the event that starts a movement. */
+export interface PositionedOrigin {
+  eventId: string
+  laneId: TraditionId
+  x: number
+  y: number
+  color: string
+  dateLabel: string
+  place: string
 }
 
 export interface PositionedEvent {
@@ -68,7 +101,7 @@ export interface Era {
   right: number
 }
 
-const ERAS: { label: string; from: number; to: number }[] = [
+export const ERAS: { label: string; from: number; to: number }[] = [
   { label: 'Apostolic', from: -1, to: 312 },
   { label: 'Imperial', from: 313, to: 600 },
   { label: 'Medieval', from: 601, to: 1450 },
@@ -112,27 +145,59 @@ export function buildLayout(
   events: TimelineEvent[],
   hidden: Set<TraditionId> = new Set(),
 ) {
-  const visible = events.filter((event) => !hidden.has(event.tradition))
+  // An event whose tradition has no lane (e.g. stale data after a lane was
+  // renamed) is left out rather than drawn in whichever lane happens to be
+  // first, which would misrepresent its history.
+  const visible = events.filter(
+    (event) => !hidden.has(event.tradition) && event.tradition in TRADITION_MAP,
+  )
   const ordered = orderEvents(visible)
 
-  // Hidden branches collapse their band rather than leaving a gap.
-  const lanes: PositionedLane[] = [...TRADITIONS]
-    .sort((a, b) => a.lane - b.lane)
-    .filter((tradition) => !hidden.has(tradition.id))
-    .map((tradition, slot) => ({
+  // One lane per tradition; hidden branches collapse rather than leaving a
+  // gap. Traditions sharing a lane group sit together under a group header.
+  const lanes: PositionedLane[] = []
+  const groups: PositionedLaneGroup[] = []
+  let top = 0
+  for (const tradition of [...TRADITIONS].sort((a, b) => a.lane - b.lane)) {
+    if (hidden.has(tradition.id)) continue
+    const group = tradition.laneGroup
+    let current = group && groups.at(-1)?.id === group.id ? groups.at(-1) : undefined
+    if (group && !current) {
+      current = {
+        id: group.id,
+        name: group.name,
+        blurb: group.blurb,
+        top,
+        bottom: top,
+        color: traditionColor(tradition.id),
+        lanes: [],
+      }
+      groups.push(current)
+      top += GROUP_HEADER
+    }
+    lanes.push({
       id: tradition.id,
       name: tradition.name,
       blurb: tradition.blurb,
-      slot,
-      y: laneY(slot),
+      slot: lanes.length,
+      top,
+      y: top + LANE_CENTRE,
       color: traditionColor(tradition.id),
-    }))
-
-  const slotOf = new Map(lanes.map((lane) => [lane.id, lane.slot]))
+      groupId: group?.id,
+      origin: tradition.origins[0],
+      startX: null,
+    })
+    top += LANE_HEIGHT
+    if (current) {
+      current.lanes.push(tradition.id)
+      current.bottom = top
+    }
+  }
+  const laneOf = new Map(lanes.map((lane) => [lane.id, lane]))
 
   // All generated present-day endpoints share one final column. This makes
   // every living branch visibly continue to the same point in time instead of
-  // staggering nine "today" nodes across unrelated sequential columns.
+  // staggering "today" nodes across unrelated sequential columns.
   const historicalCount = ordered.filter((event) => !event.presentDay).length
   let historicalColumn = 0
   const nodes: PositionedEvent[] = ordered.map((event) => {
@@ -141,12 +206,40 @@ export function buildLayout(
       event,
       col,
       x: PAD_LEFT + col * COL_WIDTH,
-      y: laneY(slotOf.get(event.tradition) ?? 0),
+      y: laneOf.get(event.tradition)!.y,
       color: traditionColor(event.tradition),
     }
   })
 
   const byId = new Map(nodes.map((node) => [node.event.id, node]))
+
+  // Origin markers show when and where each branch began. If the configured
+  // event is missing, the lane's earliest historical event stands in.
+  const origins: PositionedOrigin[] = []
+  for (const lane of lanes) {
+    const tradition = TRADITION_MAP[lane.id]
+    const laneNodes = nodes.filter(
+      (node) => node.event.tradition === lane.id && !node.event.presentDay,
+    )
+    if (laneNodes.length === 0) continue
+    lane.startX = laneNodes[0].x
+
+    tradition.origins.forEach((origin, index) => {
+      const node =
+        byId.get(origin.eventId) ?? (index === 0 ? laneNodes[0] : undefined)
+      if (!node || node.event.tradition !== lane.id) return
+      if (index === 0) lane.startX = Math.min(lane.startX ?? node.x, node.x)
+      origins.push({
+        eventId: node.event.id,
+        laneId: lane.id,
+        x: node.x,
+        y: node.y,
+        color: lane.color,
+        dateLabel: origin.dateLabel,
+        place: origin.place,
+      })
+    })
+  }
 
   const edges: PositionedEdge[] = []
   for (const node of nodes) {
@@ -189,7 +282,9 @@ export function buildLayout(
     edges,
     eras,
     lanes,
+    laneGroups: groups,
+    origins,
     width,
-    height: Math.max(lanes.length, 1) * LANE_HEIGHT,
+    height: Math.max(top, LANE_HEIGHT),
   }
 }

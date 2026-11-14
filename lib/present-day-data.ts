@@ -138,21 +138,21 @@ export const PRESENT_DAY_DEFINITIONS: Record<
     ],
   },
   protestant: {
-    title: 'Lutheran and Reformed churches today',
+    title: 'Lutheran churches today',
     summary:
-      'Worldwide Lutheran and Reformed communions together represent major, overlapping families of Protestant churches.',
+      'A worldwide family of Lutheran churches, from national churches in Scandinavia to fast-growing churches in Africa and Asia.',
     detail:
-      'This timeline lane combines two distinct families rather than one denomination. Their global bodies publish separate membership figures, and some united churches belong to more than one communion, so the numbers should not be added into a single total.',
+      'Lutheran churches share the Augsburg Confession and Luther’s emphasis on justification by grace through faith, but differ in polity and theology. The Lutheran World Federation gathers most of them; confessional bodies such as the LCMS stand outside it in the International Lutheran Council.',
     profile: {
-      asOf: 'LWF and WCRC profiles accessed September 2026',
-      membership: 'LWF: 78m+ · WCRC: 100m+',
+      asOf: 'LWF profile accessed September 2026',
+      membership: 'LWF: 78m+',
       membershipNote:
-        'Figures cover member churches of each communion and overlap through some united churches; they are not a combined census of all Lutheran and Reformed Christians.',
+        'Members of Lutheran World Federation churches; confessional Lutheran bodies outside the LWF, including the LCMS, are counted separately.',
       geography:
-        'Strong historic bases remain in northern and central Europe and North America, with large and growing member churches across Africa, Asia and the Pacific.',
+        'Historic strongholds in Germany, Scandinavia and the American Midwest; some of the largest member churches are now in Ethiopia and Tanzania.',
       currentDevelopments: [
-        'Global leadership and membership continue shifting beyond the traditions’ European origins.',
-        'Church unity, climate justice, peacebuilding and relations with other communions remain shared priorities.',
+        'Membership growth is concentrated in Africa and Asia while northern European national churches decline.',
+        'Lutheran–Catholic dialogue continues to build on the 1999 Joint Declaration on Justification.',
       ],
     },
     links: [
@@ -160,6 +160,27 @@ export const PRESENT_DAY_DEFINITIONS: Record<
         label: 'Lutheran World Federation — Who we are',
         url: 'https://lutheranworld.org/who-we-are',
       },
+    ],
+  },
+  reformed: {
+    title: 'Reformed and Presbyterian churches today',
+    summary:
+      'Presbyterian, Reformed, Congregational and united churches across more than 100 countries.',
+    detail:
+      'The Reformed family is governed by elders and synods rather than bishops, and is deeply decentralized. Its churches range from mainline bodies such as the PC(USA) and RCA to confessional churches such as the PCA and CRC.',
+    profile: {
+      asOf: 'WCRC profile accessed September 2026',
+      membership: 'WCRC: 100m+',
+      membershipNote:
+        'Members of World Communion of Reformed Churches bodies; many conservative Reformed churches, including the PCA, are not WCRC members.',
+      geography:
+        'Historic centres in Switzerland, the Netherlands, Scotland and the United States, with very large churches in South Korea, Indonesia, Nigeria and southern Africa.',
+      currentDevelopments: [
+        'Mainline and confessional Presbyterian bodies continue to diverge over doctrine and sexuality.',
+        'Korean, African and Indonesian churches increasingly shape the global Reformed family.',
+      ],
+    },
+    links: [
       {
         label: 'World Communion of Reformed Churches',
         url: 'https://wcrc.eu/communion/',
@@ -167,31 +188,52 @@ export const PRESENT_DAY_DEFINITIONS: Record<
     ],
   },
   radical: {
-    title: 'Anabaptist and Baptist churches today',
+    title: 'Anabaptist churches today',
     summary:
-      'Two related but distinct free-church families now span nearly every region of the world.',
+      'Mennonite, Amish, Hutterite and Brethren in Christ communities, now mostly in the Global South.',
     detail:
-      'This lane combines Anabaptist bodies and the much larger Baptist family. Their global organizations count baptized members rather than everyone who attends or identifies with the tradition, and many independent Baptist groups are outside the Baptist World Alliance.',
+      'Anabaptist churches keep believer’s baptism, nonviolence and close-knit community life. Plain communities such as the Amish and Hutterites are mainly in North America; most Mennonites now live in Africa, Asia and Latin America.',
     profile: {
-      asOf: 'BWA July 2025; MWC November 2025',
-      membership: 'BWA: 53m · Anabaptists: 2.13m',
+      asOf: 'MWC November 2025',
+      membership: 'About 2.13 million',
       membershipNote:
-        'The BWA figure covers its member partners; the MWC world directory counts the wider Anabaptist family, of whom about 1.44 million belong to MWC member churches.',
+        'Mennonite World Conference directory of the wider Anabaptist family; about 1.44 million belong to MWC member churches.',
       geography:
-        'Baptists are especially numerous in North America, Africa, India and parts of Latin America. About 84% of MWC members live in Africa, Asia or Latin America.',
+        'About 84% of MWC members live in Africa, Asia or Latin America; Amish and Hutterite communities are concentrated in the United States and Canada.',
+      currentDevelopments: [
+        'Anabaptists marked 500 years since the first adult baptisms in Zurich in 2025.',
+        'Amish and Hutterite populations continue to grow quickly through large families and high retention.',
+      ],
+    },
+    links: [
+      {
+        label: 'Mennonite World Conference — About and statistics',
+        url: 'https://mwc-cmm.org/en/about-mwc/',
+      },
+    ],
+  },
+  baptist: {
+    title: 'Baptist churches today',
+    summary:
+      'One of the largest Protestant families, built on believer’s baptism and autonomous local congregations.',
+    detail:
+      'Baptists organize in voluntary conventions and unions rather than a single church. The Southern Baptist Convention remains the largest Protestant body in the United States, and many independent Baptist churches belong to no convention at all.',
+    profile: {
+      asOf: 'BWA July 2025',
+      membership: 'BWA: 53 million',
+      membershipNote:
+        'Baptized members of Baptist World Alliance partner bodies; the SBC left the BWA in 2004 and many independent Baptists are not counted.',
+      geography:
+        'Especially numerous in the United States, Nigeria, India, Brazil and the Democratic Republic of the Congo.',
       currentDevelopments: [
         'The Baptist World Alliance expanded to 283 member bodies in 138 countries and territories in 2025.',
-        'Anabaptists marked 500 years since the Radical Reformation while emphasizing peace, unity and a Global South majority.',
+        'U.S. conventions continue to debate women in ministry, abuse reform and declining membership.',
       ],
     },
     links: [
       {
         label: 'Baptist World Alliance — 2025 membership',
         url: 'https://baptistworld.org/news/bwa-welcomes-17-new-members/',
-      },
-      {
-        label: 'Mennonite World Conference — About and statistics',
-        url: 'https://mwc-cmm.org/en/about-mwc/',
       },
     ],
   },
@@ -274,6 +316,131 @@ export const PRESENT_DAY_DEFINITIONS: Record<
       },
     ],
   },
+  adventist: {
+    title: 'Seventh-day Adventist Church today',
+    summary:
+      'A single, centrally organized worldwide church of more than 20 million baptized members.',
+    detail:
+      'Unlike most Protestant families, Adventism is largely one denomination governed by a General Conference. It is known for Saturday Sabbath worship, its health message and one of the largest Protestant school and hospital networks in the world.',
+    profile: {
+      asOf: 'General Conference statistics accessed November 2026',
+      membership: 'About 23 million',
+      membershipNote:
+        'Baptized members reported by the General Conference; smaller Sabbath-keeping Adventist bodies are not included.',
+      geography:
+        'Largest memberships are in sub-Saharan Africa, Latin America and the Caribbean, India and the Philippines.',
+      currentDevelopments: [
+        'Most growth is in Africa and Latin America; North America is a small share of the total.',
+        'Debates over women’s ordination continue between the General Conference and some regional bodies.',
+      ],
+    },
+    links: [
+      {
+        label: 'Adventist.org — Who are Seventh-day Adventists?',
+        url: 'https://www.adventist.org/who-are-seventh-day-adventists/',
+      },
+    ],
+  },
+  evangelical: {
+    title: 'Evangelical and non-denominational Christianity today',
+    summary:
+      'A large, decentralized movement that cuts across denominations and fills many independent churches and megachurches.',
+    detail:
+      'Evangelicalism has no founder, headquarters or membership roll. Evangelicals are found in Baptist, Pentecostal, Anglican, Reformed and Methodist churches as well as independent congregations. Non-denominational churches are now among the largest segments of American Protestantism.',
+    profile: {
+      asOf: 'WEA profile accessed November 2026',
+      membership: 'WEA: 600m+ (est.)',
+      membershipNote:
+        'World Evangelical Alliance estimate of the evangelicals its networks serve. It overlaps heavily with other lanes and cannot be added to their totals.',
+      geography:
+        'Global, with the largest and fastest-growing populations in Africa, Latin America and Asia; the United States remains a major institutional centre.',
+      currentDevelopments: [
+        'Independent, non-denominational congregations continue to grow while many denominations decline.',
+        'The meaning of “evangelical” is contested where it has become a political as well as religious label.',
+      ],
+    },
+    links: [
+      {
+        label: 'World Evangelical Alliance — About',
+        url: 'https://worldea.org/who-we-are/',
+      },
+    ],
+  },
+  restoration: {
+    title: 'Restoration Movement churches today',
+    summary:
+      'Disciples of Christ, Churches of Christ and independent Christian Churches share Stone–Campbell roots but no common structure.',
+    detail:
+      'The movement’s three main streams emphasize believer’s baptism, weekly communion and the New Testament as the pattern for the church. Churches of Christ and independent Christian Churches are congregational, so there is no unified membership count.',
+    profile: {
+      asOf: 'World Convention profile accessed November 2026',
+      membership: 'Several million (no unified count)',
+      membershipNote:
+        'Each stream counts members differently and congregational churches report voluntarily, so figures should not be combined into one total.',
+      geography:
+        'Strongest in the southern and midwestern United States, with significant churches in Africa, Asia, Australia and the Caribbean.',
+      currentDevelopments: [
+        'The World Convention connects the three streams for fellowship and dialogue.',
+        'Churches of Christ and Christian Churches are growing through missions in Africa and Asia.',
+      ],
+    },
+    links: [
+      {
+        label: 'World Convention of Churches of Christ',
+        url: 'https://worldconvention.org/',
+      },
+    ],
+  },
+  'latter-day-saints': {
+    title: 'Latter-day Saints today',
+    summary:
+      'A centrally governed worldwide church that identifies as Christian but stands outside the historic Nicene creeds.',
+    detail:
+      'Latter-day Saints accept additional scripture, including the Book of Mormon, and teach a distinct view of the Godhead. The church is led from Salt Lake City by a president and apostles. Most Catholic, Orthodox and Protestant churches do not recognize it as Christian in the creedal sense.',
+    profile: {
+      asOf: 'Figures reported for 2024',
+      membership: 'About 17.5 million',
+      membershipNote:
+        'Membership of record reported by the church; it counts everyone on church rolls rather than regular attenders.',
+      geography:
+        'Headquartered in Salt Lake City, Utah, with most members now living outside the United States, especially in Latin America and the Pacific.',
+      currentDevelopments: [
+        'The church continues an extensive international temple-building program.',
+        'Growth is strongest in Africa and Latin America, while U.S. growth has slowed.',
+      ],
+    },
+    links: [
+      {
+        label: 'Church of Jesus Christ — Facts and statistics',
+        url: 'https://newsroom.churchofjesuschrist.org/facts-and-statistics',
+      },
+    ],
+  },
+  'jehovahs-witnesses': {
+    title: 'Jehovah’s Witnesses today',
+    summary:
+      'A centrally governed worldwide movement that identifies as Christian but rejects the Trinity.',
+    detail:
+      'Jehovah’s Witnesses are directed by a Governing Body at their headquarters in Warwick, New York, and are known for door-to-door ministry and their own New World Translation of the Bible. Most Catholic, Orthodox and Protestant churches do not recognize the movement as Christian in the creedal sense.',
+    profile: {
+      asOf: 'Figures reported for 2024',
+      membership: 'About 9 million publishers',
+      membershipNote:
+        'Counts active “publishers” who report ministry, not everyone who attends meetings; attendance at the annual Memorial is much higher.',
+      geography:
+        'Active in over 200 lands, with large communities in the United States, Latin America, Africa and Europe.',
+      currentDevelopments: [
+        'The movement faces legal restrictions in some countries, including a ban in Russia since 2017.',
+        'Recent organizational changes have relaxed some reporting and grooming requirements.',
+      ],
+    },
+    links: [
+      {
+        label: 'Jehovah’s Witnesses — Official site',
+        url: 'https://www.jw.org/en/',
+      },
+    ],
+  },
 }
 
 const continuingTraditions = Object.keys(
@@ -292,20 +459,22 @@ export function withPresentDayEndpoints(
     if (!latest) return []
 
     const definition = PRESENT_DAY_DEFINITIONS[tradition]
-    return [{
-      id: `present-day-${tradition}`,
-      year: PRESENT_DAY_YEAR,
-      dateLabel: 'Present · 2026',
-      title: definition.title,
-      tradition,
-      parents: [latest.id],
-      kind: 'event' as const,
-      icon: { type: 'lucide' as const, name: 'Globe' },
-      summary: definition.summary,
-      detail: definition.detail,
-      presentDay: definition.profile,
-      links: definition.links,
-    }]
+    return [
+      {
+        id: `present-day-${tradition}`,
+        year: PRESENT_DAY_YEAR,
+        dateLabel: 'Present · 2026',
+        title: definition.title,
+        tradition,
+        parents: [latest.id],
+        kind: 'event' as const,
+        icon: { type: 'lucide' as const, name: 'Globe' },
+        summary: definition.summary,
+        detail: definition.detail,
+        presentDay: definition.profile,
+        links: definition.links,
+      },
+    ]
   })
 
   return [...historicalOnly, ...endpoints]

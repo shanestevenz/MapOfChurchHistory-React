@@ -60,7 +60,7 @@ test('Neon Postgres schema, moderation, and retention integration', async (t) =>
       const { rows: parents } = await client.query('select count(*)::integer as count from public.event_parents')
       const pentecost = await client.query("select id from public.timeline_events where id = 'pentecost'")
 
-      assert.equal(traditions[0].count, 10)
+      assert.equal(traditions[0].count, 17)
       assert.ok(events[0].count >= 50)
       assert.ok(groups[0].count > 0)
       assert.ok(parents[0].count > 0)
