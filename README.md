@@ -1,6 +1,6 @@
 # Map Of Church History
 
-An illustrated, interactive journey through two thousand years of church history.
+Interactive church-history timeline built with Next.js 16 and Supabase. 
 
 The Map of Church History viusally maps councils, schisms, reformations, revivals, missionary movements, and influential people as a branching timeline. Its purpose is to make the relationships between Christian traditions easier to explore without reducing their history to a simple list of dates.
 
