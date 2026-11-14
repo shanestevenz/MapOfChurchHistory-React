@@ -20,7 +20,8 @@ export default defineConfig([
   globalIgnores([
     '.next/**',
     'node_modules/**',
-    'lib/supabase/database.types.ts',
-    'supabase/**',
+    'db/seed.sql',
+    'playwright-report/**',
+    'test-results/**',
   ]),
 ])

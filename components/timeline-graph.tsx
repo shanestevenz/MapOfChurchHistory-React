@@ -42,9 +42,8 @@ interface TimelineGraphProps {
 }
 
 /**
- * Middle-button drag pans the canvas and the wheel zooms about the pointer.
- * Native listeners are used so the browser's own middle-click autoscroll and
- * default wheel scrolling never take over.
+ * Left-button drag pans the canvas background and the wheel zooms about the
+ * pointer. Interactive controls keep their normal click behavior.
  */
 function useCanvasGestures(
   ref: React.RefObject<HTMLDivElement | null>,
@@ -146,8 +145,18 @@ function useCanvasGestures(
     }
 
     const onDown = (event: MouseEvent) => {
-      if (event.button !== 1) return
-      // Suppresses the OS autoscroll cursor and middle-click paste.
+      if (event.button !== 0) return
+      const target = event.target
+      if (
+        target instanceof Element &&
+        target.closest(
+          'button, a, input, textarea, select, [role="button"], [contenteditable="true"]',
+        )
+      ) {
+        return
+      }
+
+      // Keep background drags from selecting labels or starting native drags.
       event.preventDefault()
       active = true
       setIsPanning(true)
@@ -157,11 +166,6 @@ function useCanvasGestures(
       startTop = el.scrollTop
       window.addEventListener('mousemove', onMove, { passive: false })
       window.addEventListener('mouseup', stop)
-    }
-
-    // Middle-click on a link or button would otherwise open a tab.
-    const onAuxClick = (event: MouseEvent) => {
-      if (event.button === 1) event.preventDefault()
     }
 
     const onWheel = (event: WheelEvent) => {
@@ -201,13 +205,11 @@ function useCanvasGestures(
     }
 
     el.addEventListener('mousedown', onDown)
-    el.addEventListener('auxclick', onAuxClick)
     el.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('blur', stop)
 
     return () => {
       el.removeEventListener('mousedown', onDown)
-      el.removeEventListener('auxclick', onAuxClick)
       el.removeEventListener('wheel', onWheel)
       window.removeEventListener('blur', stop)
       if (animationRef.current !== null) cancelAnimationFrame(animationRef.current)
@@ -307,8 +309,8 @@ export function TimelineGraph({
     <div
       ref={scrollRef}
       className={cn(
-        'no-scrollbar relative h-full overflow-auto rounded-xl border border-border bg-card/40',
-        isPanning && 'cursor-grabbing select-none',
+        'no-scrollbar relative h-full cursor-grab overflow-auto rounded-xl border border-border bg-card/40',
+        isPanning && 'cursor-grabbing select-none [&_*]:cursor-grabbing',
       )}
     >
       <div
@@ -430,7 +432,7 @@ export function TimelineGraph({
                   }))
                 }}
                 className={cn(
-                  'absolute top-1.5 flex h-9 items-center gap-2 overflow-hidden rounded-md border px-3 text-left transition-[background-color,border-color] duration-200 hover:bg-primary/15 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+                  'absolute top-1.5 flex h-9 cursor-default items-center gap-2 overflow-hidden rounded-md border px-3 text-left transition-[background-color,border-color] duration-200 hover:bg-primary/15 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
                   isLayoutAnimating &&
                     'transition-[left,width,background-color,border-color] duration-[350ms] ease-in-out',
                   isExpanded
@@ -498,6 +500,19 @@ export function TimelineGraph({
               transform: `scale(${renderedZoom})`,
             }}
           >
+            {nodes.some((node) => node.event.presentDay) && (
+              <div
+                className="pointer-events-none absolute inset-y-0 border-x border-primary/20 bg-linear-to-r from-primary/3 via-primary/10 to-primary/3"
+                style={{
+                  left:
+                    (nodes.find((node) => node.event.presentDay)?.x ?? 0) -
+                    COL_WIDTH / 2,
+                  width: COL_WIDTH,
+                }}
+                aria-hidden="true"
+              />
+            )}
+
             {/* This shares the node transform so it cannot lag during zoom. */}
             {groups.map((group) => {
               const members = nodes.filter(
@@ -613,7 +628,8 @@ export function TimelineGraph({
                       onClick={() => onSelect(event)}
                       aria-label={`${event.title}, ${event.dateLabel}`}
                       className={cn(
-                        'group relative flex items-center justify-center rounded-full border-2 bg-card text-foreground transition-transform duration-150 outline-none hover:scale-110 focus-visible:ring-3 focus-visible:ring-ring/50',
+                        'group relative flex cursor-default items-center justify-center rounded-full border-2 bg-card text-foreground transition-transform duration-150 outline-none hover:scale-110 focus-visible:ring-3 focus-visible:ring-ring/50',
+                        event.presentDay && 'border-[3px] bg-primary/10',
                         isSelected && 'scale-110',
                       )}
                       style={{
@@ -622,7 +638,9 @@ export function TimelineGraph({
                         borderColor: color,
                         boxShadow: isSelected
                           ? `0 0 0 5px color-mix(in oklab, ${color} 22%, transparent)`
-                          : undefined,
+                          : event.presentDay
+                            ? `0 0 0 4px color-mix(in oklab, ${color} 16%, transparent)`
+                            : undefined,
                       }}
                     >
                       {event.icon.type === 'image' ? (
@@ -644,12 +662,12 @@ export function TimelineGraph({
                       )}
                     </button>
 
-                    {isAdmin && (
+                    {isAdmin && !event.presentDay && (
                       <button
                         type="button"
                         onClick={() => onEdit(event)}
                         aria-label={`Edit ${event.title}`}
-                        className="absolute -top-1 -right-1 flex size-6 items-center justify-center rounded-full border border-border bg-secondary text-secondary-foreground transition-colors hover:bg-accent"
+                        className="absolute -top-1 -right-1 flex size-6 cursor-default items-center justify-center rounded-full border border-border bg-secondary text-secondary-foreground transition-colors hover:bg-accent"
                       >
                         <PencilIcon className="size-3" />
                       </button>
@@ -659,7 +677,7 @@ export function TimelineGraph({
                   <button
                     type="button"
                     onClick={() => onSelect(event)}
-                    className="mt-2 flex w-full flex-col items-center gap-0.5 px-2 text-center outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                    className="mt-2 flex w-full cursor-default flex-col items-center gap-0.5 px-2 text-center outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                   >
                     <span className="label-caps text-[10px]" style={{ color }}>
                       {event.dateLabel}
@@ -673,7 +691,7 @@ export function TimelineGraph({
                       {event.title}
                     </span>
                     <span className="label-caps text-[9px] text-muted-foreground/70">
-                      {KIND_LABEL[event.kind]}
+                      {event.presentDay ? 'Today' : KIND_LABEL[event.kind]}
                     </span>
                   </button>
                 </div>

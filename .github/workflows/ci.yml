@@ -4,33 +4,22 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-jobs:
-  application:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_build_placeholder
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm audit --audit-level=moderate
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-  database:
+jobs:
+  unit-and-build:
+    name: Unit tests, lint, typecheck, and build
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,16 +27,121 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - uses: supabase/setup-cli@v3
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npm run build
+
+  postgres-integration:
+    name: Postgres schema and procedure integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: church_history_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d church_history_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/church_history_ci
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/church_history_ci
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/church_history_ci
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ci-only-auth-secret-do-not-use-in-any-deployment-32
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          version: 2.117.0
-      - name: Start local Supabase
-        run: supabase start
-      - name: Confirm local services are ready
-        run: supabase status
-      - name: Replay migrations from an empty database
-        run: npm run db:reset
-      - name: Run database smoke test
-        run: npm run db:test
-      - name: Lint database schema
-        run: supabase db lint --local --level warning
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply Better Auth schema
+        run: npm run auth:migrate
+      - name: Apply application schema
+        run: npm run db:migrate
+      - name: Load public timeline seed
+        run: npm run db:seed
+      - name: Verify fresh curator bootstrap
+        run: >-
+          npm run auth:create-admin -- --email ci-curator@example.test
+          --name "CI Curator"
+          --password "CI-only-password-never-used-outside-this-job"
+          --yes
+      - name: Exercise schema, permissions, moderation, limits, and retention
+        run: npm run test:integration
+
+  playwright:
+    name: Playwright end-to-end tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: church_history_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d church_history_e2e"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/church_history_e2e
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/church_history_e2e
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ci-only-auth-secret-do-not-use-in-any-deployment-32
+      BETTER_AUTH_TRUSTED_ORIGINS: http://localhost:3000
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ''
+      TURNSTILE_SECRET_KEY: ''
+      RATE_LIMIT_SECRET: ci-only-rate-limit-secret
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply Better Auth schema
+        run: npm run auth:migrate
+      - name: Apply application schema and seed
+        run: npm run db:migrate && npm run db:seed
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: playwright-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  dependency-audit:
+    name: Dependency security audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Fail on high or critical dependency advisories
+        run: npm run audit
+      - name: Fail on any production dependency advisory
+        run: npm audit --omit=dev --audit-level=low
