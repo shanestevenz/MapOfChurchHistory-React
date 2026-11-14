@@ -104,7 +104,7 @@ export function TimelinePage() {
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
           <p className="hidden items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground 2xl:flex">
             <MouseIcon className="size-3.5" />
-            Wheel to zoom · middle-drag to pan
+            Wheel to zoom · left-drag to pan
           </p>
           <Separator orientation="vertical" className="hidden h-6 2xl:block" />
           <TimelineLegend
