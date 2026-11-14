@@ -22,7 +22,11 @@ import {
   type TimelineFilters,
 } from '@/lib/timeline-filters'
 import { ERAS, traditionColor } from '@/lib/timeline-layout'
-import type { TimelineEvent, TraditionId } from '@/lib/timeline-types'
+import type {
+  LaneGroup,
+  TimelineEvent,
+  TraditionId,
+} from '@/lib/timeline-types'
 import { cn } from '@/lib/utils'
 
 interface TimelineFiltersPanelProps {
@@ -358,50 +362,66 @@ export function TimelineFiltersPanel({
 
                   {isOpen && (
                     <div className="ml-7 flex flex-col border-l border-border pl-1.5">
-                      {category.traditions.map((id) => {
-                        const tradition = TRADITION_MAP[id]
-                        const isVisible = !hidden.has(id)
+                      {subdivide(category.traditions).map((section) => {
+                        const row = (id: TraditionId) => (
+                          <TraditionRow
+                            key={id}
+                            id={id}
+                            visible={!hidden.has(id)}
+                            count={counts[id] ?? 0}
+                            onToggle={(visible) => setTraditions([id], visible)}
+                            onOnly={() => showOnly([id])}
+                          />
+                        )
+                        if (!section.group) return section.traditions.map(row)
+
+                        // A sub-group (e.g. Magisterial Reformation) toggles
+                        // all of its denominations at once.
+                        const shown = section.traditions.filter(
+                          (id) => !hidden.has(id),
+                        ).length
+                        const subState: CheckState =
+                          shown === 0
+                            ? 'off'
+                            : shown === section.traditions.length
+                              ? 'on'
+                              : 'mixed'
                         return (
                           <div
-                            key={id}
-                            className="group/row flex items-center rounded-md hover:bg-accent/60"
+                            key={section.group.id}
+                            className="mt-1 first:mt-0"
                           >
-                            <button
-                              type="button"
-                              role="checkbox"
-                              aria-checked={isVisible}
-                              title={tradition.blurb}
-                              onClick={() => setTraditions([id], !isVisible)}
-                              className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[13px] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-                            >
-                              <TriCheck
-                                state={isVisible ? 'on' : 'off'}
-                                color={traditionColor(id)}
-                              />
-                              <span className="flex min-w-0 flex-col">
-                                <span
-                                  className={cn(
-                                    'truncate',
-                                    !isVisible && 'text-muted-foreground',
-                                  )}
-                                >
-                                  {tradition.name}
+                            <div className="group/row flex items-center rounded-md hover:bg-accent/60">
+                              <button
+                                type="button"
+                                role="checkbox"
+                                aria-checked={
+                                  subState === 'mixed'
+                                    ? 'mixed'
+                                    : subState === 'on'
+                                }
+                                title={section.group.blurb}
+                                onClick={() =>
+                                  setTraditions(
+                                    section.traditions,
+                                    subState !== 'on',
+                                  )
+                                }
+                                className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                              >
+                                <TriCheck state={subState} />
+                                <span className="label-caps truncate text-[10px] text-muted-foreground">
+                                  {section.group.name}
                                 </span>
-                                {tradition.origins[0] && (
-                                  <span className="truncate text-[10px] text-muted-foreground">
-                                    Began {tradition.origins[0].dateLabel} ·{' '}
-                                    {tradition.origins[0].place}
-                                  </span>
-                                )}
-                              </span>
-                              <span className="ml-auto pl-1 text-[10px] text-muted-foreground tabular-nums">
-                                {counts[id] ?? 0}
-                              </span>
-                            </button>
-                            <OnlyButton
-                              label={tradition.name}
-                              onClick={() => showOnly([id])}
-                            />
+                              </button>
+                              <OnlyButton
+                                label={section.group.name}
+                                onClick={() => showOnly(section.traditions)}
+                              />
+                            </div>
+                            <div className="ml-3.5 flex flex-col border-l border-border/60 pl-1.5">
+                              {section.traditions.map(row)}
+                            </div>
                           </div>
                         )
                       })}
@@ -485,6 +505,70 @@ export function TimelineFiltersPanel({
           </div>
         </Section>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Splits a category's traditions into runs that share a nested lane group
+ * (e.g. Protestant → Magisterial Reformation), matching the timeline's
+ * headers. Top-level groups are the category itself, so they don't repeat.
+ */
+function subdivide(
+  ids: TraditionId[],
+): { group: LaneGroup | null; traditions: TraditionId[] }[] {
+  const sections: { group: LaneGroup | null; traditions: TraditionId[] }[] = []
+  for (const id of ids) {
+    const laneGroup = TRADITION_MAP[id].laneGroup
+    const group = laneGroup?.parent ? laneGroup : null
+    const last = sections.at(-1)
+    if (last && last.group?.id === group?.id) last.traditions.push(id)
+    else sections.push({ group, traditions: [id] })
+  }
+  return sections
+}
+
+function TraditionRow({
+  id,
+  visible,
+  count,
+  onToggle,
+  onOnly,
+}: {
+  id: TraditionId
+  visible: boolean
+  count: number
+  onToggle: (visible: boolean) => void
+  onOnly: () => void
+}) {
+  const tradition = TRADITION_MAP[id]
+  return (
+    <div className="group/row flex items-center rounded-md hover:bg-accent/60">
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={visible}
+        title={tradition.blurb}
+        onClick={() => onToggle(!visible)}
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[13px] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      >
+        <TriCheck state={visible ? 'on' : 'off'} color={traditionColor(id)} />
+        <span className="flex min-w-0 flex-col">
+          <span className={cn('truncate', !visible && 'text-muted-foreground')}>
+            {tradition.name}
+          </span>
+          {tradition.origins[0] && (
+            <span className="truncate text-[10px] text-muted-foreground">
+              Began {tradition.origins[0].dateLabel} ·{' '}
+              {tradition.origins[0].place}
+            </span>
+          )}
+        </span>
+        <span className="ml-auto pl-1 text-[10px] text-muted-foreground tabular-nums">
+          {count}
+        </span>
+      </button>
+      <OnlyButton label={tradition.name} onClick={onOnly} />
     </div>
   )
 }

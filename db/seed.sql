@@ -10,13 +10,13 @@ insert into public.traditions(id,name,blurb,lane,family) values
   ('catholic','Roman Catholic','The Latin West gathered around the See of Rome.',4,'ruby'),
   ('protestant','Lutheran','From the sixteenth-century Reformation through Lutheran churches worldwide, including the Church of Sweden, LCMS and ELCA.',5,'emerald'),
   ('reformed','Reformed & Presbyterian','Reformed churches shaped by Zwingli and Calvin, including the RCA, CRC, PC(USA) and PCA.',6,'emerald'),
-  ('radical','Anabaptist','The Radical Reformation and its continuing Mennonite, Amish and Hutterite communities.',7,'copper'),
-  ('baptist','Baptist','A free-church tradition with autonomous congregations and many distinct conventions.',8,'copper'),
-  ('anglican','Anglican & Episcopal','The Church of England and autonomous Anglican and Episcopal churches worldwide.',9,'amethyst'),
+  ('anglican','Anglican & Episcopal','The Church of England and autonomous Anglican and Episcopal churches worldwide.',7,'amethyst'),
+  ('radical','Anabaptist','The Radical Reformation and its continuing Mennonite, Amish and Hutterite communities.',8,'copper'),
+  ('baptist','Baptist','A free-church tradition with autonomous congregations and many distinct conventions.',9,'copper'),
   ('methodist','Methodist & Wesleyan','The Wesleyan revival, Methodist churches and holiness descendants such as Free Methodists and Nazarenes.',10,'amethyst'),
   ('pentecostal','Pentecostal & Charismatic','Pentecostal denominations and the wider charismatic renewal.',11,'amethyst'),
-  ('adventist','Adventist','Sabbatarian Adventism and the Seventh-day Adventist Church.',12,'sapphire'),
-  ('evangelical','Evangelical & Non-denominational','A diverse, decentralized movement with no single founding body or central governing authority.',13,'gold'),
+  ('evangelical','Evangelical & Non-denominational','A diverse, decentralized movement with no single founding body or central governing authority.',12,'gold'),
+  ('adventist','Adventist','Sabbatarian Adventism and the Seventh-day Adventist Church.',13,'sapphire'),
   ('restoration','Restoration Movement','The Stone–Campbell movement, including Disciples of Christ, Churches of Christ and independent Christian Churches.',14,'gold'),
   ('latter-day-saints','Latter-day Saints','The Church of Jesus Christ of Latter-day Saints, outside the historic Nicene creeds; its classification as Christian is disputed by other traditions.',15,'ruby'),
   ('jehovahs-witnesses','Jehovah’s Witnesses','A movement grown from the Bible Students, outside the historic Nicene creeds; its classification as Christian is disputed by other traditions.',16,'ruby')
@@ -369,4 +369,4 @@ on conflict (event_id,parent_id) do update set sort_order=excluded.sort_order;
 -- Remove traditions that no longer exist in the code (e.g. after a lane is split).
 -- Their seeded events were moved above; if any other event still uses one,
 -- the foreign key makes this fail instead of silently dropping data.
-delete from public.traditions where id not in ('east-syriac','oriental','orthodox','undivided','catholic','protestant','reformed','radical','baptist','anglican','methodist','pentecostal','adventist','evangelical','restoration','latter-day-saints','jehovahs-witnesses');
+delete from public.traditions where id not in ('east-syriac','oriental','orthodox','undivided','catholic','protestant','reformed','anglican','radical','baptist','methodist','pentecostal','evangelical','adventist','restoration','latter-day-saints','jehovahs-witnesses');

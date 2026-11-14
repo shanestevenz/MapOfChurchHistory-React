@@ -1,8 +1,6 @@
 'use client'
 
-import { createAuthClient } from 'better-auth/react'
-import { twoFactorClient } from 'better-auth/client/plugins'
+import { createAuthClient } from '@neon/auth/next'
 
-export const authClient = createAuthClient({
-  plugins: [twoFactorClient()],
-})
+// Talks to this app's same-origin proxy at /api/auth, which forwards to Neon Auth.
+export const authClient = createAuthClient()

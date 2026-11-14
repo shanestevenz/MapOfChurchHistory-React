@@ -1,5 +1,6 @@
 -- Application schema for the Neon Postgres backend.
--- Run Better Auth's schema migration first; it creates auth."user".
+-- Requires Neon Auth to be enabled on the branch first: it creates neon_auth."user".
+-- (Local Postgres and CI create a stand-in with `npm run db:local-auth-stub`.)
 
 create extension if not exists pgcrypto;
 
@@ -42,8 +43,8 @@ create table public.timeline_events (
   group_id text references public.timeline_groups(id) on update cascade on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  created_by text references auth."user"(id) on delete set null,
-  updated_by text references auth."user"(id) on delete set null
+  created_by uuid references neon_auth."user"(id) on delete set null,
+  updated_by uuid references neon_auth."user"(id) on delete set null
 );
 create index timeline_events_year_idx on public.timeline_events(year);
 create index timeline_events_tradition_idx on public.timeline_events(tradition_id);
@@ -70,7 +71,7 @@ create table public.edit_suggestions (
   status public.suggestion_status not null default 'pending',
   created_at timestamptz not null default now(),
   reviewed_at timestamptz,
-  reviewed_by text references auth."user"(id) on delete set null,
+  reviewed_by uuid references neon_auth."user"(id) on delete set null,
   check ((status = 'pending' and reviewed_at is null and reviewed_by is null) or
          (status <> 'pending' and reviewed_at is not null and reviewed_by is not null))
 );
@@ -105,18 +106,17 @@ create trigger traditions_updated_at before update on public.traditions for each
 create trigger timeline_groups_updated_at before update on public.timeline_groups for each row execute function public.set_updated_at();
 create trigger timeline_events_updated_at before update on public.timeline_events for each row execute function public.set_updated_at();
 
-create function public.is_curator(p_user_id text) returns boolean
+create function public.is_curator(p_user_id uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (
     select 1
-    from auth."user" u
+    from neon_auth."user" u
     where u.id = p_user_id
       and u.role = 'admin'
-      and coalesce(u."twoFactorEnabled", false)
   );
 $$;
 
-create function public.save_timeline_event(p_user_id text, p_event_data jsonb, p_parent_ids text[] default '{}') returns void
+create function public.save_timeline_event(p_user_id uuid, p_event_data jsonb, p_parent_ids text[] default '{}') returns void
 language plpgsql security definer set search_path = '' as $$
 declare
   target_event_id text;
@@ -210,7 +210,7 @@ begin
 end;
 $$;
 
-create function public.save_timeline_group(p_user_id text, p_group_data jsonb) returns void
+create function public.save_timeline_group(p_user_id uuid, p_group_data jsonb) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
   if not public.is_curator(p_user_id) then raise exception 'curator_access_required' using errcode = '42501'; end if;
@@ -235,7 +235,7 @@ begin
 end;
 $$;
 
-create function public.delete_timeline_group(p_user_id text, p_target_id text) returns void
+create function public.delete_timeline_group(p_user_id uuid, p_target_id text) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
   if not public.is_curator(p_user_id) then raise exception 'curator_access_required' using errcode = '42501'; end if;
@@ -243,7 +243,7 @@ begin
 end;
 $$;
 
-create function public.delete_timeline_event(p_user_id text, p_target_id text) returns void
+create function public.delete_timeline_event(p_user_id uuid, p_target_id text) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
   if not public.is_curator(p_user_id) then raise exception 'curator_access_required' using errcode = '42501'; end if;
@@ -360,7 +360,7 @@ begin
 end;
 $$;
 
-create function public.review_edit_suggestion(p_user_id text, p_suggestion_id uuid, p_decision text) returns void
+create function public.review_edit_suggestion(p_user_id uuid, p_suggestion_id uuid, p_decision text) returns void
 language plpgsql security definer set search_path = '' as $$
 declare
   suggestion public.edit_suggestions%rowtype;

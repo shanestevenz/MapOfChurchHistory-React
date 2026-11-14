@@ -22,8 +22,8 @@ function assertSafeTestDatabase(value) {
 test('Neon Postgres schema, moderation, and retention integration', async (t) => {
   const client = new pg.Client({ connectionString: assertSafeTestDatabase(connectionString) })
   const suffix = randomUUID().replaceAll('-', '')
-  const adminId = `ci-admin-${suffix}`
-  const memberId = `ci-member-${suffix}`
+  const adminId = randomUUID()
+  const memberId = randomUUID()
   const eventId = `ci-event-${suffix}`
   const groupId = `ci-group-${suffix}`
   const emailSuffix = `${suffix}@ci.example.test`
@@ -38,18 +38,18 @@ test('Neon Postgres schema, moderation, and retention integration', async (t) =>
     const requiredTables = await client.query(`
       select to_regclass('public.timeline_events') as events,
              to_regclass('public.edit_suggestions') as suggestions,
-             to_regclass('auth.user') as users
+             to_regclass('neon_auth.user') as users
     `)
     assert.ok(requiredTables.rows[0].events, 'application schema migration has been applied')
     assert.ok(requiredTables.rows[0].suggestions, 'suggestion schema migration has been applied')
-    assert.ok(requiredTables.rows[0].users, 'Better Auth migration has been applied')
+    assert.ok(requiredTables.rows[0].users, 'Neon Auth (or the local stand-in) provides neon_auth.user')
 
     await client.query(`
-      insert into auth."user" (
-        id, name, email, "emailVerified", role, "twoFactorEnabled", "createdAt", "updatedAt"
+      insert into neon_auth."user" (
+        id, name, email, "emailVerified", role, "createdAt", "updatedAt"
       ) values
-        ($1, 'CI Admin', $2, true, 'admin', true, now(), now()),
-        ($3, 'CI Member', $4, true, 'user', false, now(), now())
+        ($1, 'CI Admin', $2, true, 'admin', now(), now()),
+        ($3, 'CI Member', $4, true, 'user', now(), now())
     `, [adminId, `admin-${emailSuffix}`, memberId, `member-${emailSuffix}`])
     createdTestUsers = true
 
@@ -67,7 +67,7 @@ test('Neon Postgres schema, moderation, and retention integration', async (t) =>
       assert.equal(pentecost.rowCount, 1)
     })
 
-    await t.test('rejects non-curators and allows TOTP-enabled curator mutations', async () => {
+    await t.test('rejects non-curators and allows curator mutations', async () => {
       const group = {
         id: groupId,
         title: 'CI test group',
@@ -217,7 +217,7 @@ test('Neon Postgres schema, moderation, and retention integration', async (t) =>
         ])
         await client.query('delete from public.timeline_events where id = $1', [eventId])
         await client.query('delete from public.timeline_groups where id = $1', [groupId])
-        await client.query('delete from auth."user" where id = any($1::text[])', [[adminId, memberId]])
+        await client.query('delete from neon_auth."user" where id = any($1::uuid[])', [[adminId, memberId]])
       }
     } finally {
       await client.end()

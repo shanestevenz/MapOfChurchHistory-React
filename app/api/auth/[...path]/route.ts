@@ -1,28 +1,34 @@
-import { toNextJsHandler } from 'better-auth/next-js'
-import { auth } from '@/lib/auth/server'
-import { authIsConfigured } from '@/lib/db'
+import { getAuth } from '@/lib/auth/server'
 
-const handlers = toNextJsHandler(auth)
+export const runtime = 'nodejs'
+
+type Context = { params: Promise<{ path: string[] }> }
 
 function unavailable() {
   return Response.json({ error: 'Authentication is not configured.' }, { status: 503 })
 }
 
-export const GET = (request: Request) =>
-  !authIsConfigured()
-    ? unavailable()
-    : new URL(request.url).pathname.startsWith('/api/auth/admin/')
-      ? Response.json({ error: 'Not found.' }, { status: 404 })
-      : handlers.GET(request)
+// Paths the browser may not call directly through this proxy:
+// - sign-up: curator accounts are created with `npm run curator:create`, never publicly.
+// - sign-in/email: must go through /api/admin/login, which enforces Turnstile first.
+// - admin/*: user management stays in the Neon console.
+function blocked(path: string[]) {
+  const joined = path.join('/')
+  return joined.startsWith('sign-up') || joined === 'sign-in/email' || joined.startsWith('admin/')
+}
 
-export async function POST(request: Request) {
-  if (!authIsConfigured()) return unavailable()
-  const path = new URL(request.url).pathname
-  if (path.startsWith('/api/auth/admin/')) {
+async function handle(method: 'GET' | 'POST', request: Request, context: Context) {
+  const auth = getAuth()
+  if (!auth) return unavailable()
+  const { path } = await context.params
+  if (method === 'POST' && blocked(path)) {
     return Response.json({ error: 'Not found.' }, { status: 404 })
   }
-  if (path === '/api/auth/sign-in/email') {
-    return Response.json({ error: 'Use the curator sign-in page.' }, { status: 403 })
+  if (method === 'GET' && path[0] === 'admin') {
+    return Response.json({ error: 'Not found.' }, { status: 404 })
   }
-  return handlers.POST(request)
+  return auth.handler()[method](request, context)
 }
+
+export const GET = (request: Request, context: Context) => handle('GET', request, context)
+export const POST = (request: Request, context: Context) => handle('POST', request, context)

@@ -31,25 +31,17 @@ This repository is public for transparency and to make the source behind the pro
 
 ## Neon setup
 
-The application uses Neon Postgres for timeline content and Better Auth, hosted by the Next.js app, for curator accounts and TOTP multi-factor authentication. Browser requests go through the app's server routes; database credentials stay server-side.
+The application uses Neon Postgres for timeline content and Neon Auth (managed Better Auth) for curator accounts. Users live in each branch's `neon_auth` schema. Browser requests go through the app's server routes; database credentials stay server-side, and every curator sign-in passes a Cloudflare Turnstile check first.
 
-1. Create a Neon Postgres project and copy its pooled and direct connection strings into `.env.local` as `DATABASE_URL` and `DATABASE_URL_UNPOOLED`. Use the pooled URL for app requests and the direct URL for schema and seed commands.
-2. Set `BETTER_AUTH_URL` to the app origin and generate a private `BETTER_AUTH_SECRET` (at least 32 characters). Add the Turnstile, rate-limit, cron, and privacy contact values shown in `.env.example`.
-3. Apply Better Auth's schema, the application schema, and the public timeline seed:
-
-   ```sh
-   npm run auth:migrate
-   npm run db:migrate
-   npm run db:seed
-   ```
-
-4. Create a fresh curator account. This prompts for a password and writes no account into the seed file:
+1. Create a Neon Postgres project. For each branch you deploy (e.g. production, staging), select the branch and enable **Auth** in the Neon console.
+2. In that branch's Auth settings, add every site origin that signs in under **Domains** (scheme included, no trailing slash), and turn off public sign-ups.
+3. Set the app's environment (`.env.local` or Vercel): `DATABASE_URL` (pooled), `DATABASE_URL_UNPOOLED` (direct), `NEON_AUTH_BASE_URL` (the branch's Auth URL), and `NEON_AUTH_COOKIE_SECRET` (generate with `openssl rand -base64 32`). Add the Turnstile, rate-limit, cron, and privacy contact values shown in `.env.example`.
+4. Apply the schema and public timeline seed, then create a curator (see [docs/database-setup.md](docs/database-setup.md)):
 
    ```sh
-   npm run auth:create-admin -- --email curator@example.com --name "Timeline Curator"
+   npm run db:setup
+   npm run curator:create
    ```
-
-   On first sign-in, enroll an authenticator app and save the displayed recovery codes.
 
 `npm run db:seed:generate` rebuilds `db/seed.sql` from `lib/timeline-data.ts`. The seed contains traditions, groups, events, and event relationships only. It does not import users, suggestions, or prior database records.
 
@@ -64,11 +56,11 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/church_history_dev
 DATABASE_URL_UNPOOLED=postgresql://postgres:postgres@localhost:5432/church_history_dev
 ```
 
-Start the database and initialize its schema and public timeline content:
+Start the database and initialize its schema and public timeline content. Plain Postgres has no Neon Auth, so `db:local-auth-stub` creates a stand-in `neon_auth."user"` table (curator sign-in itself needs a Neon branch):
 
 ```sh
 docker compose up -d db
-npm run auth:migrate
+npm run db:local-auth-stub
 npm run db:migrate
 npm run db:seed
 ```
@@ -88,11 +80,11 @@ npm run test:e2e
 npm run audit
 ```
 
-The integration suite requires `TEST_DATABASE_URL` to point to a disposable local Postgres database whose name includes `ci` or `test`. Apply `npm run auth:migrate`, `npm run db:migrate`, and `npm run db:seed` first. The integration test refuses remote hosts and production-style database names. Playwright starts the app in development mode so CI can exercise the real Postgres suggestion route without external Turnstile credentials; it applies the same migrations and seed first.
+The integration suite requires `TEST_DATABASE_URL` to point to a disposable local Postgres database whose name includes `ci` or `test`. Apply `npm run db:local-auth-stub`, `npm run db:migrate`, and `npm run db:seed` first. The integration test refuses remote hosts and production-style database names. Playwright starts the app in development mode so CI can exercise the real Postgres suggestion route without external Turnstile credentials; it applies the same migrations and seed first.
 
 ## Technology
 
-The application is built with Next.js, React, TypeScript, Neon Postgres, and Better Auth. Curator mutations require an admin account with TOTP enabled; suggestion submissions use server-side validation, Cloudflare Turnstile, and a durable daily rate limit.
+The application is built with Next.js, React, TypeScript, Neon Postgres, and Neon Auth. Curator mutations require a Neon Auth account with the admin role; suggestion submissions use server-side validation, Cloudflare Turnstile, and a durable daily rate limit.
 
 ## License and reuse
 

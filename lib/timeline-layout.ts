@@ -1,6 +1,7 @@
 import { TRADITION_MAP, TRADITIONS } from './timeline-data'
 import type {
   ColorFamily,
+  LaneGroup,
   TimelineEvent,
   TraditionId,
   TraditionOrigin,
@@ -46,8 +47,10 @@ export interface PositionedLane {
   /** Vertical centre of the lane, where its nodes and rail sit. */
   y: number
   color: string
-  /** The visual group this lane belongs to, if any. */
+  /** The innermost visual group this lane belongs to, if any. */
   groupId?: string
+  /** How many groups enclose this lane, for indenting its label. */
+  depth: number
   /** When and where the branch began, for the lane header. */
   origin?: TraditionOrigin
   /** Where the branch begins on the canvas; its rail is drawn from here on. */
@@ -63,7 +66,10 @@ export interface PositionedLaneGroup {
   top: number
   bottom: number
   color: string
+  /** Every lane inside the group, including those in nested groups. */
   lanes: TraditionId[]
+  /** 0 for a top-level group, 1 for a group inside it, and so on. */
+  depth: number
 }
 
 /** A "began here" flag drawn above the event that starts a movement. */
@@ -157,24 +163,44 @@ export function buildLayout(
   // gap. Traditions sharing a lane group sit together under a group header.
   const lanes: PositionedLane[] = []
   const groups: PositionedLaneGroup[] = []
+  // Groups currently open, outermost first.
+  let open: PositionedLaneGroup[] = []
   let top = 0
   for (const tradition of [...TRADITIONS].sort((a, b) => a.lane - b.lane)) {
     if (hidden.has(tradition.id)) continue
-    const group = tradition.laneGroup
-    let current = group && groups.at(-1)?.id === group.id ? groups.at(-1) : undefined
-    if (group && !current) {
-      current = {
+
+    // The tradition's group chain, outermost first.
+    const chain: LaneGroup[] = []
+    for (let group = tradition.laneGroup; group; group = group.parent) {
+      chain.unshift(group)
+    }
+    // Keep the groups this lane shares with the previous one; close the rest.
+    let shared = 0
+    while (
+      shared < open.length &&
+      shared < chain.length &&
+      open[shared].id === chain[shared].id
+    ) {
+      shared++
+    }
+    open = open.slice(0, shared)
+    // Open any new groups, each with header space above its lanes.
+    for (const group of chain.slice(shared)) {
+      const positioned: PositionedLaneGroup = {
         id: group.id,
         name: group.name,
         blurb: group.blurb,
         top,
         bottom: top,
-        color: traditionColor(tradition.id),
+        color: group.color ?? traditionColor(tradition.id),
         lanes: [],
+        depth: open.length,
       }
-      groups.push(current)
+      groups.push(positioned)
+      open.push(positioned)
       top += GROUP_HEADER
     }
+
     lanes.push({
       id: tradition.id,
       name: tradition.name,
@@ -183,14 +209,15 @@ export function buildLayout(
       top,
       y: top + LANE_CENTRE,
       color: traditionColor(tradition.id),
-      groupId: group?.id,
+      groupId: open.at(-1)?.id,
+      depth: open.length,
       origin: tradition.origins[0],
       startX: null,
     })
     top += LANE_HEIGHT
-    if (current) {
-      current.lanes.push(tradition.id)
-      current.bottom = top
+    for (const group of open) {
+      group.lanes.push(tradition.id)
+      group.bottom = top
     }
   }
   const laneOf = new Map(lanes.map((lane) => [lane.id, lane]))

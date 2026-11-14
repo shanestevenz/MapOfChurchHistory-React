@@ -33,6 +33,17 @@ export type ColorFamily =
   | 'amethyst'
   | 'copper'
 
+/** A header drawn above a run of related lanes. Groups can nest. */
+export interface LaneGroup {
+  id: string
+  name: string
+  blurb: string
+  /** Header and band colour; defaults to the first lane's colour. */
+  color?: string
+  /** The enclosing group, e.g. Protestant for Magisterial Reformation. */
+  parent?: LaneGroup
+}
+
 export interface Tradition {
   id: TraditionId
   /** Short name shown in lane headers and legend. */
@@ -44,10 +55,10 @@ export interface Tradition {
   family: ColorFamily
   category: TraditionCategory
   /**
-   * Group this lane visually with neighbouring lanes that name the same id,
-   * under one header with this name and blurb. Each keeps its own lane.
+   * The innermost visual group this lane sits in. Neighbouring lanes naming
+   * the same group are drawn under one header; each keeps its own lane.
    */
-  laneGroup?: { id: string; name: string; blurb: string }
+  laneGroup?: LaneGroup
   /**
    * When and where the branch began, drawn as start markers on its lane. The
    * first entry is the lane's origin; further entries mark separate movements

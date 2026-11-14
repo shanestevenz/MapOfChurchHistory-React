@@ -1,6 +1,5 @@
-import { getCuratorId } from '@/lib/auth/authorization'
-import { auth } from '@/lib/auth/server'
-import { pool, authIsConfigured, databaseIsConfigured } from '@/lib/db'
+import { getCuratorId, getCuratorSession } from '@/lib/auth/authorization'
+import { pool, databaseIsConfigured } from '@/lib/db'
 import { sameOrigin } from '@/lib/http-security'
 
 export const runtime = 'nodejs'
@@ -9,11 +8,9 @@ type Json = null | boolean | number | string | Json[] | { [key: string]: Json | 
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 
-export async function GET(request: Request) {
-  if (!authIsConfigured()) return json({ error: 'Curator access is required.' }, 401)
-  const session = await auth.api.getSession({ headers: request.headers }).catch(() => null)
-  if (!session || session.user.role !== 'admin') return json({ error: 'Curator access is required.' }, 401)
-  if (!session.user.twoFactorEnabled) return json({ isAdmin: true, twoFactorEnabled: false, suggestions: [] })
+export async function GET() {
+  const session = await getCuratorSession()
+  if (!session?.isAdmin) return json({ error: 'Curator access is required.' }, 401)
   try {
     const [{ rows: suggestions }, { rows: changes }] = await Promise.all([
       pool.query('select * from public.edit_suggestions order by created_at desc'),
@@ -27,7 +24,6 @@ export async function GET(request: Request) {
     }
     return json({
       isAdmin: true,
-      twoFactorEnabled: true,
       suggestions: suggestions.map((row) => ({
         id: row.id,
         eventId: row.event_id,
@@ -56,7 +52,7 @@ export async function POST(request: Request) {
   if (!databaseIsConfigured()) return json({ error: 'The database is not configured.' }, 503)
   const declaredLength = Number(request.headers.get('content-length') || 0)
   if (declaredLength > 1_000_000) return json({ error: 'The request is too large.' }, 413)
-  const userId = await getCuratorId(request)
+  const userId = await getCuratorId()
   if (!userId) return json({ error: 'Curator access is required.' }, 401)
 
   let body: unknown

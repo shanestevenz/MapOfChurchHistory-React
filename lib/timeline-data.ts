@@ -3,12 +3,65 @@ import type {
   TimelineGroup,
   Tradition,
   TraditionId,
+  LaneGroup,
 } from './timeline-types'
 
 export const DATA_VERSION = 1
 
+/* --- Lane groups ------------------------------------------------------
+ * Headers drawn above runs of related lanes. A group's lanes must be
+ * consecutive in lane order; a group can sit inside another (parent).
+ */
+
+const EASTERN_GROUP: LaneGroup = {
+  id: 'eastern',
+  name: 'Eastern',
+  blurb: 'Churches of the East: the Church of the East, Oriental Orthodoxy and Eastern Orthodoxy.',
+}
+
+const WESTERN_GROUP: LaneGroup = {
+  id: 'western',
+  name: 'Western',
+  blurb: 'The Latin church of the West, gathered around the See of Rome.',
+}
+
+const PROTESTANT_GROUP: LaneGroup = {
+  id: 'protestant-family',
+  name: 'Protestant',
+  blurb: 'The churches of the Reformation and the movements descended from them.',
+  color: 'var(--muted-foreground)',
+}
+
+const MAGISTERIAL_GROUP: LaneGroup = {
+  id: 'magisterial-reformation',
+  name: 'Magisterial Reformation',
+  blurb: 'Reformations carried out with the support of rulers and magistrates: Lutheran, Reformed and Anglican.',
+  parent: PROTESTANT_GROUP,
+}
+
+const RADICAL_GROUP: LaneGroup = {
+  id: 'radical-free-church',
+  name: 'Radical & Free Church',
+  blurb: 'Believer’s-baptism churches independent of the state: Anabaptists and Baptists.',
+  parent: PROTESTANT_GROUP,
+}
+
+const REVIVAL_GROUP: LaneGroup = {
+  id: 'evangelical-revival',
+  name: 'Evangelical Revival',
+  blurb: 'Movements born of the eighteenth-century revivals: Methodism, its Holiness and Pentecostal descendants, and wider evangelicalism.',
+  parent: PROTESTANT_GROUP,
+}
+
+const RESTORATIONIST_GROUP: LaneGroup = {
+  id: 'restorationist',
+  name: 'Restorationist',
+  blurb: 'Nineteenth-century American movements that sought to restore the faith and practice of the early church.',
+  parent: PROTESTANT_GROUP,
+}
+
 /** Latter-day Saints and Jehovah’s Witnesses: separate lanes, grouped under one header. */
-const OTHER_ADJACENT_GROUP = {
+const OTHER_ADJACENT_GROUP: LaneGroup = {
   id: 'other-adjacent',
   name: 'Other / Adjacent',
   blurb: 'Latter-day Saint and Jehovah’s Witness movements, distinct from Nicene Christianity; their classification as Christian is disputed by other traditions.',
@@ -22,6 +75,7 @@ export const TRADITIONS: Tradition[] = [
     lane: 0,
     family: 'sapphire',
     category: 'eastern',
+    laneGroup: EASTERN_GROUP,
     origins: [{ eventId: 'church-of-east', dateLabel: '431', place: 'Persia (Seleucia-Ctesiphon)' }],
   },
   {
@@ -31,6 +85,7 @@ export const TRADITIONS: Tradition[] = [
     lane: 1,
     family: 'sapphire',
     category: 'eastern',
+    laneGroup: EASTERN_GROUP,
     origins: [{ eventId: 'oriental-communion', dateLabel: '451', place: 'Alexandria & Antioch' }],
   },
   {
@@ -40,6 +95,7 @@ export const TRADITIONS: Tradition[] = [
     lane: 2,
     family: 'sapphire',
     category: 'eastern',
+    laneGroup: EASTERN_GROUP,
     origins: [{ eventId: 'eastern-orthodoxy', dateLabel: '1054', place: 'Constantinople' }],
   },
   {
@@ -58,6 +114,7 @@ export const TRADITIONS: Tradition[] = [
     lane: 4,
     family: 'ruby',
     category: 'western',
+    laneGroup: WESTERN_GROUP,
     origins: [{ eventId: 'roman-catholicism', dateLabel: '1054', place: 'Rome' }],
   },
   {
@@ -67,6 +124,7 @@ export const TRADITIONS: Tradition[] = [
     lane: 5,
     family: 'emerald',
     category: 'protestant',
+    laneGroup: MAGISTERIAL_GROUP,
     origins: [{ eventId: 'ninety-five-theses', dateLabel: '1517', place: 'Wittenberg' }],
   },
   {
@@ -76,34 +134,38 @@ export const TRADITIONS: Tradition[] = [
     lane: 6,
     family: 'emerald',
     category: 'protestant',
+    laneGroup: MAGISTERIAL_GROUP,
     origins: [{ eventId: 'institutes', dateLabel: '1519–1536', place: 'Zurich & Geneva' }],
+  },
+  {
+    id: 'anglican',
+    name: 'Anglican & Episcopal',
+    blurb: 'The Church of England and autonomous Anglican and Episcopal churches worldwide.',
+    lane: 7,
+    family: 'amethyst',
+    category: 'protestant',
+    laneGroup: MAGISTERIAL_GROUP,
+    origins: [{ eventId: 'act-of-supremacy', dateLabel: '1534', place: 'England' }],
   },
   {
     id: 'radical',
     name: 'Anabaptist',
     blurb: 'The Radical Reformation and its continuing Mennonite, Amish and Hutterite communities.',
-    lane: 7,
+    lane: 8,
     family: 'copper',
     category: 'protestant',
+    laneGroup: RADICAL_GROUP,
     origins: [{ eventId: 'zurich-baptisms', dateLabel: '1525', place: 'Zurich' }],
   },
   {
     id: 'baptist',
     name: 'Baptist',
     blurb: 'A free-church tradition with autonomous congregations and many distinct conventions.',
-    lane: 8,
+    lane: 9,
     family: 'copper',
     category: 'protestant',
+    laneGroup: RADICAL_GROUP,
     origins: [{ eventId: 'baptists', dateLabel: '1609', place: 'Amsterdam' }],
-  },
-  {
-    id: 'anglican',
-    name: 'Anglican & Episcopal',
-    blurb: 'The Church of England and autonomous Anglican and Episcopal churches worldwide.',
-    lane: 9,
-    family: 'amethyst',
-    category: 'protestant',
-    origins: [{ eventId: 'act-of-supremacy', dateLabel: '1534', place: 'England' }],
   },
   {
     id: 'methodist',
@@ -112,6 +174,7 @@ export const TRADITIONS: Tradition[] = [
     lane: 10,
     family: 'amethyst',
     category: 'protestant',
+    laneGroup: REVIVAL_GROUP,
     origins: [{ eventId: 'aldersgate', dateLabel: '1738', place: 'London' }],
   },
   {
@@ -121,25 +184,28 @@ export const TRADITIONS: Tradition[] = [
     lane: 11,
     family: 'amethyst',
     category: 'protestant',
+    laneGroup: REVIVAL_GROUP,
     origins: [{ eventId: 'azusa-street', dateLabel: '1906', place: 'Los Angeles' }],
-  },
-  {
-    id: 'adventist',
-    name: 'Adventist',
-    blurb: 'Sabbatarian Adventism and the Seventh-day Adventist Church.',
-    lane: 12,
-    family: 'sapphire',
-    category: 'protestant',
-    origins: [{ eventId: 'great-disappointment', dateLabel: '1844', place: 'New England & New York' }],
   },
   {
     id: 'evangelical',
     name: 'Evangelical & Non-denominational',
     blurb: 'A diverse, decentralized movement with no single founding body or central governing authority.',
-    lane: 13,
+    lane: 12,
     family: 'gold',
     category: 'protestant',
+    laneGroup: REVIVAL_GROUP,
     origins: [{ eventId: 'great-awakening', dateLabel: '1730s', place: 'Britain & colonial America' }],
+  },
+  {
+    id: 'adventist',
+    name: 'Adventist',
+    blurb: 'Sabbatarian Adventism and the Seventh-day Adventist Church.',
+    lane: 13,
+    family: 'sapphire',
+    category: 'protestant',
+    laneGroup: RESTORATIONIST_GROUP,
+    origins: [{ eventId: 'great-disappointment', dateLabel: '1844', place: 'New England & New York' }],
   },
   {
     id: 'restoration',
@@ -148,6 +214,7 @@ export const TRADITIONS: Tradition[] = [
     lane: 14,
     family: 'gold',
     category: 'protestant',
+    laneGroup: RESTORATIONIST_GROUP,
     origins: [{ eventId: 'stone-campbell-union', dateLabel: '1832', place: 'Lexington, Kentucky' }],
   },
   {

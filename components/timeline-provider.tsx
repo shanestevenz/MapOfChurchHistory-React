@@ -62,12 +62,10 @@ export function TimelineProvider({ children }: { children: React.ReactNode }) {
     }
     const result = await readJson<{
       isAdmin: boolean
-      twoFactorEnabled: boolean
       suggestions: EditSuggestion[]
     }>(response)
-    const curator = result.isAdmin && result.twoFactorEnabled
-    setIsAdmin(curator)
-    setSuggestions(curator ? result.suggestions : [])
+    setIsAdmin(result.isAdmin)
+    setSuggestions(result.isAdmin ? result.suggestions : [])
   }, [])
 
   React.useEffect(() => {

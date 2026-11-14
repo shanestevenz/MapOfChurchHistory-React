@@ -7,7 +7,6 @@ import {
   buildLayout,
   COL_WIDTH,
   ERA_BAR,
-  GROUP_HEADER,
   NODE_SIZE,
   type PositionedEvent,
 } from '@/lib/timeline-layout'
@@ -23,7 +22,7 @@ const KIND_LABEL: Record<TimelineEvent['kind'], string> = {
 
 export const MIN_ZOOM = 0.3
 export const MAX_ZOOM = 2
-const LANE_GUTTER = 200
+const LANE_GUTTER = 224
 const GROUP_BAR = 48
 /** Jumping to an event below this zoom also zooms in, to FOCUS_ZOOM. */
 const FOCUS_MIN_ZOOM = 0.75
@@ -33,6 +32,14 @@ const FLY_DURATION = 1100
 const ZOOM_DELAY = 0.15
 /** Rendered height of a lane-group header in the gutter, plus a small gap. */
 const GROUP_HEADER_TEXT = 24
+/** Rendered height of a lane label, with and without its "Began…" line. */
+const LANE_LABEL_TALL = 44
+const LANE_LABEL_SHORT = 28
+/** The "Began…" line under lane labels shows from this zoom up. */
+const ORIGIN_LINE_ZOOM = 0.55
+/** Gutter left padding, and the extra indent per level of lane group. */
+const GUTTER_PAD = 12
+const GUTTER_INDENT = 12
 const TIMELINE_HEADER = ERA_BAR + GROUP_BAR
 
 const clampZoom = (value: number) =>
@@ -603,15 +610,40 @@ export function TimelineGraph({
   )
 
   /**
-   * Screen offset below which a group's lane labels and bracket start: the
-   * reserved header space at normal zoom, but never less than the header's
-   * own unscaled height, so they cannot overlap it when zoomed far out.
+   * Screen positions for the gutter's group headers and lane labels. Each
+   * sits at its natural place, but never above the bottom of the item before
+   * it: header and label text does not shrink with the zoom while the space
+   * between lanes does, so far out they would otherwise overlap.
    */
-  const groupLabelFloor = (groupTop: number) =>
-    Math.max(
-      (groupTop + GROUP_HEADER) * renderedZoom,
-      groupTop * renderedZoom + 6 + GROUP_HEADER_TEXT,
-    )
+  const gutterTops = React.useMemo(() => {
+    const labelHeight =
+      renderedZoom >= ORIGIN_LINE_ZOOM ? LANE_LABEL_TALL : LANE_LABEL_SHORT
+    const items = [
+      ...laneGroups.map((group) => ({
+        key: `group:${group.id}`,
+        top: group.top,
+        order: group.depth,
+        offset: 6,
+        height: GROUP_HEADER_TEXT,
+      })),
+      ...lanes.map((lane) => ({
+        key: `lane:${lane.id}`,
+        top: lane.top,
+        order: 100,
+        offset: 8,
+        height: labelHeight,
+      })),
+    ].sort((a, b) => a.top - b.top || a.order - b.order)
+
+    const tops = new Map<string, number>()
+    let floor = -Infinity
+    for (const item of items) {
+      const y = Math.max(item.top * renderedZoom + item.offset, floor)
+      tops.set(item.key, y)
+      floor = y + item.height
+    }
+    return tops
+  }, [laneGroups, lanes, renderedZoom])
 
   /** First event (in timeline order) among the given lanes. */
   const jumpToLanes = (laneIds: TraditionId[]) => {
@@ -788,57 +820,60 @@ export function TimelineGraph({
             className="sticky left-0 z-20 h-full border-r border-border bg-card/95 backdrop-blur"
             style={{ width: LANE_GUTTER }}
           >
-            {/* Lane groups: a header above, and a bracket beside their lanes. */}
-            {laneGroups.map((group) => (
-              <React.Fragment key={group.id}>
-                <button
-                  type="button"
-                  onClick={() => jumpToLanes(group.lanes)}
-                  title={`${group.blurb} Click to jump to its first event.`}
-                  className="label-caps absolute right-3 left-3 flex cursor-pointer items-center gap-2 overflow-hidden rounded-md px-1 py-0.5 text-left text-[10px] font-semibold tracking-wider whitespace-nowrap text-foreground/80 transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-                  style={{ top: group.top * renderedZoom + 6 }}
-                >
-                  <span className="truncate">{group.name}</span>
+            {/* Lane groups: a header above, and a bracket beside their lanes.
+                Nested groups step inward one indent per level. */}
+            {laneGroups.map((group) => {
+              const headerTop = gutterTops.get(`group:${group.id}`) ?? 0
+              const bracketTop = headerTop + GROUP_HEADER_TEXT
+              const tint = `color-mix(in oklab, ${group.color} 45%, transparent)`
+              return (
+                <React.Fragment key={group.id}>
+                  <button
+                    type="button"
+                    onClick={() => jumpToLanes(group.lanes)}
+                    title={`${group.blurb} Click to jump to its first event.`}
+                    className={cn(
+                      'label-caps absolute right-3 flex cursor-pointer items-center gap-2 overflow-hidden rounded-md px-1 py-0.5 text-left text-[10px] tracking-wider whitespace-nowrap transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+                      group.depth === 0
+                        ? 'font-semibold text-foreground/85'
+                        : 'font-medium text-muted-foreground',
+                    )}
+                    style={{
+                      top: headerTop,
+                      left: GUTTER_PAD + group.depth * GUTTER_INDENT,
+                    }}
+                  >
+                    <span className="truncate">{group.name}</span>
+                    <span
+                      className="h-px min-w-3 flex-1"
+                      style={{ backgroundColor: tint }}
+                    />
+                  </button>
                   <span
-                    className="h-px flex-1"
-                    style={{ backgroundColor: `color-mix(in oklab, ${group.color} 45%, transparent)` }}
+                    className="pointer-events-none absolute w-px"
+                    style={{
+                      top: bracketTop,
+                      left: GUTTER_PAD + 2 + group.depth * GUTTER_INDENT,
+                      height: Math.max(
+                        0,
+                        group.bottom * renderedZoom - 8 - bracketTop,
+                      ),
+                      backgroundColor: tint,
+                    }}
+                    aria-hidden="true"
                   />
-                </button>
-                <span
-                  className="pointer-events-none absolute left-3.5 w-px"
-                  style={(() => {
-                    const top = groupLabelFloor(group.top)
-                    return {
-                      top,
-                      height: Math.max(0, group.bottom * renderedZoom - 8 - top),
-                      backgroundColor: `color-mix(in oklab, ${group.color} 45%, transparent)`,
-                    }
-                  })()}
-                  aria-hidden="true"
-                />
-              </React.Fragment>
-            ))}
+                </React.Fragment>
+              )
+            })}
 
             {lanes.map((lane) => (
               <div
                 key={lane.id}
-                className={cn(
-                  'absolute right-3 flex flex-col items-start gap-1',
-                  // Lanes in a group are indented past the group's bracket.
-                  lane.groupId ? 'left-6' : 'left-3',
-                )}
+                className="absolute right-3 flex flex-col items-start gap-1"
                 style={{
-                  top: Math.max(
-                    lane.top * renderedZoom + 8,
-                    // Keep a group's first label clear of the group header,
-                    // whose text does not shrink with the zoom.
-                    lane.groupId
-                      ? groupLabelFloor(
-                          laneGroups.find((group) => group.id === lane.groupId)
-                            ?.top ?? 0,
-                        )
-                      : 0,
-                  ),
+                  top: gutterTops.get(`lane:${lane.id}`) ?? 0,
+                  // Indented past the bracket of every enclosing group.
+                  left: GUTTER_PAD + lane.depth * GUTTER_INDENT,
                 }}
               >
                 <button
@@ -853,7 +888,7 @@ export function TimelineGraph({
                   />
                   <span className="truncate">{lane.name}</span>
                 </button>
-                {lane.origin && renderedZoom >= 0.55 && (
+                {lane.origin && renderedZoom >= ORIGIN_LINE_ZOOM && (
                   <span className="flex max-w-full items-center gap-1 pl-2.5 text-[10px] text-muted-foreground/80">
                     <FlagIcon
                       className="size-2.5 shrink-0"
@@ -879,16 +914,23 @@ export function TimelineGraph({
               transform: `scale(${renderedZoom})`,
             }}
           >
-            {/* Grouped lanes share a faint band so they read as one family. */}
+            {/* Top-level groups share a faint band so they read as one family;
+                nested groups only add a dividing line, so tints don't stack. */}
             {laneGroups.map((group) => (
               <div
                 key={group.id}
-                className="pointer-events-none absolute inset-x-0 rounded-sm border-t"
+                className={cn(
+                  'pointer-events-none absolute inset-x-0 rounded-sm border-t',
+                  group.depth > 0 && 'border-dashed',
+                )}
                 style={{
                   top: group.top + 4,
                   height: group.bottom - group.top - 8,
-                  borderColor: `color-mix(in oklab, ${group.color} 35%, transparent)`,
-                  backgroundColor: `color-mix(in oklab, ${group.color} 4%, transparent)`,
+                  borderColor: `color-mix(in oklab, ${group.color} ${group.depth === 0 ? 35 : 22}%, transparent)`,
+                  backgroundColor:
+                    group.depth === 0
+                      ? `color-mix(in oklab, ${group.color} 4%, transparent)`
+                      : undefined,
                 }}
                 aria-hidden="true"
               />
