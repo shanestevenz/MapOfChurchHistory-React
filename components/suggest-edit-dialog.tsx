@@ -139,10 +139,10 @@ export function SuggestEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92dvh] gap-0 overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 overflow-hidden sm:max-w-2xl">
         {event && (
           <>
-            <DialogHeader>
+            <DialogHeader className="shrink-0">
               <DialogTitle className="font-serif text-xl">
                 Suggest an edit
               </DialogTitle>
@@ -155,7 +155,7 @@ export function SuggestEditDialog({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex flex-col gap-6 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 flex flex-col gap-6 py-4">
               <FieldGroup>
                 {SUGGESTABLE_FIELDS.map(({ field, label, multiline }) => {
                   const changed =
@@ -277,7 +277,7 @@ export function SuggestEditDialog({
               </div>
             </div>
 
-            <DialogFooter className="border-t border-border pt-4">
+            <DialogFooter className="shrink-0 border-t border-border pt-4">
               <span className="label-caps mr-auto self-center text-[10px] text-muted-foreground">
                 {changes.length === 0 && !hasSource
                   ? 'No changes yet'

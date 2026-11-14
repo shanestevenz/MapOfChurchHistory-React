@@ -56,7 +56,7 @@ export default async function RootLayout({
       lang="en"
       className={`dark bg-background ${inter.variable} ${garamond.variable}`}
     >
-      <body className="h-dvh overflow-hidden antialiased">
+      <body className="h-dvh overflow-hidden antialiased" suppressHydrationWarning>
         {children}
         <Toaster position="bottom-center" />
         {process.env.NODE_ENV === 'production' && <Analytics />}

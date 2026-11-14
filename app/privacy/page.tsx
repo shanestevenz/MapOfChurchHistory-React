@@ -17,7 +17,7 @@ export default function PrivacyPage() {
       <article className="mt-8 space-y-8">
         <header className="space-y-3">
           <h1 className="font-serif text-4xl">Privacy notice</h1>
-          <p className="text-sm text-muted-foreground">Last updated September 8, 2026</p>
+          <p className="text-sm text-muted-foreground">Last updated November 13, 2026</p>
         </header>
 
         <section className="space-y-2">
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
           <h2 className="font-serif text-2xl">Analytics and service providers</h2>
           <p className="leading-relaxed text-foreground/85">
             The production site uses Vercel Analytics to understand aggregate site usage. Vercel hosts the web
-            application, Supabase hosts authentication and timeline data, and Cloudflare provides Turnstile abuse
+            application, Neon hosts timeline and curator account data, and Cloudflare provides Turnstile abuse
             protection. Each provider processes limited technical data needed to operate its service.
           </p>
         </section>

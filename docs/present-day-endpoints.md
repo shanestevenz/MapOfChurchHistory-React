@@ -8,7 +8,7 @@ trunk and later ecumenical encounters, not a denomination that can be counted
 today.
 
 The endpoint definitions live in `lib/present-day-data.ts`. They are local UI
-data and are not stored in Supabase. At runtime, each endpoint is connected to
+data and are not stored in Neon. At runtime, each endpoint is connected to
 the latest database event in its tradition. This means an administrator can add
 a newer historical event without having to repair the endpoint's parent link.
 

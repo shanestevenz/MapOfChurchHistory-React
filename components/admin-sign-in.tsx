@@ -4,6 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeftIcon, KeyRoundIcon, ShieldCheckIcon } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import {
   TurnstileWidget,
   type TurnstileWidgetHandle,
@@ -12,21 +13,21 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { createClient } from '@/lib/supabase/client'
+import { authClient } from '@/lib/auth/client'
 
 type Stage = 'loading' | 'password' | 'enroll' | 'challenge'
 
 export function AdminSignIn() {
   const router = useRouter()
-  const supabase = React.useMemo(() => createClient(), [])
   const captchaRef = React.useRef<TurnstileWidgetHandle>(null)
   const [stage, setStage] = React.useState<Stage>('loading')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [code, setCode] = React.useState('')
-  const [factorId, setFactorId] = React.useState('')
-  const [qrCode, setQrCode] = React.useState('')
+  const [totpUri, setTotpUri] = React.useState('')
   const [secret, setSecret] = React.useState('')
+  const [backupCodes, setBackupCodes] = React.useState<string[]>([])
+  const [backupMode, setBackupMode] = React.useState(false)
   const [captchaToken, setCaptchaToken] = React.useState('')
   const [error, setError] = React.useState('')
   const [busy, setBusy] = React.useState(false)
@@ -34,98 +35,85 @@ export function AdminSignIn() {
   const captchaMisconfigured = process.env.NODE_ENV === 'production' && !siteKey
 
   const finish = React.useCallback(() => {
+    setPassword('')
     router.replace('/')
     router.refresh()
   }, [router])
 
-  const confirmCurator = React.useCallback(async (userId: string) => {
-    const { data, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single()
-    return !profileError && data.role === 'curator'
-  }, [supabase])
-
-  const beginEnrollment = React.useCallback(async () => {
-    const factors = await supabase.auth.mfa.listFactors()
-    if (factors.error) throw factors.error
-    for (const factor of factors.data.all) {
-      if (factor.status === 'unverified') {
-        await supabase.auth.mfa.unenroll({ factorId: factor.id })
-      }
-    }
-    const enrollment = await supabase.auth.mfa.enroll({
-      factorType: 'totp',
-      friendlyName: 'Map of Church History',
+  const startEnrollment = React.useCallback(async (passwordValue: string) => {
+    const result = await authClient.twoFactor.enable({
+      password: passwordValue,
+      method: 'totp',
+      issuer: 'Map of Church History',
     })
-    if (enrollment.error) throw enrollment.error
-    setFactorId(enrollment.data.id)
-    setQrCode(enrollment.data.totp.qr_code)
-    setSecret(enrollment.data.totp.secret)
+    if (result.error || !result.data || result.data.method !== 'totp') {
+      throw result.error ?? new Error('TOTP enrollment failed')
+    }
+    setTotpUri(result.data.totpURI)
+    try {
+      setSecret(new URL(result.data.totpURI).searchParams.get('secret') ?? '')
+    } catch {
+      setSecret('')
+    }
+    setBackupCodes(result.data.backupCodes ?? [])
+    setCode('')
     setStage('enroll')
-  }, [supabase])
-
-  const continueAfterPassword = React.useCallback(async (userId: string) => {
-    if (!(await confirmCurator(userId))) {
-      await supabase.auth.signOut()
-      throw new Error('invalid')
-    }
-
-    const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-    if (assurance.error) throw assurance.error
-    if (assurance.data.currentLevel === 'aal2') {
-      finish()
-      return
-    }
-
-    const factors = await supabase.auth.mfa.listFactors()
-    if (factors.error) throw factors.error
-    const verifiedTotp = factors.data.totp.find((factor) => factor.status === 'verified')
-    if (verifiedTotp) {
-      setFactorId(verifiedTotp.id)
-      setStage('challenge')
-      return
-    }
-    await beginEnrollment()
-  }, [beginEnrollment, confirmCurator, finish, supabase])
+  }, [])
 
   React.useEffect(() => {
     let active = true
-    supabase.auth.getUser().then(async ({ data, error: userError }) => {
-      if (!active) return
-      if (userError || !data.user) {
-        setStage('password')
-        return
-      }
-      try {
-        await continueAfterPassword(data.user.id)
-      } catch {
-        if (active) {
-          setError('Sign-in could not be completed. Check your credentials and try again.')
-          setStage('password')
-        }
-      }
-    })
+    fetch('/api/admin', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return null
+        return await response.json() as { isAdmin?: boolean; twoFactorEnabled?: boolean }
+      })
+      .then((result) => {
+        if (!active) return
+        if (result?.isAdmin && result.twoFactorEnabled) finish()
+        else setStage('password')
+      })
+      .catch(() => active && setStage('password'))
     return () => { active = false }
-  }, [continueAfterPassword, supabase])
+  }, [finish])
 
   const signIn = async () => {
     if (!email || !password || (siteKey && !captchaToken) || captchaMisconfigured) return
     setBusy(true)
     setError('')
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-        options: captchaToken ? { captchaToken } : undefined,
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, turnstileToken: captchaToken }),
       })
-      if (signInError || !data.user) throw signInError ?? new Error('invalid')
+      const result = await response.json().catch(() => null) as {
+        twoFactorRedirect?: boolean
+        error?: string
+      } | null
+      if (!response.ok) throw new Error(result?.error ?? 'Sign-in failed')
+      if (result?.twoFactorRedirect) {
+        setPassword('')
+        setStage('challenge')
+        return
+      }
+
+      const status = await fetch('/api/admin', { cache: 'no-store' })
+      const admin = status.ok
+        ? await status.json() as { isAdmin?: boolean; twoFactorEnabled?: boolean }
+        : null
+      if (!admin?.isAdmin) {
+        await authClient.signOut()
+        throw new Error('Curator access is required.')
+      }
+      if (admin.twoFactorEnabled) {
+        finish()
+        return
+      }
+      await startEnrollment(password)
       setPassword('')
-      await continueAfterPassword(data.user.id)
     } catch {
-      await supabase.auth.signOut()
       captchaRef.current?.reset()
+      setCaptchaToken('')
       setError('Sign-in could not be completed. Check your credentials and try again.')
       setStage('password')
     } finally {
@@ -134,18 +122,21 @@ export function AdminSignIn() {
   }
 
   const verifyMfa = async () => {
-    if (!factorId || !/^\d{6}$/.test(code)) return
+    if (backupMode ? !code.trim() : !/^\d{6}$/.test(code)) return
     setBusy(true)
     setError('')
     try {
-      const challenge = await supabase.auth.mfa.challenge({ factorId })
-      if (challenge.error) throw challenge.error
-      const verification = await supabase.auth.mfa.verify({
-        factorId,
-        challengeId: challenge.data.id,
-        code,
-      })
-      if (verification.error) throw verification.error
+      const result = backupMode
+        ? await authClient.twoFactor.verifyBackupCode({ code, trustDevice: false })
+        : await authClient.twoFactor.verifyTotp({ code, trustDevice: false })
+      if (result.error) throw result.error
+      if (stage === 'enroll') {
+        const status = await fetch('/api/admin', { cache: 'no-store' })
+        const admin = status.ok
+          ? await status.json() as { isAdmin?: boolean; twoFactorEnabled?: boolean }
+          : null
+        if (!admin?.isAdmin || !admin.twoFactorEnabled) throw new Error('Two-step verification was not enabled')
+      }
       finish()
     } catch {
       setCode('')
@@ -156,7 +147,7 @@ export function AdminSignIn() {
   }
 
   const cancel = async () => {
-    await supabase.auth.signOut()
+    await authClient.signOut()
     router.replace('/')
   }
 
@@ -175,7 +166,7 @@ export function AdminSignIn() {
           </CardTitle>
           <CardDescription>
             {stage === 'password' && 'This area is restricted to approved timeline curators.'}
-            {stage === 'enroll' && 'Scan this QR code with an authenticator app, then enter its six-digit code.'}
+            {stage === 'enroll' && 'Scan the code with an authenticator app, then enter its six-digit code.'}
             {stage === 'challenge' && 'Enter the current six-digit code from your authenticator app.'}
           </CardDescription>
         </CardHeader>
@@ -207,11 +198,7 @@ export function AdminSignIn() {
                 />
                 {error && <FieldDescription className="text-destructive" role="alert">{error}</FieldDescription>}
               </Field>
-              <TurnstileWidget
-                ref={captchaRef}
-                action="admin-signin"
-                onTokenChange={setCaptchaToken}
-              />
+              <TurnstileWidget ref={captchaRef} action="admin-signin" onTokenChange={setCaptchaToken} />
               {captchaMisconfigured && (
                 <p className="text-sm text-destructive" role="alert">
                   Admin sign-in is unavailable because Turnstile is not configured.
@@ -228,11 +215,17 @@ export function AdminSignIn() {
 
           {stage === 'enroll' && (
             <>
-              {qrCode && <img src={qrCode} alt="QR code for the authenticator app" className="mx-auto size-56 rounded bg-white p-3" />}
+              {totpUri && <QRCodeSVG value={totpUri} size={224} className="mx-auto rounded bg-white p-3" />}
               <Field>
                 <FieldLabel htmlFor="mfa-secret">Manual setup key</FieldLabel>
                 <Input id="mfa-secret" value={secret} readOnly className="font-mono text-xs" />
               </Field>
+              {backupCodes.length > 0 && (
+                <div className="rounded-md border p-3 text-sm">
+                  <p className="mb-2 font-medium">Save these recovery codes somewhere private.</p>
+                  <p className="font-mono text-xs leading-relaxed">{backupCodes.join(' · ')}</p>
+                </div>
+              )}
               <MfaCodeField code={code} setCode={setCode} error={error} onEnter={verifyMfa} />
               <Button onClick={() => void verifyMfa()} disabled={busy || !/^\d{6}$/.test(code)}>
                 {busy ? 'Verifying…' : 'Enable two-step verification'}
@@ -242,12 +235,27 @@ export function AdminSignIn() {
 
           {stage === 'challenge' && (
             <>
-              <MfaCodeField code={code} setCode={setCode} error={error} onEnter={verifyMfa} />
-              <Button onClick={() => void verifyMfa()} disabled={busy || !/^\d{6}$/.test(code)}>
+              <MfaCodeField
+                code={code}
+                setCode={setCode}
+                error={error}
+                onEnter={verifyMfa}
+                allowText={backupMode}
+              />
+              <Button
+                onClick={() => void verifyMfa()}
+                disabled={busy || (backupMode ? !code.trim() : !/^\d{6}$/.test(code))}
+              >
                 {busy ? 'Verifying…' : 'Verify and open editor'}
               </Button>
+              <Button
+                variant="link"
+                onClick={() => { setBackupMode((mode) => !mode); setCode(''); setError('') }}
+              >
+                {backupMode ? 'Use an authenticator code' : 'Use a recovery code'}
+              </Button>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Lost your authenticator? Ask a Supabase project owner to follow the recovery procedure; there is no MFA bypass on this page.
+                Lost your authenticator? Ask a project owner to remove the factor and help you enroll again.
               </p>
             </>
           )}
@@ -274,25 +282,27 @@ function MfaCodeField({
   setCode,
   error,
   onEnter,
+  allowText = false,
 }: {
   code: string
   setCode: (value: string) => void
   error: string
   onEnter: () => Promise<void>
+  allowText?: boolean
 }) {
   return (
     <Field data-invalid={Boolean(error) || undefined}>
       <FieldLabel htmlFor="mfa-code">Six-digit code</FieldLabel>
       <Input
         id="mfa-code"
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        pattern="[0-9]{6}"
-        maxLength={6}
+        inputMode={allowText ? 'text' : 'numeric'}
+        autoComplete={allowText ? 'off' : 'one-time-code'}
+        pattern={allowText ? undefined : '[0-9]{6}'}
+        maxLength={allowText ? 64 : 6}
         value={code}
-        onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+        onChange={(event) => setCode(allowText ? event.target.value : event.target.value.replace(/\D/g, '').slice(0, 6))}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' && /^\d{6}$/.test(code)) void onEnter()
+          if (event.key === 'Enter' && !event.nativeEvent.isComposing) void onEnter()
         }}
       />
       {error && <FieldDescription className="text-destructive" role="alert">{error}</FieldDescription>}
