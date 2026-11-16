@@ -191,15 +191,19 @@ export function TimelinePage() {
             height={36}
             className="size-9 shrink-0 object-contain"
           />
-          {/* Baseline-align the title and its meta, then optically centre the pair against the mark. */}
-          <div className="flex min-w-0 items-baseline gap-3">
-            <h1 className="truncate font-serif text-2xl leading-none">
-              Map of Church History
+          {/* Wordmark: the name over its tagline, stacked to fit the 56px bar. */}
+          <div className="flex min-w-0 flex-col justify-center gap-1">
+            <h1 className="truncate font-serif text-[1.45rem] leading-none font-medium tracking-[0.01em]">
+              Ecclesio<span className="text-primary">Graph</span>
             </h1>
-            <span className="label-caps hidden text-[10px] whitespace-nowrap text-muted-foreground sm:inline">
-              AD {span.first}—Present · {events.length} historical events
-            </span>
+            <p className="label-caps truncate text-[9.5px] leading-none text-muted-foreground">
+              A Timeline of Church History
+            </p>
           </div>
+          <Separator orientation="vertical" className="hidden h-7 lg:block" />
+          <span className="label-caps hidden text-[10px] whitespace-nowrap text-muted-foreground lg:inline">
+            AD {span.first}—Present · {events.length} events
+          </span>
           <SiteDisclaimer />
         </div>
 

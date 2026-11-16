@@ -18,7 +18,15 @@ const garamond = EB_Garamond({
 })
 
 export const metadata: Metadata = {
-  title: 'Map of Church History — An Illustrated Timeline of All Major Events in Church History',
+  title: 'EcclesioGraph — A Timeline of Church History',
+  applicationName: 'EcclesioGraph',
+  openGraph: {
+    siteName: 'EcclesioGraph',
+    title: 'EcclesioGraph — A Timeline of Church History',
+    description:
+      'A visual, interactive timeline of two thousand years of church history: councils, schisms, reformations and revivals, mapped as a branching tree.',
+    type: 'website',
+  },
   description:
     'A visual, interactive timeline of two thousand years of church history: councils, schisms, reformations and revivals, mapped as a branching tree.',
   icons: {

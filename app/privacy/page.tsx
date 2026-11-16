@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Privacy notice | Map of Church History',
-  description: 'How Map of Church History handles contribution and usage data.',
+  title: 'Privacy notice | EcclesioGraph',
+  description: 'How EcclesioGraph handles contribution and usage data.',
 }
 
 export default function PrivacyPage() {

@@ -1,8 +1,8 @@
-# Map Of Church History
+# EcclesioGraph
 
-Interactive church-history timeline built with Next.js 16 and Supabase. 
+A Timeline of Church History: an interactive timeline built with Next.js 16 and Neon Postgres.
 
-The Map of Church History viusally maps councils, schisms, reformations, revivals, missionary movements, and influential people as a branching timeline. Its purpose is to make the relationships between Christian traditions easier to explore without reducing their history to a simple list of dates.
+EcclesioGraph is a timeline of church history. It visually maps councils, schisms, reformations, revivals, missionary movements, and influential people as a branching timeline. Its purpose is to make the relationships between Christian traditions easier to explore without reducing their history to a simple list of dates.
 
 ## Explore the timeline
 

@@ -6,7 +6,7 @@ import { expect, test, type Page } from '@playwright/test'
  */
 async function openTimeline(page: Page) {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Map of Church History' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'EcclesioGraph', level: 1 })).toBeVisible()
   await page.locator('[data-ready]').waitFor({ state: 'attached', timeout: 30_000 })
 }
 
