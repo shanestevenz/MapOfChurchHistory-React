@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowRightIcon, FilePenLineIcon, PencilIcon } from 'lucide-react'
+import { DateText } from '@/components/date-text'
 import { EventIcon } from '@/components/event-icon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -54,7 +55,7 @@ export function EventDialog({
                     className="label-caps text-[10px]"
                     style={{ color: traditionColor(event.tradition) }}
                   >
-                    {event.dateLabel}
+                    <DateText value={event.dateLabel} />
                   </span>
                   <DialogTitle className="font-serif text-xl leading-tight text-balance">
                     {event.title}

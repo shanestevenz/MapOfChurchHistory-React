@@ -17,6 +17,6 @@ export function databaseIsConfigured() {
 
 export function authIsConfigured() {
   return databaseIsConfigured()
-    && Boolean(process.env.BETTER_AUTH_SECRET)
-    && (process.env.NODE_ENV !== 'production' || Boolean(process.env.BETTER_AUTH_URL))
+    && Boolean(process.env.NEON_AUTH_BASE_URL)
+    && (process.env.NEON_AUTH_COOKIE_SECRET?.length ?? 0) >= 32
 }

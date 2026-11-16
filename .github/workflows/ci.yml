@@ -54,8 +54,6 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/church_history_ci
       DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/church_history_ci
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/church_history_ci
-      BETTER_AUTH_URL: http://localhost:3000
-      BETTER_AUTH_SECRET: ci-only-auth-secret-do-not-use-in-any-deployment-32
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -63,18 +61,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Apply Better Auth schema
-        run: npm run auth:migrate
+      - name: Create Neon Auth stand-in user table
+        run: npm run db:local-auth-stub
       - name: Apply application schema
         run: npm run db:migrate
       - name: Load public timeline seed
         run: npm run db:seed
-      - name: Verify fresh curator bootstrap
-        run: >-
-          npm run auth:create-admin -- --email ci-curator@example.test
-          --name "CI Curator"
-          --password "CI-only-password-never-used-outside-this-job"
-          --yes
       - name: Exercise schema, permissions, moderation, limits, and retention
         run: npm run test:integration
 
@@ -99,9 +91,6 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/church_history_e2e
       DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/church_history_e2e
-      BETTER_AUTH_URL: http://localhost:3000
-      BETTER_AUTH_SECRET: ci-only-auth-secret-do-not-use-in-any-deployment-32
-      BETTER_AUTH_TRUSTED_ORIGINS: http://localhost:3000
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: ''
       TURNSTILE_SECRET_KEY: ''
       RATE_LIMIT_SECRET: ci-only-rate-limit-secret
@@ -113,8 +102,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Apply Better Auth schema
-        run: npm run auth:migrate
+      - name: Create Neon Auth stand-in user table
+        run: npm run db:local-auth-stub
       - name: Apply application schema and seed
         run: npm run db:migrate && npm run db:seed
       - name: Install Playwright browsers

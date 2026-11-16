@@ -15,8 +15,8 @@ const validSecret = (name, value) => {
 
 const databaseUrl = required('DATABASE_URL')
 const directDatabaseUrl = process.env.DATABASE_URL_UNPOOLED?.trim()
-const authUrl = required('BETTER_AUTH_URL')
-const authSecret = required('BETTER_AUTH_SECRET')
+const authUrl = required('NEON_AUTH_BASE_URL')
+const authCookieSecret = required('NEON_AUTH_COOKIE_SECRET')
 required('NEXT_PUBLIC_TURNSTILE_SITE_KEY')
 required('TURNSTILE_SECRET_KEY')
 const rateLimitSecret = required('RATE_LIMIT_SECRET')
@@ -28,7 +28,7 @@ try {
   if (!url.hostname.endsWith('.neon.tech')) failures.push('DATABASE_URL must point to Neon Postgres.')
   if (!url.hostname.includes('-pooler')) failures.push('DATABASE_URL must use the Neon pooled endpoint for application requests.')
   if (url.protocol !== 'postgres:' && url.protocol !== 'postgresql:') failures.push('DATABASE_URL must use PostgreSQL.')
-  if (url.searchParams.get('sslmode') !== 'require') failures.push('DATABASE_URL must require SSL.')
+  if (!['require', 'verify-full'].includes(url.searchParams.get('sslmode'))) failures.push('DATABASE_URL must require SSL (sslmode=require or verify-full).')
 } catch {
   failures.push('DATABASE_URL is not a valid PostgreSQL URL.')
 }
@@ -46,13 +46,13 @@ if (directDatabaseUrl) {
 try {
   const url = new URL(authUrl)
   if (url.protocol !== 'https:' || ['localhost', '127.0.0.1', '::1'].includes(url.hostname)) {
-    failures.push('BETTER_AUTH_URL must be the HTTPS production app origin.')
+    failures.push('NEON_AUTH_BASE_URL must be the HTTPS Neon Auth URL of the production branch.')
   }
 } catch {
-  failures.push('BETTER_AUTH_URL is not a valid URL.')
+  failures.push('NEON_AUTH_BASE_URL is not a valid URL.')
 }
 
-validSecret('BETTER_AUTH_SECRET', authSecret)
+validSecret('NEON_AUTH_COOKIE_SECRET', authCookieSecret)
 validSecret('RATE_LIMIT_SECRET', rateLimitSecret)
 validSecret('CRON_SECRET', cronSecret)
 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(privacyEmail) || /example\.(com|org|net)$/i.test(privacyEmail)) {
@@ -63,13 +63,13 @@ const migrationDir = resolve('db/migrations')
 for (const name of await readdir(migrationDir)) {
   if (!name.endsWith('.sql')) continue
   const sql = await readFile(resolve(migrationDir, name), 'utf8')
-  if (/curator@localhost\.test|local-curator-change-me|insert\s+into\s+(auth\.)?"?user"?/i.test(sql)) {
+  if (/curator@localhost\.test|local-curator-change-me|insert\s+into\s+((neon_)?auth\.)?"?user"?/i.test(sql)) {
     failures.push(`${name} contains local account or direct Auth seed data.`)
   }
 }
 
 const seed = await readFile(resolve('db/seed.sql'), 'utf8')
-if (/curator@localhost\.test|local-curator-change-me|insert\s+into\s+(auth\.)?"?user"?/i.test(seed)) {
+if (/curator@localhost\.test|local-curator-change-me|insert\s+into\s+((neon_)?auth\.)?"?user"?/i.test(seed)) {
   failures.push('db/seed.sql contains user or direct Auth seed data.')
 }
 

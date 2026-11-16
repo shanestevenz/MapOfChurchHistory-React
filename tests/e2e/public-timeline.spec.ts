@@ -1,4 +1,29 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+
+/**
+ * Loads the timeline and waits until the canvas has settled. Clicking a node
+ * before then can miss, because the canvas scrolls to the trunk on hydration.
+ */
+async function openTimeline(page: Page) {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Map of Church History' })).toBeVisible()
+  await page.locator('[data-ready]').waitFor({ state: 'attached', timeout: 30_000 })
+}
+
+/**
+ * Checks the denomination filters, then closes the panel. On wide screens the
+ * panel starts open (desktop Chrome's 1280px viewport counts), so only click
+ * to open it when it is closed.
+ */
+async function checkFiltersPanel(page: Page) {
+  const toggle = page.getByRole('button', { name: /^Filters/ })
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  const panel = page.getByRole('complementary', { name: 'Timeline filters' })
+  await expect(panel.getByRole('heading', { name: 'Denominations' })).toBeVisible()
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+}
 
 test('serves the seeded timeline and opens an event detail', async ({ page, request }) => {
   const apiResponse = await request.get('/api/timeline')
@@ -11,11 +36,8 @@ test('serves the seeded timeline and opens an event detail', async ({ page, requ
   expect(timeline.events.some((event) => event.id === 'pentecost')).toBeTruthy()
   expect(timeline.groups.length).toBeGreaterThan(0)
 
-  await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Map of Church History' })).toBeVisible()
-  await page.getByRole('button', { name: /Denominations/ }).click()
-  await expect(page.getByText('Visible Denominations')).toBeVisible()
-  await page.keyboard.press('Escape')
+  await openTimeline(page)
+  await checkFiltersPanel(page)
 
   await page.getByRole('button', { name: 'Pentecost, c. AD 33' }).click()
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'Pentecost', exact: true })).toBeVisible()
@@ -23,10 +45,8 @@ test('serves the seeded timeline and opens an event detail', async ({ page, requ
 })
 
 test('submits a visitor suggestion through the app to Postgres', async ({ page }) => {
-  await page.goto('/')
-  await page.getByRole('button', { name: /Denominations/ }).click()
-  await expect(page.getByText('Visible Denominations')).toBeVisible()
-  await page.keyboard.press('Escape')
+  await openTimeline(page)
+  await checkFiltersPanel(page)
   await page.getByRole('button', { name: 'Pentecost, c. AD 33' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Suggest an edit' }).click()
 

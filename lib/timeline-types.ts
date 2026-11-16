@@ -5,12 +5,44 @@ export type TraditionId =
   | 'undivided'
   | 'catholic'
   | 'protestant'
+  | 'reformed'
   | 'radical'
+  | 'baptist'
   | 'anglican'
   | 'methodist'
   | 'pentecostal'
+  | 'adventist'
+  | 'evangelical'
+  | 'restoration'
+  | 'latter-day-saints'
+  | 'jehovahs-witnesses'
 
-export type ColorFamily = 'gold' | 'sapphire' | 'ruby' | 'emerald' | 'amethyst'
+/** Top-level grouping used by the filter controls. */
+export type TraditionCategory =
+  | 'shared'
+  | 'eastern'
+  | 'western'
+  | 'protestant'
+  | 'other'
+
+export type ColorFamily =
+  | 'gold'
+  | 'sapphire'
+  | 'ruby'
+  | 'emerald'
+  | 'amethyst'
+  | 'copper'
+
+/** A header drawn above a run of related lanes. Groups can nest. */
+export interface LaneGroup {
+  id: string
+  name: string
+  blurb: string
+  /** Header and band colour; defaults to the first lane's colour. */
+  color?: string
+  /** The enclosing group, e.g. Protestant for Magisterial Reformation. */
+  parent?: LaneGroup
+}
 
 export interface Tradition {
   id: TraditionId
@@ -21,6 +53,28 @@ export interface Tradition {
   /** Horizontal position of the branch, left to right. */
   lane: number
   family: ColorFamily
+  category: TraditionCategory
+  /**
+   * The innermost visual group this lane sits in. Neighbouring lanes naming
+   * the same group are drawn under one header; each keeps its own lane.
+   */
+  laneGroup?: LaneGroup
+  /**
+   * When and where the branch began, drawn as start markers on its lane. The
+   * first entry is the lane's origin; further entries mark separate movements
+   * that share the lane. If an event is missing (e.g. deleted in the admin),
+   * the lane's earliest event carries the first marker instead.
+   */
+  origins: TraditionOrigin[]
+}
+
+export interface TraditionOrigin {
+  /** The event node the marker sits on. */
+  eventId: string
+  /** Short, human-readable date, e.g. "1609" or "1730s". */
+  dateLabel: string
+  /** Where the movement began, e.g. "Amsterdam". */
+  place: string
 }
 
 export type EventKind = 'event' | 'council' | 'schism' | 'reunion'

@@ -24,7 +24,7 @@ test('adds one sourced present-day endpoint to every continuing branch', () => {
   const result = withPresentDayEndpoints(historicalEvents)
   const endpoints = result.filter((event) => event.presentDay)
 
-  assert.equal(endpoints.length, 9)
+  assert.equal(endpoints.length, traditions.length)
   assert.deepEqual(
     new Set(endpoints.map((event) => event.tradition)),
     new Set(traditions),

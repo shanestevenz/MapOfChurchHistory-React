@@ -9,6 +9,7 @@ import {
   MapPinIcon,
   UsersIcon,
 } from 'lucide-react'
+import { DateText } from '@/components/date-text'
 import { EventIcon } from '@/components/event-icon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -68,7 +69,7 @@ export function EventDetailPanel({
                 </span>
                 <div className="flex flex-col gap-1 pr-8">
                   <span className="label-caps text-[10px]" style={{ color }}>
-                    {event.dateLabel}
+                    <DateText value={event.dateLabel} />
                   </span>
                   <SheetTitle className="font-serif text-2xl leading-tight text-balance">
                     {event.title}
@@ -275,7 +276,7 @@ function ConnectionRow({
       </span>
       <span className="flex min-w-0 flex-col">
         <span className="label-caps text-[9px] text-muted-foreground">
-          {label} · {event.dateLabel}
+          {label} · <DateText value={event.dateLabel} />
         </span>
         <span className="truncate font-serif text-sm">{event.title}</span>
       </span>

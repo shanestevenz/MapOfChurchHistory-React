@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { PlusIcon, TrashIcon, UploadIcon, XIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { DateText } from '@/components/date-text'
 import { EventIcon } from '@/components/event-icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -507,7 +508,7 @@ export function EventEditor({
                         }}
                       />
                       <span className="truncate">
-                        {candidate.dateLabel} · {candidate.title}
+                        <DateText value={candidate.dateLabel} /> · {candidate.title}
                       </span>
                     </button>
                   )

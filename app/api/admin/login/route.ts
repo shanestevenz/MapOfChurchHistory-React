@@ -1,15 +1,14 @@
-import { toNextJsHandler } from 'better-auth/next-js'
-import { auth } from '@/lib/auth/server'
-import { authIsConfigured } from '@/lib/db'
+import { getAuth } from '@/lib/auth/server'
 import { getClientIp, sameOrigin, verifyTurnstile } from '@/lib/http-security'
 
 export const runtime = 'nodejs'
 
-const authPost = toNextJsHandler(auth).POST
-
+// The only way to sign in: verifies Turnstile, then forwards the credentials to
+// Neon Auth through the same proxy handler /api/auth uses (which sets the session cookies).
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: 'Request origin is not allowed.' }, { status: 403 })
-  if (!authIsConfigured()) return Response.json({ error: 'Sign-in is not configured.' }, { status: 503 })
+  const auth = getAuth()
+  if (!auth) return Response.json({ error: 'Sign-in is not configured.' }, { status: 503 })
   if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) {
     return Response.json({ error: 'Content-Type must be application/json.' }, { status: 415 })
   }
@@ -70,7 +69,18 @@ export async function POST(request: Request) {
     body: JSON.stringify({ email: input.email, password: input.password }),
   })
   try {
-    return await authPost(authRequest)
+    const response = await auth.handler().POST(authRequest, {
+      params: Promise.resolve({ path: ['sign-in', 'email'] }),
+    })
+    if (response.ok) return response
+    // Log Neon Auth's error code (e.g. EMAIL_NOT_VERIFIED, INVALID_ORIGIN) for the
+    // operator, but don't tell the browser which part of the credentials was wrong.
+    const upstream = await response.json().catch(() => null) as { code?: string } | null
+    console.warn('Curator sign-in rejected', { status: response.status, code: upstream?.code })
+    return Response.json(
+      { error: 'Sign-in could not be completed. Check your credentials and try again.' },
+      { status: 401 },
+    )
   } catch (error) {
     console.error('Curator sign-in failed', { code: (error as { code?: string }).code })
     return Response.json({ error: 'Sign-in could not be completed. Check your credentials and try again.' }, { status: 401 })
