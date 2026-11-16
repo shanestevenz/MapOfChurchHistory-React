@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { ChevronRightIcon, FlagIcon, PencilIcon, PlusIcon } from 'lucide-react'
+import { ChevronRightIcon, FlagIcon, PencilIcon } from 'lucide-react'
 import { DateText, formatDecades } from '@/components/date-text'
 import { EventIcon } from '@/components/event-icon'
 import {
@@ -1016,15 +1016,43 @@ export function TimelineGraph({
                   onClick={() => expandGroup(group.id)}
                   aria-label={label}
                   title={label}
-                  className="absolute z-20 flex size-6 -translate-1/2 cursor-pointer items-center justify-center rounded-full border border-dashed border-primary/70 bg-card text-primary shadow-sm transition-colors hover:border-solid hover:bg-primary/15 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-75"
-                  style={{
-                    left: left + span / 2,
-                    top: lane.y,
-                    // Shrinks less than the canvas when zoomed out, so it stays findable.
-                    scale: 'max(1, pow(calc(1 / var(--z)), 0.6))',
-                  }}
+                  className="group/plus absolute z-20 block cursor-pointer rounded-full p-0 text-primary drop-shadow-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none motion-safe:animate-in motion-safe:fade-in-0"
+                  style={
+                    {
+                      left: left + span / 2,
+                      top: lane.y,
+                      // Shrinks less than the canvas when zoomed out, so it
+                      // stays findable. Sized in layout rather than with a
+                      // scale transform: a transform enlarges an already
+                      // shrunk raster, which is what made it blurry.
+                      '--plus': 'max(1, pow(calc(1 / var(--z)), 0.6))',
+                      width: 'calc(24px * var(--plus))',
+                      height: 'calc(24px * var(--plus))',
+                      marginLeft: 'calc(-12px * var(--plus))',
+                      marginTop: 'calc(-12px * var(--plus))',
+                    } as React.CSSProperties
+                  }
                 >
-                  <PlusIcon className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
+                  {/* Circle and plus share one drawing, so the plus is always
+                      centred whatever the zoom does to pixel rounding. */}
+                  <svg viewBox="0 0 24 24" className="block size-full" aria-hidden="true">
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="11"
+                      pathLength={48}
+                      strokeDasharray="2.5 1.5"
+                      className="fill-card stroke-current opacity-90 transition-[fill] group-hover/plus:fill-[color-mix(in_oklab,var(--primary)_15%,var(--card))] group-hover/plus:[stroke-dasharray:none]"
+                      strokeWidth={1.25}
+                    />
+                    <path
+                      d="M12 8v8M8 12h8"
+                      className="stroke-current"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      fill="none"
+                    />
+                  </svg>
                 </button>
               )
             })}

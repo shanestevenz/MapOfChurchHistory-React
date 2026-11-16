@@ -11,6 +11,7 @@ import { AdminBar } from '@/components/admin-bar'
 import { EventDetailPanel } from '@/components/event-detail-panel'
 import { EventDialog } from '@/components/event-dialog'
 import { EventEditor } from '@/components/event-editor'
+import { SiteDisclaimer } from '@/components/site-disclaimer'
 import { SuggestEditDialog } from '@/components/suggest-edit-dialog'
 import { SuggestionQueue } from '@/components/suggestion-queue'
 import { TimelineFiltersPanel } from '@/components/timeline-filters-panel'
@@ -199,6 +200,7 @@ export function TimelinePage() {
               AD {span.first}—Present · {events.length} historical events
             </span>
           </div>
+          <SiteDisclaimer />
         </div>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
