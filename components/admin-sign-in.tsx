@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeftIcon, KeyRoundIcon, ShieldCheckIcon } from 'lucide-react'
+import { ArrowLeftIcon, KeyRoundIcon } from 'lucide-react'
 import {
   TurnstileWidget,
   type TurnstileWidgetHandle,
@@ -12,21 +12,23 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { createClient } from '@/lib/supabase/client'
+import { authClient } from '@/lib/auth/client'
 
-type Stage = 'loading' | 'password' | 'enroll' | 'challenge'
+type Stage = 'loading' | 'password'
+
+async function fetchIsAdmin() {
+  const response = await fetch('/api/admin', { cache: 'no-store' })
+  if (!response.ok) return false
+  const result = await response.json().catch(() => null) as { isAdmin?: boolean } | null
+  return Boolean(result?.isAdmin)
+}
 
 export function AdminSignIn() {
   const router = useRouter()
-  const supabase = React.useMemo(() => createClient(), [])
   const captchaRef = React.useRef<TurnstileWidgetHandle>(null)
   const [stage, setStage] = React.useState<Stage>('loading')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
-  const [code, setCode] = React.useState('')
-  const [factorId, setFactorId] = React.useState('')
-  const [qrCode, setQrCode] = React.useState('')
-  const [secret, setSecret] = React.useState('')
   const [captchaToken, setCaptchaToken] = React.useState('')
   const [error, setError] = React.useState('')
   const [busy, setBusy] = React.useState(false)
@@ -34,130 +36,51 @@ export function AdminSignIn() {
   const captchaMisconfigured = process.env.NODE_ENV === 'production' && !siteKey
 
   const finish = React.useCallback(() => {
+    setPassword('')
     router.replace('/')
     router.refresh()
   }, [router])
 
-  const confirmCurator = React.useCallback(async (userId: string) => {
-    const { data, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single()
-    return !profileError && data.role === 'curator'
-  }, [supabase])
-
-  const beginEnrollment = React.useCallback(async () => {
-    const factors = await supabase.auth.mfa.listFactors()
-    if (factors.error) throw factors.error
-    for (const factor of factors.data.all) {
-      if (factor.status === 'unverified') {
-        await supabase.auth.mfa.unenroll({ factorId: factor.id })
-      }
-    }
-    const enrollment = await supabase.auth.mfa.enroll({
-      factorType: 'totp',
-      friendlyName: 'Map of Church History',
-    })
-    if (enrollment.error) throw enrollment.error
-    setFactorId(enrollment.data.id)
-    setQrCode(enrollment.data.totp.qr_code)
-    setSecret(enrollment.data.totp.secret)
-    setStage('enroll')
-  }, [supabase])
-
-  const continueAfterPassword = React.useCallback(async (userId: string) => {
-    if (!(await confirmCurator(userId))) {
-      await supabase.auth.signOut()
-      throw new Error('invalid')
-    }
-
-    const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-    if (assurance.error) throw assurance.error
-    if (assurance.data.currentLevel === 'aal2') {
-      finish()
-      return
-    }
-
-    const factors = await supabase.auth.mfa.listFactors()
-    if (factors.error) throw factors.error
-    const verifiedTotp = factors.data.totp.find((factor) => factor.status === 'verified')
-    if (verifiedTotp) {
-      setFactorId(verifiedTotp.id)
-      setStage('challenge')
-      return
-    }
-    await beginEnrollment()
-  }, [beginEnrollment, confirmCurator, finish, supabase])
-
   React.useEffect(() => {
     let active = true
-    supabase.auth.getUser().then(async ({ data, error: userError }) => {
-      if (!active) return
-      if (userError || !data.user) {
-        setStage('password')
-        return
-      }
-      try {
-        await continueAfterPassword(data.user.id)
-      } catch {
-        if (active) {
-          setError('Sign-in could not be completed. Check your credentials and try again.')
-          setStage('password')
-        }
-      }
-    })
+    fetchIsAdmin()
+      .then((isAdmin) => {
+        if (!active) return
+        if (isAdmin) finish()
+        else setStage('password')
+      })
+      .catch(() => active && setStage('password'))
     return () => { active = false }
-  }, [continueAfterPassword, supabase])
+  }, [finish])
 
   const signIn = async () => {
     if (!email || !password || (siteKey && !captchaToken) || captchaMisconfigured) return
     setBusy(true)
     setError('')
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-        options: captchaToken ? { captchaToken } : undefined,
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, turnstileToken: captchaToken }),
       })
-      if (signInError || !data.user) throw signInError ?? new Error('invalid')
-      setPassword('')
-      await continueAfterPassword(data.user.id)
-    } catch {
-      await supabase.auth.signOut()
-      captchaRef.current?.reset()
-      setError('Sign-in could not be completed. Check your credentials and try again.')
-      setStage('password')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const verifyMfa = async () => {
-    if (!factorId || !/^\d{6}$/.test(code)) return
-    setBusy(true)
-    setError('')
-    try {
-      const challenge = await supabase.auth.mfa.challenge({ factorId })
-      if (challenge.error) throw challenge.error
-      const verification = await supabase.auth.mfa.verify({
-        factorId,
-        challengeId: challenge.data.id,
-        code,
-      })
-      if (verification.error) throw verification.error
+      if (!response.ok) {
+        const result = await response.json().catch(() => null) as { error?: string } | null
+        throw new Error(result?.error ?? 'Sign-in could not be completed. Check your credentials and try again.')
+      }
+      if (!(await fetchIsAdmin())) {
+        await authClient.signOut()
+        throw new Error('This account is not a curator.')
+      }
       finish()
-    } catch {
-      setCode('')
-      setError('That verification code was not accepted. Wait for a new code and try again.')
+    } catch (caught) {
+      captchaRef.current?.reset()
+      setCaptchaToken('')
+      setError(caught instanceof Error && caught.message
+        ? caught.message
+        : 'Sign-in could not be completed. Check your credentials and try again.')
     } finally {
       setBusy(false)
     }
-  }
-
-  const cancel = async () => {
-    await supabase.auth.signOut()
-    router.replace('/')
   }
 
   return (
@@ -165,19 +88,14 @@ export function AdminSignIn() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
-            {stage === 'password' ? <KeyRoundIcon className="size-5" /> : <ShieldCheckIcon className="size-5" />}
+            <KeyRoundIcon className="size-5" />
           </div>
           <CardTitle className="font-serif text-2xl">
-            {stage === 'password' && 'Curator sign in'}
-            {stage === 'enroll' && 'Protect your account'}
-            {stage === 'challenge' && 'Two-step verification'}
-            {stage === 'loading' && 'Checking your session…'}
+            {stage === 'password' ? 'Curator sign in' : 'Checking your session…'}
           </CardTitle>
-          <CardDescription>
-            {stage === 'password' && 'This area is restricted to approved timeline curators.'}
-            {stage === 'enroll' && 'Scan this QR code with an authenticator app, then enter its six-digit code.'}
-            {stage === 'challenge' && 'Enter the current six-digit code from your authenticator app.'}
-          </CardDescription>
+          {stage === 'password' && (
+            <CardDescription>This area is restricted to approved timeline curators.</CardDescription>
+          )}
         </CardHeader>
 
         <CardContent className="flex flex-col gap-5">
@@ -207,11 +125,7 @@ export function AdminSignIn() {
                 />
                 {error && <FieldDescription className="text-destructive" role="alert">{error}</FieldDescription>}
               </Field>
-              <TurnstileWidget
-                ref={captchaRef}
-                action="admin-signin"
-                onTokenChange={setCaptchaToken}
-              />
+              <TurnstileWidget ref={captchaRef} action="admin-signin" onTokenChange={setCaptchaToken} />
               {captchaMisconfigured && (
                 <p className="text-sm text-destructive" role="alert">
                   Admin sign-in is unavailable because Turnstile is not configured.
@@ -221,81 +135,19 @@ export function AdminSignIn() {
                 onClick={() => void signIn()}
                 disabled={busy || !email || !password || Boolean(siteKey && !captchaToken) || captchaMisconfigured}
               >
-                {busy ? 'Signing in…' : 'Continue'}
+                {busy ? 'Signing in…' : 'Sign in'}
               </Button>
-            </>
-          )}
-
-          {stage === 'enroll' && (
-            <>
-              {qrCode && <img src={qrCode} alt="QR code for the authenticator app" className="mx-auto size-56 rounded bg-white p-3" />}
-              <Field>
-                <FieldLabel htmlFor="mfa-secret">Manual setup key</FieldLabel>
-                <Input id="mfa-secret" value={secret} readOnly className="font-mono text-xs" />
-              </Field>
-              <MfaCodeField code={code} setCode={setCode} error={error} onEnter={verifyMfa} />
-              <Button onClick={() => void verifyMfa()} disabled={busy || !/^\d{6}$/.test(code)}>
-                {busy ? 'Verifying…' : 'Enable two-step verification'}
+              <Button variant="ghost" onClick={() => router.replace('/')}>
+                <ArrowLeftIcon data-icon="inline-start" />
+                Return to timeline
               </Button>
+              <Link href="/privacy" className="text-center text-xs text-muted-foreground underline underline-offset-2">
+                Privacy notice
+              </Link>
             </>
-          )}
-
-          {stage === 'challenge' && (
-            <>
-              <MfaCodeField code={code} setCode={setCode} error={error} onEnter={verifyMfa} />
-              <Button onClick={() => void verifyMfa()} disabled={busy || !/^\d{6}$/.test(code)}>
-                {busy ? 'Verifying…' : 'Verify and open editor'}
-              </Button>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Lost your authenticator? Ask a Supabase project owner to follow the recovery procedure; there is no MFA bypass on this page.
-              </p>
-            </>
-          )}
-
-          {stage !== 'loading' && (
-            <Button variant="ghost" onClick={() => void cancel()}>
-              <ArrowLeftIcon data-icon="inline-start" />
-              Return to timeline
-            </Button>
-          )}
-          {stage === 'password' && (
-            <Link href="/privacy" className="text-center text-xs text-muted-foreground underline underline-offset-2">
-              Privacy notice
-            </Link>
           )}
         </CardContent>
       </Card>
     </main>
-  )
-}
-
-function MfaCodeField({
-  code,
-  setCode,
-  error,
-  onEnter,
-}: {
-  code: string
-  setCode: (value: string) => void
-  error: string
-  onEnter: () => Promise<void>
-}) {
-  return (
-    <Field data-invalid={Boolean(error) || undefined}>
-      <FieldLabel htmlFor="mfa-code">Six-digit code</FieldLabel>
-      <Input
-        id="mfa-code"
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        pattern="[0-9]{6}"
-        maxLength={6}
-        value={code}
-        onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' && /^\d{6}$/.test(code)) void onEnter()
-        }}
-      />
-      {error && <FieldDescription className="text-destructive" role="alert">{error}</FieldDescription>}
-    </Field>
   )
 }

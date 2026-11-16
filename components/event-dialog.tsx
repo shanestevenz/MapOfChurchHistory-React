@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowRightIcon, FilePenLineIcon, PencilIcon } from 'lucide-react'
+import { DateText } from '@/components/date-text'
 import { EventIcon } from '@/components/event-icon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -54,7 +55,7 @@ export function EventDialog({
                     className="label-caps text-[10px]"
                     style={{ color: traditionColor(event.tradition) }}
                   >
-                    {event.dateLabel}
+                    <DateText value={event.dateLabel} />
                   </span>
                   <DialogTitle className="font-serif text-xl leading-tight text-balance">
                     {event.title}
@@ -68,6 +69,7 @@ export function EventDialog({
                 <Badge variant="secondary">
                   {TRADITION_MAP[event.tradition]?.name ?? event.tradition}
                 </Badge>
+                {event.presentDay && <Badge variant="outline">Current profile</Badge>}
                 {event.keyFigures?.slice(0, 3).map((figure) => (
                   <Badge key={figure} variant="outline">
                     {figure}
@@ -76,25 +78,25 @@ export function EventDialog({
               </div>
             </DialogHeader>
             <DialogFooter>
-              {isAdmin ? (
-                <Button
-                  variant="ghost"
-                  onClick={() => onEdit(event)}
-                  className="sm:mr-auto"
-                >
-                  <PencilIcon data-icon="inline-start" />
-                  Edit event
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  onClick={() => onSuggestEdit(event)}
-                  className="sm:mr-auto"
-                >
-                  <FilePenLineIcon data-icon="inline-start" />
-                  Suggest an edit
-                </Button>
-              )}
+              {!event.presentDay && (isAdmin ? (
+                  <Button
+                    variant="ghost"
+                    onClick={() => onEdit(event)}
+                    className="sm:mr-auto"
+                  >
+                    <PencilIcon data-icon="inline-start" />
+                    Edit event
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    onClick={() => onSuggestEdit(event)}
+                    className="sm:mr-auto"
+                  >
+                    <FilePenLineIcon data-icon="inline-start" />
+                    Suggest an edit
+                  </Button>
+                ))}
               <DialogClose render={<Button variant="outline" />}>
                 Close
               </DialogClose>

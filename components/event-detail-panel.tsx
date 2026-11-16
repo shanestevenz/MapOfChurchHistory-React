@@ -1,10 +1,15 @@
 'use client'
 
 import {
+  ActivityIcon,
+  CalendarIcon,
   ExternalLinkIcon,
   FilePenLineIcon,
   GitBranchIcon,
+  MapPinIcon,
+  UsersIcon,
 } from 'lucide-react'
+import { DateText } from '@/components/date-text'
 import { EventIcon } from '@/components/event-icon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,7 +23,7 @@ import {
 } from '@/components/ui/sheet'
 import { TRADITION_MAP } from '@/lib/timeline-data'
 import { traditionColor } from '@/lib/timeline-layout'
-import type { TimelineEvent } from '@/lib/timeline-types'
+import type { PresentDayProfile, TimelineEvent } from '@/lib/timeline-types'
 import { safeHttpsUrl } from '@/lib/safe-url'
 
 interface EventDetailPanelProps {
@@ -64,7 +69,7 @@ export function EventDetailPanel({
                 </span>
                 <div className="flex flex-col gap-1 pr-8">
                   <span className="label-caps text-[10px]" style={{ color }}>
-                    {event.dateLabel}
+                    <DateText value={event.dateLabel} />
                   </span>
                   <SheetTitle className="font-serif text-2xl leading-tight text-balance">
                     {event.title}
@@ -100,6 +105,10 @@ export function EventDetailPanel({
                     </p>
                   ))}
               </div>
+
+              {event.presentDay && (
+                <PresentDayDetails profile={event.presentDay} />
+              )}
 
               {(parents.length > 0 || children.length > 0) && (
                 <>
@@ -158,29 +167,89 @@ export function EventDetailPanel({
                 </>
               )}
 
-              <Separator />
-              <div className="flex flex-col items-start gap-2 rounded-lg border border-dashed border-border p-4">
-                <h3 className="label-caps text-[10px] text-muted-foreground">
-                  Spotted a problem?
-                </h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Anyone can propose a correction. Curators review every
-                  suggestion before it appears here.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onSuggestEdit(event)}
-                >
-                  <FilePenLineIcon data-icon="inline-start" />
-                  Suggest an edit
-                </Button>
-              </div>
+              {!event.presentDay && (
+                <>
+                  <Separator />
+                  <div className="flex flex-col items-start gap-2 rounded-lg border border-dashed border-border p-4">
+                    <h3 className="label-caps text-[10px] text-muted-foreground">
+                      Spotted a problem?
+                    </h3>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      Anyone can propose a correction. Curators review every
+                      suggestion before it appears here.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onSuggestEdit(event)}
+                    >
+                      <FilePenLineIcon data-icon="inline-start" />
+                      Suggest an edit
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </>
         )}
       </SheetContent>
     </Sheet>
+  )
+}
+
+function PresentDayDetails({ profile }: { profile: PresentDayProfile }) {
+  return (
+    <section className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/5 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="label-caps text-[10px] text-primary">
+          Present-day profile
+        </h3>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <CalendarIcon className="size-3" />
+          {profile.asOf}
+        </span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-border bg-card/60 p-3">
+          <p className="label-caps flex items-center gap-1.5 text-[9px] text-muted-foreground">
+            <UsersIcon className="size-3" />
+            Reported membership
+          </p>
+          <p className="mt-1 font-serif text-xl text-foreground">
+            {profile.membership}
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+            {profile.membershipNote}
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card/60 p-3">
+          <p className="label-caps flex items-center gap-1.5 text-[9px] text-muted-foreground">
+            <MapPinIcon className="size-3" />
+            Where members live
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-foreground/85">
+            {profile.geography}
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card/60 p-3">
+        <p className="label-caps flex items-center gap-1.5 text-[9px] text-muted-foreground">
+          <ActivityIcon className="size-3" />
+          Current developments
+        </p>
+        <ul className="mt-2 space-y-2 text-xs leading-relaxed text-foreground/85">
+          {profile.currentDevelopments.map((development) => (
+            <li key={development} className="flex gap-2">
+              <span className="mt-1.5 size-1 shrink-0 rounded-full bg-primary" />
+              <span>{development}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   )
 }
 
@@ -207,7 +276,7 @@ function ConnectionRow({
       </span>
       <span className="flex min-w-0 flex-col">
         <span className="label-caps text-[9px] text-muted-foreground">
-          {label} · {event.dateLabel}
+          {label} · <DateText value={event.dateLabel} />
         </span>
         <span className="truncate font-serif text-sm">{event.title}</span>
       </span>

@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { DateText } from '@/components/date-text'
 import { useTimeline } from '@/components/timeline-provider'
 import { Button } from '@/components/ui/button'
 import {
@@ -116,7 +117,7 @@ export function TimelineGroupManager({
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-serif">{group.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {group.dateLabel} · {count} event{count === 1 ? '' : 's'} ·
+                      <DateText value={group.dateLabel} /> · {count} event{count === 1 ? '' : 's'} ·
                       expands at {Math.round(group.autoExpandZoom * 100)}%
                     </p>
                   </div>
