@@ -80,6 +80,32 @@ export interface TimelineFilters {
   hideEmptyLanes: boolean
   /** Dim everything outside the selected event's ancestors and descendants. */
   focusLineage: boolean
+  /** The panel of lane names on the left of the timeline. */
+  showLaneLabels: boolean
+  /** Founding ("Began here") nodes grow as you zoom out so they stay readable. */
+  enlargeOrigins: boolean
+  /** Event kinds whose nodes grow as you zoom out. */
+  enlargeKinds: EventKind[]
+  /** Grow the whole node (icon and label) or only its text. */
+  enlargeMode: EnlargeMode
+  /**
+   * How much enlarged nodes make up for zooming out, from 0 (not at all) to
+   * 1 (they keep their 100% on-screen size at any zoom). See zoomOutScale.
+   */
+  enlargeStrength: number
+}
+
+export type EnlargeMode = 'node' | 'text'
+
+/**
+ * How much to scale an enlarged node at a given canvas zoom. At or above 100%
+ * nothing changes; below it the node grows by (1 / zoom) ^ strength, so a
+ * strength of 1 cancels the zoom out entirely and 0 leaves the node as is.
+ */
+export function zoomOutScale(zoom: number, strength: number): number {
+  if (!(zoom > 0) || zoom >= 1) return 1
+  const clamped = Math.min(1, Math.max(0, strength))
+  return (1 / zoom) ** clamped
 }
 
 export const DEFAULT_FILTERS: TimelineFilters = {
@@ -91,6 +117,12 @@ export const DEFAULT_FILTERS: TimelineFilters = {
   compactLabels: false,
   hideEmptyLanes: true,
   focusLineage: false,
+  showLaneLabels: true,
+  // "Began here" nodes grow when zoomed out by default (1.8x at the farthest zoom).
+  enlargeOrigins: true,
+  enlargeKinds: [],
+  enlargeMode: 'node',
+  enlargeStrength: 0.5,
 }
 
 /**
@@ -102,6 +134,7 @@ export function activeFilterCount(filters: TimelineFilters): number {
     Number(filters.hiddenTraditions.length > 0) +
     Number(filters.hiddenKinds.length > 0) +
     Number(filters.hiddenEras.length > 0) +
+    Number(filters.enlargeKinds.length > 0) +
     (Object.keys(DEFAULT_FILTERS) as (keyof TimelineFilters)[]).filter(
       (key) =>
         typeof DEFAULT_FILTERS[key] === 'boolean' &&
@@ -288,12 +321,28 @@ export function lineageOf(events: TimelineEvent[], id: string): Set<string> {
 /* --- Persistence ------------------------------------------------------- */
 
 const STORAGE_KEY = 'timeline-filters:v1'
+/**
+ * Bumped when a default should reach people who already have saved filters.
+ * 2: "Began here" nodes enlarge by default, at 50% strength. Settings saved
+ *    before that get those two values; everything else they chose is kept.
+ */
+const SETTINGS_VERSION = 2
+
+type StoredFilters = Partial<TimelineFilters> & { version?: number }
 
 export function loadFilters(): TimelineFilters {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT_FILTERS
-    const parsed = JSON.parse(raw) as Partial<TimelineFilters>
+    const { version, ...stored } = JSON.parse(raw) as StoredFilters
+    const parsed: Partial<TimelineFilters> =
+      (version ?? 1) < 2
+        ? {
+            ...stored,
+            enlargeOrigins: DEFAULT_FILTERS.enlargeOrigins,
+            enlargeStrength: DEFAULT_FILTERS.enlargeStrength,
+          }
+        : stored
     const known = new Set<string>(ALL_TRADITIONS)
     return {
       ...DEFAULT_FILTERS,
@@ -304,6 +353,14 @@ export function loadFilters(): TimelineFilters {
       ),
       hiddenKinds: parsed.hiddenKinds ?? [],
       hiddenEras: parsed.hiddenEras ?? [],
+      enlargeKinds: (Array.isArray(parsed.enlargeKinds) ? parsed.enlargeKinds : []).filter(
+        (kind) => EVENT_KINDS.some((known) => known.id === kind),
+      ),
+      enlargeMode: parsed.enlargeMode === 'text' ? 'text' : 'node',
+      enlargeStrength:
+        typeof parsed.enlargeStrength === 'number' && Number.isFinite(parsed.enlargeStrength)
+          ? Math.min(1, Math.max(0, parsed.enlargeStrength))
+          : DEFAULT_FILTERS.enlargeStrength,
     }
   } catch {
     return DEFAULT_FILTERS
@@ -312,7 +369,8 @@ export function loadFilters(): TimelineFilters {
 
 export function saveFilters(filters: TimelineFilters) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(filters))
+    const stored: StoredFilters = { ...filters, version: SETTINGS_VERSION }
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
   } catch {
     // Private windows and blocked storage simply don't remember filters.
   }

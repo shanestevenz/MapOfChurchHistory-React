@@ -14,6 +14,7 @@
     "db:setup": "node scripts/setup-database.mjs",
     "db:local-auth-stub": "node --env-file-if-exists=.env.local scripts/create-local-auth-stub.mjs",
     "curator:create": "node scripts/create-curator.mjs",
+    "curator:create:local": "node --env-file=.env.local scripts/create-curator.mjs",
     "db:start": "docker compose up -d db",
     "db:stop": "docker compose down",
     "db:seed:generate": "node scripts/generate-neon-seed.cjs",
@@ -21,6 +22,7 @@
     "test:unit": "tsx --test tests/*.test.mjs",
     "test:integration": "node --test tests/integration/*.test.mjs",
     "test:e2e": "playwright test",
+    "test:perf": "playwright test --config playwright.perf.config.ts",
     "audit": "npm audit --audit-level=high",
     "production:check": "node scripts/check-production-env.mjs",
     "load:test": "node scripts/load-test.mjs"

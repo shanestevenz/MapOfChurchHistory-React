@@ -80,6 +80,8 @@ npm run test:e2e
 npm run audit
 ```
 
+`npm run test:perf` checks performance budgets against a production build: it builds, serves on port 3100, and measures page weight, server response times, load metrics (FCP, LCP, CLS, Total Blocking Time), frame times while zooming and panning, and how quickly an event opens. Load and interaction run twice, at full speed and with the CPU throttled 4x as a stand-in for a mid-range phone. Budgets live in `tests/perf/budgets.ts`; every run prints its measurements, so it doubles as a report. Set `PERF_BASE_URL` to measure an already running server instead. It is not part of CI, because shared runners make timings noisy.
+
 The integration suite requires `TEST_DATABASE_URL` to point to a disposable local Postgres database whose name includes `ci` or `test`. Apply `npm run db:local-auth-stub`, `npm run db:migrate`, and `npm run db:seed` first. The integration test refuses remote hosts and production-style database names. Playwright starts the app in development mode so CI can exercise the real Postgres suggestion route without external Turnstile credentials; it applies the same migrations and seed first.
 
 ## Technology

@@ -15,6 +15,11 @@ export const NODE_SIZE = 56
 /** Half a column keeps the first node centred without adding a blank column. */
 export const PAD_LEFT = COL_WIDTH / 2
 export const PAD_RIGHT = 140
+/**
+ * Space above the first lane, so its nodes and "Began here" flags (and nodes
+ * enlarged on hover or when zoomed out) don't sit against the header bars.
+ */
+export const PAD_TOP = 28
 /** Height of the era ruler pinned to the top of the canvas. */
 export const ERA_BAR = 36
 
@@ -101,18 +106,24 @@ export interface PositionedEdge {
 
 export interface Era {
   label: string
+  /** Display range for the era ruler and tooltips, e.g. "313–600". */
+  dates: string
   from: number
   to: number
   left: number
   right: number
 }
 
-export const ERAS: { label: string; from: number; to: number }[] = [
-  { label: 'Apostolic', from: -1, to: 312 },
-  { label: 'Imperial', from: 313, to: 600 },
-  { label: 'Medieval', from: 601, to: 1450 },
-  { label: 'Reformation', from: 1451, to: 1700 },
-  { label: 'Modern', from: 1701, to: 3000 },
+/**
+ * from/to decide which events fall in each era; `dates` is the conventional
+ * range shown to people (shared boundary years, "today" for the open end).
+ */
+export const ERAS: { label: string; dates: string; from: number; to: number }[] = [
+  { label: 'Apostolic', dates: 'AD 33–312', from: -1, to: 312 },
+  { label: 'Imperial', dates: '313–600', from: 313, to: 600 },
+  { label: 'Medieval', dates: '600–1450', from: 601, to: 1450 },
+  { label: 'Reformation', dates: '1450–1700', from: 1451, to: 1700 },
+  { label: 'Modern', dates: '1700–today', from: 1701, to: 3000 },
 ]
 
 /**
@@ -136,6 +147,12 @@ function orderEvents(events: TimelineEvent[]): TimelineEvent[] {
   }
 
   return ordered
+}
+
+/** Both events branch from exactly the same (non-empty) set of parents. */
+function sameParents(a: TimelineEvent, b: TimelineEvent): boolean {
+  if (a.parents.length === 0 || a.parents.length !== b.parents.length) return false
+  return a.parents.every((parent) => b.parents.includes(parent))
 }
 
 function edgePath(from: PositionedEvent, to: PositionedEvent): string {
@@ -165,7 +182,7 @@ export function buildLayout(
   const groups: PositionedLaneGroup[] = []
   // Groups currently open, outermost first.
   let open: PositionedLaneGroup[] = []
-  let top = 0
+  let top = PAD_TOP
   for (const tradition of [...TRADITIONS].sort((a, b) => a.lane - b.lane)) {
     if (hidden.has(tradition.id)) continue
 
@@ -222,13 +239,37 @@ export function buildLayout(
   }
   const laneOf = new Map(lanes.map((lane) => [lane.id, lane]))
 
+  // Each event normally gets its own column. Branches born together share
+  // one: events in the same year with exactly the same parents, in different
+  // lanes (e.g. Eastern Orthodoxy and Roman Catholicism, both from the 1054
+  // schism), are drawn one above the other.
+  const columnOf = new Map<string, number>()
+  let column = -1
+  let current: TimelineEvent[] = []
+  for (const event of ordered) {
+    if (event.presentDay) continue
+    const sharesColumn =
+      current.length > 0 &&
+      current.every(
+        (other) =>
+          other.year === event.year &&
+          other.tradition !== event.tradition &&
+          sameParents(other, event),
+      )
+    if (!sharesColumn) {
+      column += 1
+      current = []
+    }
+    current.push(event)
+    columnOf.set(event.id, column)
+  }
+
   // All generated present-day endpoints share one final column. This makes
   // every living branch visibly continue to the same point in time instead of
   // staggering "today" nodes across unrelated sequential columns.
-  const historicalCount = ordered.filter((event) => !event.presentDay).length
-  let historicalColumn = 0
+  const historicalCount = column + 1
   const nodes: PositionedEvent[] = ordered.map((event) => {
-    const col = event.presentDay ? historicalCount : historicalColumn++
+    const col = event.presentDay ? historicalCount : columnOf.get(event.id)!
     return {
       event,
       col,
@@ -297,6 +338,7 @@ export function buildLayout(
     const last = cols[cols.length - 1]
     eras.push({
       label: era.label,
+      dates: era.dates,
       from: era.from,
       to: era.to,
       left: first.x - COL_WIDTH / 2,

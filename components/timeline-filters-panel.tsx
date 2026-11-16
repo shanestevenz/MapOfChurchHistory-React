@@ -7,8 +7,10 @@ import {
   MinusIcon,
   RotateCcwIcon,
   SearchIcon,
+  SlidersHorizontalIcon,
   XIcon,
 } from 'lucide-react'
+import { DateText } from '@/components/date-text'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -20,7 +22,9 @@ import {
   FILTER_PRESETS,
   TRADITION_CATEGORIES,
   type TimelineFilters,
+  zoomOutScale,
 } from '@/lib/timeline-filters'
+import { MIN_ZOOM } from '@/components/timeline-graph'
 import { ERAS, traditionColor } from '@/lib/timeline-layout'
 import type {
   LaneGroup,
@@ -93,11 +97,14 @@ function Chip({
   onClick,
   children,
   title,
+  strikeInactive = true,
 }: {
   active: boolean
   onClick: () => void
   children: React.ReactNode
   title?: string
+  /** Filter chips strike through what's hidden; option chips don't. */
+  strikeInactive?: boolean
 }) {
   return (
     <button
@@ -109,7 +116,8 @@ function Chip({
         'rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
         active
           ? 'border-primary/50 bg-primary/15 text-foreground'
-          : 'border-border text-muted-foreground line-through decoration-muted-foreground/50 hover:bg-muted',
+          : 'border-border text-muted-foreground hover:bg-muted',
+        !active && strikeInactive && 'line-through decoration-muted-foreground/50',
       )}
     >
       {children}
@@ -248,7 +256,7 @@ export function TimelineFiltersPanel({
                       {event.title}
                     </span>
                     <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">
-                      {event.dateLabel}
+                      <DateText value={event.dateLabel} />
                     </span>
                   </button>
                 </li>
@@ -455,11 +463,7 @@ export function TimelineFiltersPanel({
               <Chip
                 key={era.label}
                 active={!filters.hiddenEras.includes(era.label)}
-                title={
-                  era.to >= 3000
-                    ? `From ${era.from}`
-                    : `${Math.max(era.from, 1)}–${era.to}`
-                }
+                title={era.dates}
                 onClick={() =>
                   set({ hiddenEras: toggleIn(filters.hiddenEras, era.label) })
                 }
@@ -470,42 +474,293 @@ export function TimelineFiltersPanel({
           </div>
         </Section>
 
-        <Section title="Display">
-          <div className="flex flex-col gap-3">
-            <Toggle
-              label="Focus on selected lineage"
-              hint="Fade everything outside the selected event's ancestors and descendants."
-              checked={filters.focusLineage}
-              onChange={(focusLineage) => set({ focusLineage })}
-            />
-            <Toggle
-              label="Compact labels"
-              hint="Hide event-type captions and shorten long titles."
-              checked={filters.compactLabels}
-              onChange={(compactLabels) => set({ compactLabels })}
-            />
-            <Toggle
-              label="Hide empty lanes"
-              hint="Collapse branches with nothing left after filtering."
-              checked={filters.hideEmptyLanes}
-              onChange={(hideEmptyLanes) => set({ hideEmptyLanes })}
-            />
-            <Toggle
-              label="“Began here” flags"
-              hint="Mark when and where each branch started."
-              checked={filters.showOrigins}
-              onChange={(showOrigins) => set({ showOrigins })}
-            />
-            <Toggle
-              label="Present-day summaries"
-              hint="The “today” node at the end of each living branch."
-              checked={filters.showPresentDay}
-              onChange={(showPresentDay) => set({ showPresentDay })}
-            />
-          </div>
-        </Section>
+        <AdvancedSettings filters={filters} set={set} />
       </div>
     </div>
+  )
+}
+
+/** Settings that live under "Advanced settings" (display and zoom). */
+const ADVANCED_KEYS = [
+  'showLaneLabels',
+  'focusLineage',
+  'compactLabels',
+  'hideEmptyLanes',
+  'showOrigins',
+  'showPresentDay',
+  'enlargeOrigins',
+  'enlargeKinds',
+  'enlargeMode',
+  'enlargeStrength',
+] as const satisfies readonly (keyof TimelineFilters)[]
+
+const ADVANCED_OPEN_KEY = 'timeline-advanced-settings-open'
+
+/**
+ * Display and zoom options, grouped under one collapsible header so the
+ * panel opens on the filters people use most. Collapsed by default; the open
+ * state is remembered. The header counts settings changed from the defaults,
+ * so a customised view is never hidden without a hint.
+ */
+function AdvancedSettings({
+  filters,
+  set,
+}: {
+  filters: TimelineFilters
+  set: (patch: Partial<TimelineFilters>) => void
+}) {
+  const contentId = React.useId()
+  const [open, setOpen] = React.useState(false)
+  React.useEffect(() => {
+    try {
+      if (window.localStorage.getItem(ADVANCED_OPEN_KEY) === '1') setOpen(true)
+    } catch {
+      // Storage can be blocked; stay collapsed.
+    }
+  }, [])
+  const toggle = () => {
+    setOpen((current) => {
+      const next = !current
+      try {
+        window.localStorage.setItem(ADVANCED_OPEN_KEY, next ? '1' : '0')
+      } catch {
+        // Not remembered in private windows; still toggles.
+      }
+      return next
+    })
+  }
+  const changed = ADVANCED_KEYS.filter(
+    (key) => JSON.stringify(filters[key]) !== JSON.stringify(DEFAULT_FILTERS[key]),
+  ).length
+
+  return (
+    <section className="border-b border-border last:border-b-0">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={contentId}
+        onClick={toggle}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      >
+        <SlidersHorizontalIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span className="label-caps text-[10px] text-muted-foreground">Advanced settings</span>
+        {changed > 0 && (
+          <span className="rounded-full bg-primary/15 px-1.5 py-px text-[10px] text-foreground tabular-nums">
+            {changed} changed
+          </span>
+        )}
+        <ChevronRightIcon
+          className={cn(
+            'ml-auto size-3.5 shrink-0 text-muted-foreground transition-transform duration-200',
+            open && 'rotate-90',
+          )}
+          aria-hidden="true"
+        />
+      </button>
+
+      {/* grid-rows 0fr -> 1fr animates to the content's natural height. */}
+      <div
+        id={contentId}
+        inert={!open}
+        className={cn(
+          'grid transition-[grid-template-rows] duration-300 ease-out',
+          open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="flex flex-col gap-3 px-4 pb-4">
+            <SubSection title="Display">
+              <div className="flex flex-col gap-3">
+                <Toggle
+                  label="Lane labels"
+                  hint="The panel of branch names on the left. Hide it for more room."
+                  checked={filters.showLaneLabels}
+                  onChange={(showLaneLabels) => set({ showLaneLabels })}
+                />
+                <Toggle
+                  label="Focus on selected lineage"
+                  hint="Fade everything outside the selected event's ancestors and descendants."
+                  checked={filters.focusLineage}
+                  onChange={(focusLineage) => set({ focusLineage })}
+                />
+                <Toggle
+                  label="Compact labels"
+                  hint="Hide event-type captions and shorten long titles."
+                  checked={filters.compactLabels}
+                  onChange={(compactLabels) => set({ compactLabels })}
+                />
+                <Toggle
+                  label="Hide empty lanes"
+                  hint="Collapse branches with nothing left after filtering."
+                  checked={filters.hideEmptyLanes}
+                  onChange={(hideEmptyLanes) => set({ hideEmptyLanes })}
+                />
+                <Toggle
+                  label="“Began here” flags"
+                  hint="Mark when and where each branch started."
+                  checked={filters.showOrigins}
+                  onChange={(showOrigins) => set({ showOrigins })}
+                />
+                <Toggle
+                  label="Present-day summaries"
+                  hint="The “today” node at the end of each living branch."
+                  checked={filters.showPresentDay}
+                  onChange={(showPresentDay) => set({ showPresentDay })}
+                />
+              </div>
+            </SubSection>
+
+            <ZoomReadabilitySection filters={filters} set={set} />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** A titled card inside "Advanced settings": quieter than a top-level Section. */
+function SubSection({
+  title,
+  action,
+  children,
+}: {
+  title: string
+  action?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+      <div className="mb-2.5 flex min-h-5 items-center justify-between gap-2">
+        <h4 className="text-xs font-medium text-foreground/90">{title}</h4>
+        {action}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Which nodes grow back as you zoom out, so the overview stays readable.
+ * Applies only below 100% zoom; see zoomOutScale for the curve.
+ */
+function ZoomReadabilitySection({
+  filters,
+  set,
+}: {
+  filters: TimelineFilters
+  set: (patch: Partial<TimelineFilters>) => void
+}) {
+  const strengthId = React.useId()
+  const anyEnlarged = filters.enlargeOrigins || filters.enlargeKinds.length > 0
+  const allKinds = EVENT_KINDS.every((kind) => filters.enlargeKinds.includes(kind.id))
+  const atMinZoom = zoomOutScale(MIN_ZOOM, filters.enlargeStrength)
+
+  return (
+    <SubSection
+      title="Readability when zoomed out"
+      action={
+        anyEnlarged ? (
+          <button
+            type="button"
+            onClick={() => set({ enlargeOrigins: false, enlargeKinds: [] })}
+            className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            Turn off
+          </button>
+        ) : undefined
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <Toggle
+          label="Enlarge “Began here” nodes"
+          hint="Founding events grow as you zoom out, flags included."
+          checked={filters.enlargeOrigins}
+          onChange={(enlargeOrigins) => set({ enlargeOrigins })}
+        />
+
+        <div>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <p className="text-sm leading-tight">Enlarge by type</p>
+            <button
+              type="button"
+              onClick={() =>
+                set({ enlargeKinds: allKinds ? [] : EVENT_KINDS.map((kind) => kind.id) })
+              }
+              className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+            >
+              {allKinds ? 'None' : 'All'}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {EVENT_KINDS.map((kind) => (
+              <Chip
+                key={kind.id}
+                strikeInactive={false}
+                active={filters.enlargeKinds.includes(kind.id)}
+                onClick={() => set({ enlargeKinds: toggleIn(filters.enlargeKinds, kind.id) })}
+              >
+                {kind.label}
+              </Chip>
+            ))}
+          </div>
+        </div>
+
+        <div className={cn('flex flex-col gap-3 transition-opacity', !anyEnlarged && 'opacity-50')}>
+          <div>
+            <p className="mb-1.5 text-sm leading-tight">Grow</p>
+            <div className="flex gap-1.5" role="radiogroup" aria-label="What grows">
+              {([
+                ['node', 'Whole node'],
+                ['text', 'Text only'],
+              ] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={filters.enlargeMode === mode}
+                  disabled={!anyEnlarged}
+                  onClick={() => set({ enlargeMode: mode })}
+                  className={cn(
+                    'flex-1 rounded-md border px-2.5 py-1 text-xs transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+                    filters.enlargeMode === mode
+                      ? 'border-primary/50 bg-primary/15 text-foreground'
+                      : 'border-border text-muted-foreground enabled:hover:bg-muted',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-1 flex items-baseline justify-between gap-2">
+              <label htmlFor={strengthId} className="text-sm leading-tight">
+                Strength
+              </label>
+              <span className="text-[11px] text-muted-foreground tabular-nums">
+                {Math.round(filters.enlargeStrength * 100)}%
+              </span>
+            </div>
+            <input
+              id={strengthId}
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              disabled={!anyEnlarged}
+              value={Math.round(filters.enlargeStrength * 100)}
+              onChange={(event) => set({ enlargeStrength: Number(event.target.value) / 100 })}
+              className="w-full accent-primary disabled:cursor-not-allowed"
+            />
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              At the farthest zoom ({Math.round(MIN_ZOOM * 100)}%), enlarged nodes are{' '}
+              {atMinZoom.toFixed(1)}× their normal size. 100% keeps them as large as at full zoom.
+            </p>
+          </div>
+        </div>
+      </div>
+    </SubSection>
   )
 }
 
@@ -559,7 +814,7 @@ function TraditionRow({
           </span>
           {tradition.origins[0] && (
             <span className="truncate text-[10px] text-muted-foreground">
-              Began {tradition.origins[0].dateLabel} ·{' '}
+              Began <DateText value={tradition.origins[0].dateLabel} /> ·{' '}
               {tradition.origins[0].place}
             </span>
           )}
@@ -616,7 +871,10 @@ function Toggle({
         id={id}
         size="sm"
         className="mt-0.5"
-        checked={checked}
+        // Always a boolean, so the switch never flips from uncontrolled to
+        // controlled (e.g. a hot reload keeping state from before a new
+        // setting existed).
+        checked={checked === true}
         onCheckedChange={(value) => onChange(value)}
       />
     </div>

@@ -1,14 +1,19 @@
 // Creates (or promotes) a curator account in Neon Auth for one Neon branch.
 //
-//   npm run curator:create
+//   npm run curator:create         -> prompts for everything
+//   npm run curator:create:local   -> reads .env.local (local dev)
 //
-// Prompts for everything it needs. Values can also come from the environment
-// (DATABASE_URL_UNPOOLED / DATABASE_URL, NEON_AUTH_BASE_URL) or flags
-// (--email, --name). The password is always prompted, never passed as a flag.
+// Inputs (prompted when missing):
+//   NEON_AUTH_BASE_URL        the branch's Auth URL (Neon console -> Auth -> Configuration)
+//   NEON_BRANCH_DATABASE_URL  that branch's connection string (falls back to DATABASE_URL
+//                             when it points at Neon)
+//   --email, --name           flags; the password is always prompted, never a flag
 //
-// How it works: signs the account up through the branch's Neon Auth URL (so the
-// password is hashed by Neon Auth), then marks it verified and gives it the
-// admin role in neon_auth."user". If the email already exists, it is promoted.
+// Steps: signs the account up through Neon Auth (Neon hashes the password), then marks
+// it verified and gives it the admin role. All Neon traffic is HTTPS (Neon Auth + Neon's
+// SQL-over-HTTP endpoint), so it works on networks that block Postgres port 5432.
+// If DATABASE_URL is a local Postgres, the account is also mirrored into the local
+// neon_auth."user" stand-in, which the database's curator checks read.
 import { createInterface } from 'node:readline'
 import pg from 'pg'
 
@@ -34,33 +39,55 @@ const fail = (message) => {
   process.exit(1)
 }
 
-const databaseUrl = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL
-  || await ask('Database connection string (the Neon branch): ')
-const authBaseUrl = (process.env.NEON_AUTH_BASE_URL
-  || await ask('Neon Auth URL for that branch (Neon console → Auth → Configuration): ')).replace(/\/+$/, '')
-const email = (flag('email') || await ask('Curator email: ')).toLowerCase()
-const name = flag('name') || await ask('Display name: ')
-if (!databaseUrl || !authBaseUrl || !email || !name) fail('Database URL, Neon Auth URL, email and name are all required.')
+const isLocalHost = (url) => ['localhost', '127.0.0.1', '::1', 'postgres', 'db'].includes(url.hostname.replace(/^\[|\]$/g, ''))
+const parse = (value) => { try { return new URL(value) } catch { return null } }
 
-let db
-try {
-  db = new URL(databaseUrl)
-  new URL(authBaseUrl)
-} catch {
-  fail('The database URL or Neon Auth URL is not a valid URL.')
+// --- Inputs -----------------------------------------------------------------
+const appDb = process.env.DATABASE_URL ? parse(process.env.DATABASE_URL) : null
+const localDb = appDb && isLocalHost(appDb) ? appDb : null
+
+let neonDbValue = process.env.NEON_BRANCH_DATABASE_URL
+  || (appDb && !localDb ? process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL : '')
+if (!neonDbValue) neonDbValue = await ask('Neon branch connection string: ')
+const neonDb = parse(neonDbValue)
+if (!neonDb || !neonDb.hostname.endsWith('.neon.tech')) fail('The Neon branch connection string is not a valid Neon URL.')
+neonDb.hostname = neonDb.hostname.replace('-pooler.', '.')
+
+const authValue = process.env.NEON_AUTH_BASE_URL
+  || await ask('Neon Auth URL for that branch (Neon console -> Auth -> Configuration): ')
+const authUrl = parse(authValue.replace(/\/+$/, ''))
+if (!authUrl) fail('The Neon Auth URL is not a valid URL.')
+const authBaseUrl = authUrl.toString().replace(/\/+$/, '')
+
+console.log(`\nNeon branch: ${neonDb.hostname}\nNeon Auth:   ${authUrl.hostname}`)
+if (localDb) console.log(`Local copy:  ${localDb.host}${localDb.pathname}`)
+if (neonDb.hostname.split('.')[0] !== authUrl.hostname.split('.')[0]) {
+  console.log('Warning: the database and Neon Auth URLs look like different branches.')
 }
-db.hostname = db.hostname.replace('-pooler.', '.')
-if (['require', 'prefer', 'verify-ca'].includes(db.searchParams.get('sslmode'))) db.searchParams.set('sslmode', 'verify-full')
 
-const client = new pg.Client({ connectionString: db.toString() })
-await client.connect()
+const email = (flag('email') || await ask('\nCurator email: ')).toLowerCase()
+const name = flag('name') || await ask('Display name: ')
+if (!email || !name) fail('Email and name are required.')
+
+// --- Neon SQL over HTTPS ----------------------------------------------------
+async function neonSql(query, params = []) {
+  const response = await fetch(`https://${neonDb.hostname}/sql`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Neon-Connection-String': neonDb.toString() },
+    body: JSON.stringify({ query, params }),
+  })
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(body.message || `Neon SQL request failed (${response.status})`)
+  return body.rows
+}
+
 try {
-  const hasNeonAuth = await client.query(`select to_regclass('neon_auth."user"') is not null as ok`)
-  if (!hasNeonAuth.rows[0].ok) fail('Neon Auth is not enabled on this branch. Enable it in the Neon console (Auth tab) first.')
+  const [{ enabled }] = await neonSql(`select to_regclass('neon_auth."user"') is not null as enabled`)
+  if (!enabled) fail('Neon Auth is not enabled on this branch. Enable it in the Neon console (Auth tab) first.')
 
-  const existing = await client.query('select id from neon_auth."user" where lower(email) = $1', [email])
-  if (existing.rowCount) {
-    console.log(`\n${email} already exists; promoting it to curator.`)
+  const existing = await neonSql('select id from neon_auth."user" where lower(email) = $1', [email])
+  if (existing.length) {
+    console.log(`\n${email} already exists on Neon; promoting it to curator.`)
   } else {
     const password = await askHidden('Password (min 8 characters, hidden): ')
     const confirm = await askHidden('Repeat password: ')
@@ -76,23 +103,44 @@ try {
     })
     if (!response.ok) {
       const body = await response.json().catch(() => ({}))
-      const code = body.code || body.message || response.statusText
-      const hint = /sign.?up/i.test(String(code))
-        ? 'Sign-ups are disabled for this branch. Turn them on in Neon (Auth → Settings) while you run this, then off again.'
-        : /origin/i.test(String(code))
+      const code = String(body.code || body.message || response.statusText)
+      const hint = /sign.?up/i.test(code)
+        ? 'Sign-ups are disabled for this branch. Turn them on in Neon (Auth -> Settings) while you run this, then off again.'
+        : /origin/i.test(code)
           ? `Neon Auth rejected the origin ${origin}. Enable "allow localhost" for the branch, or pass --origin with a trusted domain.`
-          : 'Check that the Neon Auth URL belongs to the same branch as the database URL.'
+          : 'Check that the Neon Auth URL belongs to the same branch as the connection string.'
       fail(`Neon Auth refused the sign-up (${response.status} ${code}).\n${hint}`)
     }
   }
 
-  const { rowCount } = await client.query(
-    `update neon_auth."user" set role = 'admin', "emailVerified" = true, "updatedAt" = now() where lower(email) = $1`,
+  const promoted = await neonSql(
+    `update neon_auth."user" set role = 'admin', "emailVerified" = true, "updatedAt" = now()
+     where lower(email) = $1 returning id, name, email`,
     [email],
   )
-  if (!rowCount) fail('The account was not found after sign-up. Check that both URLs point at the same Neon branch.')
-  console.log(`\n${email} is now a curator on ${db.hostname}. Sign in at /admin.`)
+  if (!promoted.length) fail('The account was not found after sign-up. Check that both URLs point at the same Neon branch.')
+  const user = promoted[0]
+  console.log(`\n${email} is a curator in Neon Auth (${neonDb.hostname.split('.')[0]}).`)
+
+  if (localDb) {
+    const client = new pg.Client({ connectionString: localDb.toString() })
+    await client.connect()
+    try {
+      const { rows: [stub] } = await client.query(`select to_regclass('neon_auth."user"') is not null as ok`)
+      if (!stub.ok) fail('The local database has no neon_auth."user" table. Run `npm run db:local-auth-stub` and `npm run db:migrate` first.')
+      await client.query(`
+        insert into neon_auth."user"(id, name, email, "emailVerified", role, "createdAt", "updatedAt")
+        values ($1, $2, $3, true, 'admin', now(), now())
+        on conflict (id) do update set name = excluded.name, email = excluded.email, role = 'admin', "updatedAt" = now()
+      `, [user.id, user.name, user.email])
+      console.log(`Mirrored into the local database so curator edits are allowed there.`)
+    } finally {
+      await client.end()
+    }
+  }
+  console.log('\nSign in at /admin.')
+} catch (error) {
+  fail(`Failed: ${error.message}`)
 } finally {
-  await client.end()
   rl.close()
 }

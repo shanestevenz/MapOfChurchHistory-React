@@ -65,7 +65,11 @@ export function TimelinePage() {
   )
 
   // Restore saved filters after mount so server and client markup match.
-  const restoredRef = React.useRef(false)
+  // State, not a ref: saving must wait for the render that has the loaded
+  // filters. With a ref, the save effect ran in the same commit with the
+  // defaults and overwrote storage (and React's dev double-mount then
+  // reloaded those defaults), so saved filters were lost on reload.
+  const [restored, setRestored] = React.useState(false)
   React.useEffect(() => {
     let open: boolean | null = null
     try {
@@ -77,15 +81,15 @@ export function TimelinePage() {
     // First visit: open the panel only where there is room beside the map.
     setFilters(loadFilters())
     setFiltersOpen(open ?? window.matchMedia('(min-width: 1280px)').matches)
-    restoredRef.current = true
+    setRestored(true)
     // Only animate the panel after its saved state is in place, so a
     // returning visitor doesn't watch it slide in on every page load.
     const frame = requestAnimationFrame(() => setPanelAnimates(true))
     return () => cancelAnimationFrame(frame)
   }, [])
   React.useEffect(() => {
-    if (restoredRef.current) saveFilters(filters)
-  }, [filters])
+    if (restored) saveFilters(filters)
+  }, [filters, restored])
 
   const setPanelVisible = (open: boolean) => {
     setFiltersOpen(open)
@@ -178,8 +182,9 @@ export function TimelinePage() {
     <div className="flex h-dvh flex-col">
       <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-card/60 px-4 backdrop-blur sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
+          {/* 72px (2x for a 36px slot); the 679 KB original in public/ is only the source image. */}
           <img
-            src="/site-logo.png"
+            src="/site-logo-72.webp"
             alt=""
             width={36}
             height={36}
@@ -275,6 +280,13 @@ export function TimelinePage() {
             hidden={hiddenLanes}
             showOrigins={filters.showOrigins}
             compactLabels={filters.compactLabels}
+            showLaneLabels={filters.showLaneLabels}
+            enlarge={{
+              origins: filters.enlargeOrigins,
+              kinds: filters.enlargeKinds,
+              mode: filters.enlargeMode,
+              strength: filters.enlargeStrength,
+            }}
             focusIds={focusIds}
             focusRequest={focusRequest}
             selectedId={selected?.id ?? null}

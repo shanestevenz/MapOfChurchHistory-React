@@ -59,3 +59,40 @@ test('a group with every lane hidden disappears', () => {
   )
   assert.ok(laneGroups.some((group) => group.id === 'protestant-family'))
 })
+
+const event = (id, year, tradition, parents = []) => ({
+  id,
+  year,
+  dateLabel: String(year),
+  title: id,
+  tradition,
+  parents,
+  kind: 'event',
+  icon: { type: 'lucide', name: 'Church' },
+  summary: '',
+  detail: '',
+})
+
+test('branches born from the same event in the same year share a column', async () => {
+  const { SEED_EVENTS } = await import('../lib/timeline-data.ts')
+  const { nodes } = buildLayout(SEED_EVENTS)
+  const at = (id) => nodes.find((node) => node.event.id === id)
+  assert.equal(at('eastern-orthodoxy').x, at('roman-catholicism').x)
+  assert.ok(at('great-schism').x < at('eastern-orthodoxy').x)
+})
+
+test('other events keep a column of their own', () => {
+  const { nodes } = buildLayout([
+    event('root', 100, 'undivided'),
+    // Same year and lane-distinct, but different parents: separate columns.
+    event('a', 200, 'orthodox', ['root']),
+    event('b', 200, 'catholic', []),
+    // Same parents and year, but the same lane: separate columns.
+    event('c', 300, 'catholic', ['a']),
+    event('d', 300, 'catholic', ['a']),
+  ])
+  const cols = Object.fromEntries(nodes.map((node) => [node.event.id, node.col]))
+  assert.notEqual(cols.a, cols.b)
+  assert.notEqual(cols.c, cols.d)
+  assert.equal(new Set(Object.values(cols)).size, 5)
+})

@@ -37,6 +37,24 @@ that already exists just promotes that account.
 If you've turned public sign-ups off in Neon (recommended), turn them on for the minute
 this takes, then off again. The app itself never allows public sign-up either way.
 
+## Local development (Docker data + Neon Auth)
+
+Timeline data lives in local Docker Postgres; only sign-in goes to the Neon dev branch's
+Auth over HTTPS. In `.env.local`: `DATABASE_URL` = the Docker database,
+`NEON_AUTH_BASE_URL` = the dev branch's Auth URL, `NEON_AUTH_COOKIE_SECRET`, and
+`NEON_BRANCH_DATABASE_URL` = the dev branch's connection string (used only by the
+curator script).
+
+```bash
+npm run db:start
+npm run db:local-auth-stub && npm run db:migrate && npm run db:seed
+npm run curator:create:local
+```
+
+The curator script promotes your account on Neon **and** copies it into the local
+`neon_auth."user"` stand-in, which the database's curator checks read. If you wipe the
+local database, run `npm run curator:create:local` again (it just re-promotes and re-copies).
+
 ## Per-environment checklist (Vercel)
 
 | Variable | Value |

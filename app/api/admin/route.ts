@@ -8,9 +8,11 @@ type Json = null | boolean | number | string | Json[] | { [key: string]: Json | 
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 
+// Every page load asks "am I a curator?", so a signed-out visitor is a normal
+// answer (200, isAdmin: false), not an error. Writes (POST) still return 401.
 export async function GET() {
   const session = await getCuratorSession()
-  if (!session?.isAdmin) return json({ error: 'Curator access is required.' }, 401)
+  if (!session?.isAdmin) return json({ isAdmin: false, suggestions: [] })
   try {
     const [{ rows: suggestions }, { rows: changes }] = await Promise.all([
       pool.query('select * from public.edit_suggestions order by created_at desc'),
