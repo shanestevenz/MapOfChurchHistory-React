@@ -1,8 +1,11 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { EB_Garamond, Inter } from 'next/font/google'
+import { Cinzel, EB_Garamond, IM_Fell_English, Inter } from 'next/font/google'
+import { headers } from 'next/headers'
 import { connection } from 'next/server'
+import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
+import { DEFAULT_SKIN, THEME_INIT_SCRIPT } from '@/lib/theme'
 import './globals.css'
 
 const inter = Inter({
@@ -15,6 +18,24 @@ const garamond = EB_Garamond({
   subsets: ['latin'],
   variable: '--font-garamond',
   display: 'swap',
+})
+
+// Only the Manuscript and Stained Glass skins use these, so they aren't
+// preloaded: the browser fetches them when a skin first asks for them.
+const cinzel = Cinzel({
+  subsets: ['latin'],
+  variable: '--font-cinzel',
+  display: 'swap',
+  preload: false,
+})
+
+const fell = IM_Fell_English({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-fell',
+  display: 'swap',
+  preload: false,
 })
 
 export const metadata: Metadata = {
@@ -43,8 +64,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  colorScheme: 'dark',
-  themeColor: '#14181f',
+  colorScheme: 'dark light',
 }
 
 export default async function RootLayout({
@@ -53,14 +73,24 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   await connection()
+  const nonce = (await headers()).get('x-nonce') ?? undefined
   return (
+    // The head script sets the saved skin and mode before first paint, so
+    // these server defaults may differ from what the browser shows.
     <html
       lang="en"
-      className={`dark bg-background ${inter.variable} ${garamond.variable}`}
+      data-skin={DEFAULT_SKIN}
+      className={`dark bg-background ${inter.variable} ${garamond.variable} ${cinzel.variable} ${fell.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="h-dvh overflow-hidden antialiased" suppressHydrationWarning>
-        {children}
-        <Toaster position="bottom-center" />
+        <ThemeProvider>
+          {children}
+          <Toaster position="bottom-center" />
+        </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

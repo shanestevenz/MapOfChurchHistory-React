@@ -1,12 +1,15 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+/* Colour tokens and timeline styles for every skin and mode. */
+@import './themes.css';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-garamond), ui-serif, Georgia, serif;
+  /* Each skin picks its own faces (app/themes.css). */
+  --font-sans: var(--skin-sans);
+  --font-serif: var(--skin-serif);
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -49,54 +52,6 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root,
-.dark {
-  color-scheme: dark;
-
-  --background: oklch(0.17 0.022 262);
-  --foreground: oklch(0.94 0.012 85);
-
-  --card: oklch(0.215 0.024 262);
-  --card-foreground: oklch(0.94 0.012 85);
-  --popover: oklch(0.21 0.024 262);
-  --popover-foreground: oklch(0.94 0.012 85);
-
-  --primary: oklch(0.8 0.128 84);
-  --primary-foreground: oklch(0.19 0.03 80);
-
-  --secondary: oklch(0.27 0.022 262);
-  --secondary-foreground: oklch(0.94 0.012 85);
-  --muted: oklch(0.255 0.02 262);
-  --muted-foreground: oklch(0.73 0.022 82);
-  --accent: oklch(0.3 0.028 262);
-  --accent-foreground: oklch(0.95 0.012 85);
-
-  --destructive: oklch(0.6 0.185 24);
-
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.72 0.11 84);
-
-  /* Tradition families — data encoding, not decoration. */
-  --chart-1: oklch(0.8 0.128 84); /* gold — undivided church & ecumenical */
-  --chart-2: oklch(0.66 0.135 249); /* sapphire — Eastern churches */
-  --chart-3: oklch(0.63 0.178 21); /* ruby — Rome */
-  --chart-4: oklch(0.7 0.115 166); /* emerald — Continental Protestant */
-  --chart-5: oklch(0.7 0.13 305); /* amethyst — English & revivalist */
-  --chart-6: oklch(0.72 0.15 50); /* copper — free church: Anabaptist & Baptist */
-
-  --radius: 0.5rem;
-
-  --sidebar: oklch(0.2 0.024 262);
-  --sidebar-foreground: oklch(0.94 0.012 85);
-  --sidebar-primary: oklch(0.8 0.128 84);
-  --sidebar-primary-foreground: oklch(0.19 0.03 80);
-  --sidebar-accent: oklch(0.28 0.026 262);
-  --sidebar-accent-foreground: oklch(0.95 0.012 85);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.72 0.11 84);
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -107,6 +62,7 @@
 }
 
 @utility label-caps {
+  font-family: var(--skin-caps);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.14em;
   text-transform: uppercase;

@@ -1,0 +1,678 @@
+/*
+ * Themes: a skin (data-skin on <html>) in a mode (.dark on <html>).
+ *
+ * Each skin sets every colour token for light and dark, plus the --tl-*
+ * variables the timeline reads: fonts, line weights and dash patterns, band
+ * tints and the canvas backdrop. Rules further down give each skin its own
+ * node style (.tl-node) and flag style (.tl-flag).
+ *
+ * These rules are deliberately unlayered, so they win over Tailwind's utility
+ * classes on the same elements without needing !important.
+ *
+ * Specificity: :root.dark and :root[data-skin] are equal, so every skin's
+ * light block repeats every colour and the later block wins; each skin's
+ * dark block (:root[data-skin].dark) is more specific still.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Modern (default)                                                    */
+/* ------------------------------------------------------------------ */
+
+:root {
+  color-scheme: light;
+
+  --skin-serif: var(--font-garamond), ui-serif, Georgia, serif;
+  --skin-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --skin-caps: var(--skin-sans);
+  --radius: 0.5rem;
+
+  /* Timeline drawing */
+  --tl-edge-w: 1.75;
+  --tl-branch-w: 3;
+  --tl-branch-dash: 2;
+  --tl-branch-gap: 8;
+  --tl-edge-opacity: 0.42;
+  --tl-lane-dash: 2;
+  --tl-lane-gap: 8;
+  --tl-rail-w: 6;
+  --tl-rail-opacity: 0.12;
+  --tl-band-tint: 5%;
+  --tl-linecap: round;
+  --tl-canvas-bg: color-mix(in oklab, var(--card) 40%, transparent);
+  --tl-paper: none;
+  --tl-paper-size: auto;
+
+  --background: oklch(0.975 0.006 85);
+  --foreground: oklch(0.24 0.03 262);
+  --card: oklch(0.995 0.004 85);
+  --card-foreground: oklch(0.24 0.03 262);
+  --popover: oklch(0.995 0.004 85);
+  --popover-foreground: oklch(0.24 0.03 262);
+  --primary: oklch(0.6 0.13 72);
+  --primary-foreground: oklch(0.99 0.005 85);
+  --secondary: oklch(0.945 0.008 262);
+  --secondary-foreground: oklch(0.24 0.03 262);
+  --muted: oklch(0.95 0.008 262);
+  --muted-foreground: oklch(0.47 0.03 262);
+  --accent: oklch(0.925 0.012 262);
+  --accent-foreground: oklch(0.2 0.03 262);
+  --destructive: oklch(0.55 0.2 24);
+  --border: oklch(0.24 0.03 262 / 13%);
+  --input: oklch(0.24 0.03 262 / 18%);
+  --ring: oklch(0.6 0.13 72);
+
+  /* Tradition families: data encoding, not decoration. Every skin keeps
+     the same six hues in the same order so the families stay recognisable. */
+  --chart-1: oklch(0.66 0.14 75); /* gold: undivided church & ecumenical */
+  --chart-2: oklch(0.52 0.15 252); /* sapphire: Eastern churches */
+  --chart-3: oklch(0.53 0.19 24); /* ruby: Rome */
+  --chart-4: oklch(0.55 0.12 166); /* emerald: Continental Protestant */
+  --chart-5: oklch(0.52 0.16 305); /* amethyst: English & revivalist */
+  --chart-6: oklch(0.6 0.16 50); /* copper: Anabaptist & Baptist */
+
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+:root.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.17 0.022 262);
+  --foreground: oklch(0.94 0.012 85);
+  --card: oklch(0.215 0.024 262);
+  --card-foreground: oklch(0.94 0.012 85);
+  --popover: oklch(0.21 0.024 262);
+  --popover-foreground: oklch(0.94 0.012 85);
+  --primary: oklch(0.8 0.128 84);
+  --primary-foreground: oklch(0.19 0.03 80);
+  --secondary: oklch(0.27 0.022 262);
+  --secondary-foreground: oklch(0.94 0.012 85);
+  --muted: oklch(0.255 0.02 262);
+  --muted-foreground: oklch(0.73 0.022 82);
+  --accent: oklch(0.3 0.028 262);
+  --accent-foreground: oklch(0.95 0.012 85);
+  --destructive: oklch(0.6 0.185 24);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.72 0.11 84);
+
+  --chart-1: oklch(0.8 0.128 84);
+  --chart-2: oklch(0.66 0.135 249);
+  --chart-3: oklch(0.63 0.178 21);
+  --chart-4: oklch(0.7 0.115 166);
+  --chart-5: oklch(0.7 0.13 305);
+  --chart-6: oklch(0.72 0.15 50);
+}
+
+/* ------------------------------------------------------------------ */
+/* Manuscript: iron-gall ink and mineral pigments on parchment          */
+/* SHELVED: not offered in the picker (see SHELVED_SKINS in lib/theme.ts). */
+/* Kept intact so the skin can be brought back as is.                  */
+/* ------------------------------------------------------------------ */
+
+:root[data-skin='manuscript'] {
+  color-scheme: light;
+
+  --skin-serif: var(--font-fell), var(--font-garamond), ui-serif, Georgia, serif;
+  --skin-caps: var(--font-cinzel), var(--font-garamond), ui-serif, serif;
+  --radius: 0.25rem;
+
+  --tl-edge-w: 2;
+  --tl-branch-w: 2.25;
+  --tl-branch-dash: 7;
+  --tl-branch-gap: 5;
+  --tl-edge-opacity: 0.62;
+  --tl-lane-dash: 1;
+  --tl-lane-gap: 6;
+  --tl-rail-w: 3;
+  --tl-rail-opacity: 0.2;
+  /* No coloured lane tints: the page is ruled instead (.tl-band below). */
+  --tl-band-tint: 0%;
+  /* Faded edges, as if the sheet had been handled for centuries. */
+  --tl-canvas-bg:
+    radial-gradient(120% 90% at 50% 45%, transparent 55%, oklch(0.55 0.08 60 / 22%) 100%),
+    radial-gradient(40% 30% at 18% 22%, oklch(0.8 0.07 75 / 35%), transparent 70%),
+    radial-gradient(35% 28% at 78% 70%, oklch(0.82 0.06 70 / 30%), transparent 70%),
+    /* The Ebstorf Map (c. 1300, public domain): the world drawn as the body
+       of Christ, a faint ghost behind the timeline. It stays put while the
+       timeline pans over it. */
+    url('/skins/manuscript/ebstorf-map-light.webp') 58% 55% / auto 94% no-repeat,
+    var(--background);
+  /* Fibre grain, drawn in the canvas so it pans with the page. */
+  --tl-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .22 0 0 0 0 .1 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --tl-paper-size: 240px 240px;
+  /* Gold leaf, used to gild the rings of branch-founding events. */
+  --gilt: oklch(0.7 0.13 82);
+  /* Sealing wax: a deep royal crimson around every seal. */
+  --wax: oklch(0.37 0.15 16);
+
+  --background: oklch(0.925 0.04 84);
+  --foreground: oklch(0.29 0.045 55);
+  --card: oklch(0.955 0.032 86);
+  --card-foreground: oklch(0.29 0.045 55);
+  --popover: oklch(0.96 0.03 86);
+  --popover-foreground: oklch(0.29 0.045 55);
+  /* Vermilion, the rubricator's red. */
+  --primary: oklch(0.53 0.17 32);
+  --primary-foreground: oklch(0.97 0.02 85);
+  --secondary: oklch(0.9 0.042 82);
+  --secondary-foreground: oklch(0.29 0.045 55);
+  --muted: oklch(0.9 0.038 82);
+  --muted-foreground: oklch(0.45 0.05 60);
+  --accent: oklch(0.87 0.05 80);
+  --accent-foreground: oklch(0.25 0.045 55);
+  --destructive: oklch(0.5 0.19 28);
+  --border: oklch(0.35 0.05 55 / 24%);
+  --input: oklch(0.35 0.05 55 / 30%);
+  --ring: oklch(0.53 0.17 32);
+
+  /* Muted mineral pigments, so they sit on the page rather than glow. */
+  --chart-1: oklch(0.6 0.1 78); /* ochre and gold leaf */
+  --chart-2: oklch(0.46 0.085 255); /* lapis lazuli */
+  --chart-3: oklch(0.5 0.13 32); /* vermilion */
+  --chart-4: oklch(0.5 0.06 170); /* verdigris */
+  --chart-5: oklch(0.45 0.08 335); /* murex purple */
+  --chart-6: oklch(0.54 0.1 52); /* burnt sienna */
+}
+
+/* By candlelight: dark leather and gilt. */
+:root[data-skin='manuscript'].dark {
+  color-scheme: dark;
+
+  /* Indigo-dyed vellum, like the Blue Qur'an's pages or a night sky: deep
+     midnight blue, a touch lighter where the light falls, darker at the
+     edges. Gold and red wax read best against it. */
+  --tl-canvas-bg:
+    radial-gradient(125% 100% at 50% 45%, transparent 50%, oklch(0.1 0.055 265 / 70%) 100%),
+    radial-gradient(60% 50% at 45% 40%, oklch(0.28 0.055 265 / 60%), transparent 75%),
+    url('/skins/manuscript/ebstorf-map-dark.webp') 58% 55% / auto 94% no-repeat,
+    oklch(0.22 0.055 265);
+  --wax: oklch(0.41 0.16 16);
+  --tl-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .95 0 0 0 0 .85 0 0 0 0 .65 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --gilt: oklch(0.8 0.13 84);
+
+  --background: oklch(0.175 0.055 265);
+  --foreground: oklch(0.91 0.035 85);
+  --card: oklch(0.21 0.055 265);
+  --card-foreground: oklch(0.91 0.035 85);
+  --popover: oklch(0.22 0.055 265);
+  --popover-foreground: oklch(0.93 0.035 85);
+  --primary: oklch(0.78 0.13 82);
+  --primary-foreground: oklch(0.2 0.03 55);
+  --secondary: oklch(0.27 0.055 265);
+  --secondary-foreground: oklch(0.88 0.045 85);
+  --muted: oklch(0.255 0.055 265);
+  --muted-foreground: oklch(0.73 0.04 80);
+  --accent: oklch(0.3 0.055 265);
+  --accent-foreground: oklch(0.9 0.045 85);
+  --destructive: oklch(0.62 0.18 30);
+  --border: oklch(0.9 0.05 80 / 15%);
+  --input: oklch(0.9 0.05 80 / 20%);
+  --ring: oklch(0.78 0.13 82);
+
+  --chart-1: oklch(0.76 0.1 82);
+  --chart-2: oklch(0.66 0.07 245);
+  --chart-3: oklch(0.64 0.12 35);
+  --chart-4: oklch(0.68 0.06 170);
+  --chart-5: oklch(0.64 0.07 335);
+  --chart-6: oklch(0.68 0.09 55);
+}
+
+/* ------------------------------------------------------------------ */
+/* Stained Glass: jewel tones held in lead                              */
+/* ------------------------------------------------------------------ */
+
+:root[data-skin='glass'] {
+  color-scheme: light;
+
+  --skin-serif: var(--font-garamond), ui-serif, Georgia, serif;
+  --skin-caps: var(--font-cinzel), var(--font-garamond), ui-serif, serif;
+  --radius: 0.5rem;
+
+  --tl-edge-w: 2.5;
+  --tl-branch-w: 3.5;
+  /* Round caps turn short dashes into strings of beads. */
+  --tl-branch-dash: 0.5;
+  --tl-branch-gap: 8;
+  --tl-edge-opacity: 0.6;
+  --tl-lane-dash: 0.5;
+  --tl-lane-gap: 9;
+  --tl-rail-w: 9;
+  --tl-rail-opacity: 0.13;
+  --tl-band-tint: 8%;
+  /* Light falling through the windows. */
+  --tl-canvas-bg:
+    radial-gradient(55% 45% at 12% 0%, oklch(0.75 0.12 262 / 22%), transparent 70%),
+    radial-gradient(45% 40% at 88% 100%, oklch(0.75 0.14 22 / 16%), transparent 70%),
+    var(--background);
+  --lead: oklch(0.26 0.015 280);
+
+  --background: oklch(0.94 0.008 260);
+  --foreground: oklch(0.22 0.03 280);
+  --card: oklch(0.975 0.006 260);
+  --card-foreground: oklch(0.22 0.03 280);
+  --popover: oklch(0.975 0.006 260);
+  --popover-foreground: oklch(0.22 0.03 280);
+  --primary: oklch(0.5 0.18 262);
+  --primary-foreground: oklch(0.98 0.005 260);
+  --secondary: oklch(0.91 0.012 270);
+  --secondary-foreground: oklch(0.22 0.03 280);
+  --muted: oklch(0.92 0.01 270);
+  --muted-foreground: oklch(0.46 0.035 280);
+  --accent: oklch(0.89 0.02 270);
+  --accent-foreground: oklch(0.2 0.03 280);
+  --destructive: oklch(0.52 0.21 22);
+  --border: oklch(0.22 0.03 280 / 14%);
+  --input: oklch(0.22 0.03 280 / 20%);
+  --ring: oklch(0.5 0.18 262);
+
+  --chart-1: oklch(0.72 0.16 80);
+  --chart-2: oklch(0.5 0.2 262);
+  --chart-3: oklch(0.52 0.21 22);
+  --chart-4: oklch(0.55 0.15 155);
+  --chart-5: oklch(0.5 0.2 305);
+  --chart-6: oklch(0.6 0.17 48);
+}
+
+/* A cathedral at dusk: the glass glows against the dark. */
+:root[data-skin='glass'].dark {
+  color-scheme: dark;
+
+  --tl-canvas-bg:
+    radial-gradient(55% 45% at 12% 0%, oklch(0.45 0.2 262 / 22%), transparent 70%),
+    radial-gradient(45% 40% at 88% 100%, oklch(0.45 0.2 22 / 18%), transparent 70%),
+    var(--background);
+  --lead: oklch(0.1 0.01 280);
+
+  --background: oklch(0.14 0.03 280);
+  --foreground: oklch(0.95 0.01 90);
+  --card: oklch(0.18 0.035 280);
+  --card-foreground: oklch(0.95 0.01 90);
+  --popover: oklch(0.19 0.035 280);
+  --popover-foreground: oklch(0.95 0.01 90);
+  --primary: oklch(0.83 0.15 88);
+  --primary-foreground: oklch(0.18 0.03 280);
+  --secondary: oklch(0.24 0.035 280);
+  --secondary-foreground: oklch(0.95 0.01 90);
+  --muted: oklch(0.22 0.033 280);
+  --muted-foreground: oklch(0.74 0.03 280);
+  --accent: oklch(0.27 0.04 280);
+  --accent-foreground: oklch(0.96 0.01 90);
+  --destructive: oklch(0.62 0.21 22);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.83 0.15 88);
+
+  --chart-1: oklch(0.83 0.16 88);
+  --chart-2: oklch(0.63 0.2 262);
+  --chart-3: oklch(0.62 0.22 22);
+  --chart-4: oklch(0.72 0.17 155);
+  --chart-5: oklch(0.64 0.2 305);
+  --chart-6: oklch(0.74 0.18 48);
+}
+
+/* ------------------------------------------------------------------ */
+/* Blueprint: a drafting-table plan                                     */
+/* ------------------------------------------------------------------ */
+
+:root[data-skin='blueprint'] {
+  color-scheme: light;
+
+  --skin-serif: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --skin-caps: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --radius: 0.125rem;
+
+  --tl-edge-w: 1.25;
+  --tl-branch-w: 1.5;
+  --tl-branch-dash: 8;
+  --tl-branch-gap: 4;
+  --tl-edge-opacity: 0.8;
+  --tl-lane-dash: 4;
+  --tl-lane-gap: 4;
+  --tl-rail-w: 1;
+  --tl-rail-opacity: 0.45;
+  --tl-band-tint: 4%;
+  --tl-linecap: butt;
+  --tl-canvas-bg: var(--background);
+  --grid-minor: oklch(0.55 0.12 250 / 9%);
+  --grid-major: oklch(0.55 0.12 250 / 17%);
+  /* A ruled grid in the canvas, so it pans and zooms with the plan. */
+  --tl-paper:
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  --tl-paper-size: 172px 152px, 172px 152px, 43px 38px, 43px 38px;
+
+  --background: oklch(0.975 0.01 240);
+  --foreground: oklch(0.32 0.09 258);
+  --card: oklch(0.99 0.005 240);
+  --card-foreground: oklch(0.32 0.09 258);
+  --popover: oklch(0.99 0.005 240);
+  --popover-foreground: oklch(0.32 0.09 258);
+  --primary: oklch(0.45 0.15 258);
+  --primary-foreground: oklch(0.98 0.005 240);
+  --secondary: oklch(0.94 0.015 245);
+  --secondary-foreground: oklch(0.32 0.09 258);
+  --muted: oklch(0.95 0.013 245);
+  --muted-foreground: oklch(0.5 0.07 255);
+  --accent: oklch(0.92 0.02 245);
+  --accent-foreground: oklch(0.3 0.09 258);
+  --destructive: oklch(0.55 0.2 25);
+  --border: oklch(0.45 0.12 258 / 22%);
+  --input: oklch(0.45 0.12 258 / 28%);
+  --ring: oklch(0.45 0.15 258);
+
+  --chart-1: oklch(0.63 0.13 80);
+  --chart-2: oklch(0.5 0.15 255);
+  --chart-3: oklch(0.55 0.19 25);
+  --chart-4: oklch(0.55 0.12 160);
+  --chart-5: oklch(0.5 0.15 305);
+  --chart-6: oklch(0.6 0.15 50);
+}
+
+/* The classic cyanotype: white lines on blue. */
+:root[data-skin='blueprint'].dark {
+  color-scheme: dark;
+
+  --grid-minor: oklch(1 0 0 / 6%);
+  --grid-major: oklch(1 0 0 / 12%);
+
+  --background: oklch(0.37 0.11 258);
+  --foreground: oklch(0.97 0.01 240);
+  --card: oklch(0.41 0.11 258);
+  --card-foreground: oklch(0.97 0.01 240);
+  --popover: oklch(0.42 0.11 258);
+  --popover-foreground: oklch(0.97 0.01 240);
+  --primary: oklch(0.92 0.12 95);
+  --primary-foreground: oklch(0.3 0.09 258);
+  --secondary: oklch(0.46 0.1 258);
+  --secondary-foreground: oklch(0.97 0.01 240);
+  --muted: oklch(0.44 0.1 258);
+  --muted-foreground: oklch(0.85 0.04 240);
+  --accent: oklch(0.49 0.1 258);
+  --accent-foreground: oklch(0.98 0.01 240);
+  --destructive: oklch(0.75 0.15 25);
+  --border: oklch(1 0 0 / 24%);
+  --input: oklch(1 0 0 / 30%);
+  --ring: oklch(0.92 0.12 95);
+
+  --chart-1: oklch(0.92 0.12 95); /* pencil yellow */
+  --chart-2: oklch(0.88 0.09 195); /* cyan */
+  --chart-3: oklch(0.8 0.13 25); /* coral */
+  --chart-4: oklch(0.87 0.12 155); /* mint */
+  --chart-5: oklch(0.83 0.09 310); /* lilac */
+  --chart-6: oklch(0.83 0.13 60); /* orange */
+}
+
+/* ------------------------------------------------------------------ */
+/* Timeline elements                                                    */
+/* ------------------------------------------------------------------ */
+
+.tl-canvas {
+  background: var(--tl-canvas-bg);
+}
+
+.tl-paper {
+  background-image: var(--tl-paper);
+  background-size: var(--tl-paper-size);
+}
+
+.tl-edge,
+.tl-rail {
+  stroke-linecap: var(--tl-linecap);
+}
+
+/* Event nodes. --node-color is the node's tradition colour, set inline.
+   States, weakest first: began-here, today, selected, just jumped to. */
+.tl-node {
+  border-color: var(--node-color);
+}
+.tl-node[data-origin] {
+  box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--node-color);
+}
+.tl-node[data-present] {
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--node-color) 16%, transparent);
+}
+.tl-node[data-selected] {
+  box-shadow: 0 0 0 5px color-mix(in oklab, var(--node-color) 22%, transparent);
+}
+.tl-node[data-flash] {
+  box-shadow:
+    0 0 0 6px color-mix(in oklab, var(--node-color) 45%, transparent),
+    0 0 24px 6px color-mix(in oklab, var(--node-color) 35%, transparent);
+}
+/* Some skins draw their own shadows, which would hide the focus ring. */
+.tl-node:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+
+/* Manuscript: each event is a wax seal pressed in its tradition's colour,
+   titled on a little unrolled scroll. The seal is drawn on ::before (the
+   lumpy outline is a mask, public/skins/manuscript/seal.svg), so the node
+   itself stays a plain box and can still carry glows via filter. */
+[data-skin='manuscript'] .tl-node {
+  --seal-rim: color-mix(in oklab, var(--wax), black 48%);
+  isolation: isolate;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  box-shadow: none;
+  /* The stamp: the icon pressed into the wax, darker with a lit lower lip. */
+  color: color-mix(in oklab, var(--node-color), black 58%);
+  filter: drop-shadow(0 2px 1.5px oklch(0.25 0.04 50 / 45%));
+}
+/* Both layers sit behind the icon (z-index -1 inside the node's own
+   stacking context); ::after paints over ::before. */
+[data-skin='manuscript'] .tl-node::before,
+[data-skin='manuscript'] .tl-node::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+}
+/* The red sealing wax, squeezed out around the centre. Its lumpy outline is
+   a mask (public/skins/manuscript/seal.svg). */
+[data-skin='manuscript'] .tl-node::before {
+  inset: -10px;
+  mask: url('/skins/manuscript/seal.svg') center / 100% 100% no-repeat;
+  background:
+    radial-gradient(circle at 30% 24%, color-mix(in oklab, var(--wax), white 40%) 0%, transparent 34%),
+    radial-gradient(circle, var(--wax) 0%, var(--wax) 62%, color-mix(in oklab, var(--wax), black 40%) 100%);
+}
+/* The centre keeps the tradition's colour: a disc of coloured wax with a
+   sheen and the groove left by the seal matrix. */
+[data-skin='manuscript'] .tl-node::after {
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, color-mix(in oklab, var(--node-color), white 42%) 0%, transparent 40%),
+    radial-gradient(
+      closest-side,
+      transparent 74%,
+      color-mix(in oklab, var(--node-color), black 40%) 74% 78%,
+      color-mix(in oklab, var(--node-color), white 30%) 78% 81%,
+      transparent 81%
+    ),
+    radial-gradient(circle, var(--node-color) 0%, var(--node-color) 55%, color-mix(in oklab, var(--node-color), black 30%) 100%);
+  /* A crisp edge where the coloured centre meets the red wax. */
+  box-shadow: 0 0 0 1.5px var(--seal-rim);
+}
+[data-skin='manuscript'] .tl-node svg {
+  stroke-width: 2.1;
+  filter: drop-shadow(0 0.75px 0 color-mix(in oklab, var(--node-color), white 50%));
+}
+/* Founding events have a gold-leaf ring around their centre. */
+[data-skin='manuscript'] .tl-node[data-origin]::after {
+  box-shadow: inset 0 0 0 2.5px var(--gilt), 0 0 0 1.5px var(--seal-rim);
+}
+[data-skin='manuscript'] .tl-node[data-present] {
+  filter: drop-shadow(0 0 6px color-mix(in oklab, var(--node-color) 55%, transparent));
+}
+[data-skin='manuscript'] .tl-node[data-selected] {
+  filter:
+    drop-shadow(0 0 2px var(--gilt))
+    drop-shadow(0 0 10px color-mix(in oklab, var(--gilt) 75%, transparent));
+}
+[data-skin='manuscript'] .tl-node[data-flash] {
+  filter:
+    drop-shadow(0 0 3px var(--gilt))
+    drop-shadow(0 0 18px color-mix(in oklab, var(--gilt) 85%, transparent));
+}
+/* The schism marker becomes a broken corner of wax. */
+[data-skin='manuscript'] .tl-node > span[class*='rotate-45'] {
+  border-radius: 0 50% 0 50%;
+  filter: brightness(0.8);
+}
+
+/* Titles are written on an unrolled scroll. The ends stay fixed and the
+   sheet stretches with the text (border-image slices). */
+[data-skin='manuscript'] .tl-title {
+  border-style: solid;
+  border-width: 5px 15px;
+  border-image: url('/skins/manuscript/scroll.svg') 6 16 fill / 5px 15px stretch;
+  padding: 1px 3px;
+  margin-top: 2px;
+  font-size: 13.5px;
+  line-height: 1.2;
+  /* Always ink on parchment, even by candlelight. */
+  color: oklch(0.27 0.045 50);
+}
+
+/* "Began here" flags become swallow-tailed ribbons. */
+[data-skin='manuscript'] .tl-flag {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding-inline: 14px;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 7px) 50%, 100% 100%, 0 100%, 7px 50%);
+  background:
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--flag-color) 30%, oklch(0.95 0.035 86)) 0%,
+      color-mix(in oklab, var(--flag-color) 14%, oklch(0.97 0.03 86)) 45%,
+      color-mix(in oklab, var(--flag-color) 34%, oklch(0.9 0.04 84)) 100%
+    );
+}
+/* The ribbon is always pale, so its lettering is always a dark shade of the
+   tradition's colour. !important: the graph sets that colour inline. */
+[data-skin='manuscript'] .tl-flag > :not(:last-child) {
+  color: color-mix(in oklab, var(--flag-color), oklch(0.25 0.05 50) 55%) !important;
+}
+[data-skin='manuscript'] .tl-flag > span:last-child {
+  color: oklch(0.38 0.045 55);
+}
+
+/* The page is ruled: a fine inked line where each lane group begins, in
+   place of coloured lane tints. */
+[data-skin='manuscript'] .tl-band {
+  border-top: 1px solid color-mix(in oklab, var(--foreground) 16%, transparent);
+}
+[data-skin='manuscript'] .tl-band:first-child {
+  border-top: 0;
+}
+
+/* A fleuron before each era name, in the rubricator's red. */
+[data-skin='manuscript'] .tl-era-label::before {
+  content: '\2767\00a0';
+  color: var(--primary);
+  letter-spacing: 0;
+}
+
+/* The page is framed with a double rule. */
+[data-skin='manuscript'] .tl-canvas {
+  border: 3px double color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
+/* Stained glass: a lit roundel of coloured glass in a lead ring. */
+[data-skin='glass'] .tl-node {
+  border: 3px solid var(--lead);
+  background: radial-gradient(
+    circle at 50% 35%,
+    color-mix(in oklab, var(--node-color), white 38%) 0%,
+    var(--node-color) 48%,
+    color-mix(in oklab, var(--node-color), black 42%) 100%
+  );
+  color: oklch(0.99 0.01 90);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--node-color) 55%, transparent),
+    0 0 16px -2px color-mix(in oklab, var(--node-color) 50%, transparent);
+}
+[data-skin='glass'] .tl-node svg {
+  stroke-width: 2.25;
+  filter: drop-shadow(0 1px 1px oklch(0 0 0 / 50%));
+}
+[data-skin='glass'] .tl-node[data-origin] {
+  box-shadow:
+    0 0 0 2px var(--lead),
+    0 0 0 4px var(--node-color),
+    0 0 22px 0 color-mix(in oklab, var(--node-color) 55%, transparent);
+}
+[data-skin='glass'] .tl-node[data-selected],
+[data-skin='glass'] .tl-node[data-flash] {
+  box-shadow:
+    0 0 0 2px var(--lead),
+    0 0 0 6px color-mix(in oklab, var(--node-color) 45%, transparent),
+    0 0 30px 4px color-mix(in oklab, var(--node-color) 55%, transparent);
+}
+[data-skin='glass'] .tl-flag {
+  border-width: 2px;
+  border-color: var(--lead) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--flag-color) 70%, transparent);
+}
+
+/* Blueprint: square survey markers, drawn thin. */
+[data-skin='blueprint'] .tl-node {
+  border-radius: 3px;
+  border-width: 1.5px;
+  background: var(--card);
+  color: var(--foreground);
+}
+[data-skin='blueprint'] .tl-node svg {
+  stroke-width: 1.5;
+}
+[data-skin='blueprint'] .tl-node[data-origin] {
+  box-shadow: none;
+  outline: 1px dashed var(--node-color);
+  outline-offset: 5px;
+}
+[data-skin='blueprint'] .tl-node[data-selected],
+[data-skin='blueprint'] .tl-node[data-flash] {
+  box-shadow: none;
+  outline: 2px solid var(--node-color);
+  outline-offset: 4px;
+}
+[data-skin='blueprint'] .tl-title {
+  font-size: 11.5px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+[data-skin='blueprint'] .tl-flag {
+  border-radius: 2px;
+  border-style: dashed;
+}
+
+/* Keyboard focus always shows, whatever rings a skin draws on its nodes. */
+:root .tl-node.tl-node:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+
+/* Cinzel is all capitals already; label caps set in it need less tracking. */
+[data-skin='manuscript'] .label-caps,
+[data-skin='glass'] .label-caps {
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+/* Theme switches cross-fade (see components/theme-provider.tsx). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+}

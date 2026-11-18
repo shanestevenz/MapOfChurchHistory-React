@@ -13,6 +13,7 @@ import { EventDialog } from '@/components/event-dialog'
 import { EventEditor } from '@/components/event-editor'
 import { SiteDisclaimer } from '@/components/site-disclaimer'
 import { SuggestEditDialog } from '@/components/suggest-edit-dialog'
+import { ThemePicker } from '@/components/theme-picker'
 import { SuggestionQueue } from '@/components/suggestion-queue'
 import { TimelineFiltersPanel } from '@/components/timeline-filters-panel'
 import { TimelineGraph } from '@/components/timeline-graph'
@@ -213,6 +214,7 @@ export function TimelinePage() {
             Wheel to zoom · left-drag to pan
           </p>
           <Separator orientation="vertical" className="hidden h-6 2xl:block" />
+          <ThemePicker />
           <Button
             variant={filtersOpen ? 'secondary' : 'ghost'}
             size="sm"
