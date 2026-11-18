@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { ChevronRightIcon, FlagIcon, PencilIcon, PlusIcon } from 'lucide-react'
+import { ChevronRightIcon, FlagIcon, PencilIcon } from 'lucide-react'
 import { DateText, formatDecades } from '@/components/date-text'
 import { EventIcon } from '@/components/event-icon'
 import {
@@ -812,9 +812,12 @@ export function TimelineGraph({
     // zoom (1.5x at 30%); above it, lines are exactly as designed. CSS from
     // --z, so zooming re-renders nothing.
     const boost = `max(1, calc(${LINE_BOOST_ZOOM} / var(--z)))`
-    const boostedPx = (canvasPx: number) => `calc(${canvasPx}px * ${boost})`
-    const boostedDashes = (on: number, off: number) => `${boostedPx(on)} ${boostedPx(off)}`
-    const boostedOpacity = (opacity: number) => `min(1, calc(${opacity} * ${boost}))`
+    // Values may be numbers or CSS variables: each skin (app/themes.css)
+    // sets its own line weights, dash patterns and opacity.
+    const boostedPx = (canvasPx: number | string) => `calc(${canvasPx} * 1px * ${boost})`
+    const boostedDashes = (on: number | string, off: number | string) =>
+      `${boostedPx(on)} ${boostedPx(off)}`
+    const boostedOpacity = (opacity: number | string) => `min(1, calc(${opacity} * ${boost}))`
 
     // Background bands, sorted top to bottom. Each stretches up to meet the
     // band above, so header rows that belong to an untinted parent group
@@ -850,11 +853,11 @@ export function TimelineGraph({
             {bands.map((band) => (
               <div
                 key={band.key}
-                className="pointer-events-none absolute inset-x-0"
+                className="tl-band pointer-events-none absolute inset-x-0"
                 style={{
                   top: band.top,
                   height: band.bottom - band.top,
-                  backgroundColor: `color-mix(in oklab, ${band.color} 5%, transparent)`,
+                  backgroundColor: `color-mix(in oklab, ${band.color} var(--tl-band-tint), transparent)`,
                 }}
                 aria-hidden="true"
               />
@@ -928,7 +931,10 @@ export function TimelineGraph({
                       y2={lane.y}
                       stroke="currentColor"
                       className="text-border"
-                      style={{ strokeWidth: boostedPx(1), strokeDasharray: boostedDashes(2, 8) }}
+                      style={{
+                        strokeWidth: boostedPx(1),
+                        strokeDasharray: boostedDashes('var(--tl-lane-dash)', 'var(--tl-lane-gap)'),
+                      }}
                     />
                     {lane.startX !== null && (
                       <line
@@ -937,9 +943,11 @@ export function TimelineGraph({
                         x2={width}
                         y2={lane.y}
                         stroke={lane.color}
-                        strokeLinecap="round"
-                        opacity={0.12}
-                        style={{ strokeWidth: boostedPx(6) }}
+                        className="tl-rail"
+                        style={{
+                          strokeWidth: boostedPx('var(--tl-rail-w)'),
+                          opacity: 'var(--tl-rail-opacity)',
+                        }}
                       />
                     )}
                   </g>
@@ -972,18 +980,21 @@ export function TimelineGraph({
                     d={edge.path}
                     fill="none"
                     stroke={edge.color}
-                    strokeLinecap="round"
+                    className="tl-edge"
                     // Branch edges are thicker and dotted.
                     style={{
                       ...(edge.isBranch
-                        ? { strokeWidth: boostedPx(3), strokeDasharray: boostedDashes(2, 8) }
-                        : { strokeWidth: boostedPx(1.75) }),
-                      // Only the resting 0.42 is boosted; highlighted and
-                      // faded-out edges keep their opacity.
+                        ? {
+                            strokeWidth: boostedPx('var(--tl-branch-w)'),
+                            strokeDasharray: boostedDashes('var(--tl-branch-dash)', 'var(--tl-branch-gap)'),
+                          }
+                        : { strokeWidth: boostedPx('var(--tl-edge-w)') }),
+                      // Only the resting opacity is boosted; highlighted and
+                      // faded-out edges keep theirs.
                       opacity: isFocused
                         ? isActive || focusIds
                           ? 1
-                          : boostedOpacity(0.42)
+                          : boostedOpacity('var(--tl-edge-opacity)')
                         : 0.08,
                     }}
                   />
@@ -1016,15 +1027,43 @@ export function TimelineGraph({
                   onClick={() => expandGroup(group.id)}
                   aria-label={label}
                   title={label}
-                  className="absolute z-20 flex size-6 -translate-1/2 cursor-pointer items-center justify-center rounded-full border border-dashed border-primary/70 bg-card text-primary shadow-sm transition-colors hover:border-solid hover:bg-primary/15 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-75"
-                  style={{
-                    left: left + span / 2,
-                    top: lane.y,
-                    // Shrinks less than the canvas when zoomed out, so it stays findable.
-                    scale: 'max(1, pow(calc(1 / var(--z)), 0.6))',
-                  }}
+                  className="group/plus absolute z-20 block cursor-pointer rounded-full p-0 text-primary drop-shadow-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none motion-safe:animate-in motion-safe:fade-in-0"
+                  style={
+                    {
+                      left: left + span / 2,
+                      top: lane.y,
+                      // Shrinks less than the canvas when zoomed out, so it
+                      // stays findable. Sized in layout rather than with a
+                      // scale transform: a transform enlarges an already
+                      // shrunk raster, which is what made it blurry.
+                      '--plus': 'max(1, pow(calc(1 / var(--z)), 0.6))',
+                      width: 'calc(24px * var(--plus))',
+                      height: 'calc(24px * var(--plus))',
+                      marginLeft: 'calc(-12px * var(--plus))',
+                      marginTop: 'calc(-12px * var(--plus))',
+                    } as React.CSSProperties
+                  }
                 >
-                  <PlusIcon className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
+                  {/* Circle and plus share one drawing, so the plus is always
+                      centred whatever the zoom does to pixel rounding. */}
+                  <svg viewBox="0 0 24 24" className="block size-full" aria-hidden="true">
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="11"
+                      pathLength={48}
+                      strokeDasharray="2.5 1.5"
+                      className="fill-card stroke-current opacity-90 transition-[fill] group-hover/plus:fill-[color-mix(in_oklab,var(--primary)_15%,var(--card))] group-hover/plus:[stroke-dasharray:none]"
+                      strokeWidth={1.25}
+                    />
+                    <path
+                      d="M12 8v8M8 12h8"
+                      className="stroke-current"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      fill="none"
+                    />
+                  </svg>
                 </button>
               )
             })}
@@ -1098,7 +1137,7 @@ export function TimelineGraph({
                   {origin && (
                     <div
                       className={cn(
-                        'pointer-events-none absolute flex items-center gap-1 rounded-full border bg-card px-2 py-0.5 text-[10px] leading-4 whitespace-nowrap shadow-sm',
+                        'tl-flag pointer-events-none absolute flex items-center gap-1 rounded-full border bg-card px-2 py-0.5 text-[10px] leading-4 whitespace-nowrap shadow-sm',
                         // Centred over the circle, except where that would run
                         // off the start of the canvas.
                         x >= COL_WIDTH && '-translate-x-1/2',
@@ -1115,7 +1154,8 @@ export function TimelineGraph({
                         left: x >= COL_WIDTH ? '50%' : COL_WIDTH / 2 - NODE_SIZE / 2,
                         transformOrigin: x >= COL_WIDTH ? 'bottom center' : 'bottom left',
                         borderColor: `color-mix(in oklab, ${origin.color} 55%, transparent)`,
-                      }}
+                        '--flag-color': origin.color,
+                      } as React.CSSProperties}
                       aria-hidden="true"
                     >
                       <FlagIcon
@@ -1134,25 +1174,22 @@ export function TimelineGraph({
                       onClick={() => selectEvent(event)}
                       aria-label={`${event.title}, ${event.dateLabel}`}
                       className={cn(
-                        'node-hit group pointer-events-auto relative flex cursor-default items-center justify-center rounded-full border-2 bg-card text-foreground transition-transform duration-150 outline-none hover:scale-110 focus-visible:ring-3 focus-visible:ring-ring/50',
+                        // Colours, rim and state rings come from the skin
+                        // (.tl-node in app/themes.css).
+                        'tl-node node-hit group pointer-events-auto relative flex cursor-default items-center justify-center rounded-full border-2 bg-card text-foreground transition-transform duration-150 outline-none hover:scale-110',
                         event.presentDay && 'border-[3px] bg-primary/10',
                         isSelected && 'scale-110',
                         flashId === event.id && 'scale-125',
                       )}
+                      data-origin={isOrigin || undefined}
+                      data-present={event.presentDay || undefined}
+                      data-selected={isSelected || undefined}
+                      data-flash={flashId === event.id || undefined}
                       style={{
                         width: NODE_SIZE,
                         height: NODE_SIZE,
-                        borderColor: color,
-                        boxShadow: flashId === event.id
-                          ? `0 0 0 6px color-mix(in oklab, ${color} 45%, transparent), 0 0 24px 6px color-mix(in oklab, ${color} 35%, transparent)`
-                          : isSelected
-                          ? `0 0 0 5px color-mix(in oklab, ${color} 22%, transparent)`
-                          : event.presentDay
-                            ? `0 0 0 4px color-mix(in oklab, ${color} 16%, transparent)`
-                            : isOrigin
-                              ? `0 0 0 3px var(--card), 0 0 0 5px ${color}`
-                              : undefined,
-                      }}
+                        '--node-color': color,
+                      } as React.CSSProperties}
                     >
                       {event.icon.type === 'image' ? (
                         <span className="size-full overflow-hidden rounded-full p-0.5">
@@ -1209,7 +1246,7 @@ export function TimelineGraph({
                     </span>
                     <span
                       className={cn(
-                        'font-serif text-[13px] leading-snug text-pretty text-foreground/90',
+                        'tl-title font-serif text-[13px] leading-snug text-pretty text-foreground/90',
                         compactLabels && 'line-clamp-2',
                         isSelected && 'text-foreground',
                       )}
@@ -1263,7 +1300,7 @@ export function TimelineGraph({
     <div
       ref={scrollRef}
       className={cn(
-        'no-scrollbar relative h-full cursor-grab overflow-auto rounded-xl border border-border bg-card/40',
+        'tl-canvas no-scrollbar relative h-full cursor-grab overflow-auto rounded-xl border border-border',
         isPanning && 'cursor-grabbing select-none [&_*]:cursor-grabbing',
       )}
     >
@@ -1308,7 +1345,7 @@ export function TimelineGraph({
               }}
               title={`${era.label}, ${era.dates}`}
             >
-              <span className="label-caps shrink-0 text-[10px] whitespace-nowrap text-muted-foreground">
+              <span className="tl-era-label label-caps shrink-0 text-[10px] whitespace-nowrap text-muted-foreground">
                 {era.label}
               </span>
               <span className="text-[10px] whitespace-nowrap text-muted-foreground/70 tabular-nums">
@@ -1539,7 +1576,7 @@ export function TimelineGraph({
             style={{ left: gutter }}
           >
           <div
-            className="relative"
+            className="tl-paper relative"
             style={{
               width,
               height,
