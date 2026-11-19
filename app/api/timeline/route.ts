@@ -37,6 +37,8 @@ export async function GET() {
       keyFigures: row.key_figures,
       links: row.links,
       groupId: row.group_id ?? undefined,
+      person: row.person ?? undefined,
+      branchFrom: row.branch_from ?? undefined,
       parents: parentsByEvent.get(row.id) ?? [],
     }))
     const groups: TimelineGroup[] = groupRows.map((row) => ({

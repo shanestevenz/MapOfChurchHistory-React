@@ -11,6 +11,11 @@ const javascript = ts.transpileModule(source, {
 const moduleBox = { exports: {} }
 vm.runInNewContext(javascript, { module: moduleBox, exports: moduleBox.exports, require }, { filename: 'timeline-data.ts' })
 const { SEED_EVENTS, TIMELINE_GROUPS, TRADITIONS } = moduleBox.exports
+// Seeded events since removed from the code. The seed only inserts and
+// updates, so without this they would stay in an existing database. Only these
+// ids are deleted: events curators added in the app are never touched.
+const RETIRED_EVENT_IDS = ['person-jesus', 'person-peter', 'person-paul']
+
 const q = (value) => `'${String(value).replaceAll("'", "''")}'`
 const json = (value) => `${q(JSON.stringify(value))}::jsonb`
 const array = (values) => `array[${values.map(q).join(',')}]::text[]`
@@ -26,11 +31,16 @@ const contentLines = [
   'insert into public.timeline_groups(id,title,date_label,start_year,end_year,auto_expand_zoom) values',
   TIMELINE_GROUPS.map((g) => `  (${q(g.id)},${q(g.title)},${q(g.dateLabel)},${g.startYear},${g.endYear},${g.autoExpandZoom})`).join(',\n') + '\non conflict (id) do update set title=excluded.title,date_label=excluded.date_label,start_year=excluded.start_year,end_year=excluded.end_year,auto_expand_zoom=excluded.auto_expand_zoom;',
   '',
-  'insert into public.timeline_events(id,year,date_label,title,tradition_id,kind,icon,summary,detail,key_figures,links,group_id) values',
-  SEED_EVENTS.map((e) => `  (${q(e.id)},${e.year},${q(e.dateLabel)},${q(e.title)},${q(e.tradition)},${q(e.kind)},${json(e.icon)},${q(e.summary)},${q(e.detail)},${array(e.keyFigures || [])},${json(e.links || [])},${e.groupId ? q(e.groupId) : 'null'})`).join(',\n') + '\non conflict (id) do update set year=excluded.year,date_label=excluded.date_label,title=excluded.title,tradition_id=excluded.tradition_id,kind=excluded.kind,icon=excluded.icon,summary=excluded.summary,detail=excluded.detail,key_figures=excluded.key_figures,links=excluded.links,group_id=excluded.group_id;',
+  'insert into public.timeline_events(id,year,date_label,title,tradition_id,kind,icon,summary,detail,key_figures,links,group_id,person,branch_from) values',
+  SEED_EVENTS.map((e) => `  (${q(e.id)},${e.year},${q(e.dateLabel)},${q(e.title)},${q(e.tradition)},${q(e.kind)},${json(e.icon)},${q(e.summary)},${q(e.detail)},${array(e.keyFigures || [])},${json(e.links || [])},${e.groupId ? q(e.groupId) : 'null'},${e.person ? json(e.person) : 'null'},${e.branchFrom ? q(e.branchFrom) : 'null'})`).join(',\n') + '\non conflict (id) do update set year=excluded.year,date_label=excluded.date_label,title=excluded.title,tradition_id=excluded.tradition_id,kind=excluded.kind,icon=excluded.icon,summary=excluded.summary,detail=excluded.detail,key_figures=excluded.key_figures,links=excluded.links,group_id=excluded.group_id,person=excluded.person,branch_from=excluded.branch_from;',
   '',
   'insert into public.event_parents(event_id,parent_id,sort_order) values',
   SEED_EVENTS.flatMap((e) => e.parents.map((p, i) => `  (${q(e.id)},${q(p)},${i})`)).join(',\n') + '\non conflict (event_id,parent_id) do update set sort_order=excluded.sort_order;',
+  '',
+  '-- Remove seeded events that were taken out of the code. One with pending or',
+  '-- past edit suggestions is kept (they reference it) rather than failing.',
+  `delete from public.timeline_events e where e.id in (${RETIRED_EVENT_IDS.map(q).join(',')})`,
+  '  and not exists (select 1 from public.edit_suggestions s where s.event_id = e.id);',
   '',
   '-- Remove traditions that no longer exist in the code (e.g. after a lane is split).',
   '-- Their seeded events were moved above; if any other event still uses one,',

@@ -212,7 +212,7 @@ function SuggestionCard({
                 {change.before || '—'}
               </p>
               <p className="rounded-md bg-primary/10 px-2.5 py-1.5 text-[13px] leading-relaxed text-foreground">
-                {change.after}
+                {change.after || '— (removed)'}
               </p>
             </div>
           ))}

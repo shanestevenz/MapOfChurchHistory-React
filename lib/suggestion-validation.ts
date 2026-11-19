@@ -8,7 +8,11 @@ const FIELD_LIMITS: Record<SuggestableField, number> = {
   dateLabel: 100,
   summary: 2_000,
   detail: 50_000,
+  personGroup: 100,
+  personRegion: 100,
 }
+/** Fields where an empty value is a valid proposal (removing a group). */
+const MAY_BE_EMPTY = new Set<SuggestableField>(['personGroup', 'personRegion'])
 
 const TOP_LEVEL_KEYS = new Set([
   'eventId',
@@ -89,7 +93,10 @@ export function validateSuggestionSubmission(
     }
     const field = item.field as SuggestableField
     if (seen.has(field)) return fail('Each field can be changed only once.')
-    if (typeof item.after !== 'string' || !item.after.trim()) {
+    if (
+      typeof item.after !== 'string' ||
+      (!item.after.trim() && !MAY_BE_EMPTY.has(field))
+    ) {
       return fail('Proposed text cannot be empty.')
     }
     const after = item.after.trim()

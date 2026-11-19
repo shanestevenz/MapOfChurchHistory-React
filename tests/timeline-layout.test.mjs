@@ -51,7 +51,7 @@ test('nested groups are laid out inside their parent', () => {
 test('a group with every lane hidden disappears', () => {
   const { laneGroups } = buildLayout(
     [],
-    new Set(['radical', 'baptist']),
+    new Set(['radical', 'baptist', 'quaker']),
   )
   assert.equal(
     laneGroups.some((group) => group.id === 'radical-free-church'),
@@ -95,4 +95,33 @@ test('other events keep a column of their own', () => {
   assert.notEqual(cols.a, cols.b)
   assert.notEqual(cols.c, cols.d)
   assert.equal(new Set(Object.values(cols)).size, 5)
+})
+
+test('branch lines leave a schism from its node, other parents from the rail at the founding date', async () => {
+  const { SEED_EVENTS } = await import('../lib/timeline-data.ts')
+  const { buildLayout, branchStart, COL_WIDTH } = await import('../lib/timeline-layout.ts')
+  const { edges, nodes } = buildLayout(SEED_EVENTS)
+  const nodeOf = (id) => nodes.find((node) => node.event.id === id)
+  const startX = (edge) => Number(edge.path.split(' ')[1])
+  let schisms = 0
+  let dated = 0
+  for (const edge of edges.filter((item) => item.isBranch)) {
+    const [parentId, childId] = edge.id.split('->')
+    const parent = nodeOf(parentId)
+    const child = nodeOf(childId)
+    if (branchStart(child.event, parent.event) === 'node') {
+      schisms += parent.event.kind === 'schism' ? 1 : 0
+      assert.ok(startX(edge) > parent.x, `${edge.id} starts at the parent node`)
+      assert.ok(startX(edge) < parent.x + COL_WIDTH / 2)
+    } else {
+      dated += 1
+      assert.equal(startX(edge), child.x - COL_WIDTH / 2, `${edge.id} starts at the founding date`)
+    }
+  }
+  assert.ok(schisms > 0 && dated > 0)
+  // The 1054 schism's two churches come from the schism node itself.
+  assert.equal(branchStart(nodeOf('eastern-orthodoxy').event, nodeOf('great-schism')?.event ?? { kind: 'schism' }), 'node')
+  // An explicit setting wins.
+  assert.equal(branchStart({ branchFrom: 'date' }, { kind: 'schism' }), 'date')
+  assert.equal(branchStart({ branchFrom: 'node' }, { kind: 'event' }), 'node')
 })

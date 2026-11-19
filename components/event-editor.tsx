@@ -5,6 +5,7 @@ import { PlusIcon, TrashIcon, UploadIcon, XIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { DateText } from '@/components/date-text'
 import { EventIcon } from '@/components/event-icon'
+import { PersonPortrait } from '@/components/person-node'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -36,9 +37,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { TRADITIONS } from '@/lib/timeline-data'
 import { ICON_LIBRARY, ICON_NAMES } from '@/lib/timeline-icons'
 import { traditionColor } from '@/lib/timeline-layout'
+import { birthYearOf, groupConflicts, groupNamesOn, PERSON_TYPES } from '@/lib/timeline-people'
 import type {
   EventKind,
   ExternalLink,
+  PersonDetails,
+  PersonType,
   TimelineEvent,
   TimelineGroup,
   TraditionId,
@@ -50,7 +54,26 @@ const KINDS: { value: EventKind; label: string }[] = [
   { value: 'council', label: 'Council' },
   { value: 'schism', label: 'Division' },
   { value: 'reunion', label: 'Reunion' },
+  { value: 'person', label: 'Person' },
 ]
+
+const MEMBERSHIP_ITEMS = [
+  { value: 'member', label: 'Stayed a member' },
+  { value: 'formerly', label: 'Left it' },
+]
+
+const BRANCH_FROM_ITEMS = [
+  { value: 'auto', label: 'Automatic' },
+  { value: 'node', label: 'The parent event’s node' },
+  { value: 'date', label: 'The parent’s line, at this date' },
+]
+
+const PERSON_TYPE_ITEMS = PERSON_TYPES.map((type) => ({
+  value: type.id,
+  label: type.label,
+}))
+
+const BLANK_PERSON: PersonDetails = { role: '', type: 'theologian' }
 
 const MAX_IMAGE_BYTES = 400_000
 
@@ -102,6 +125,7 @@ export function EventEditor({
   const isNew = event === null
   const [draft, setDraft] = React.useState<TimelineEvent>(event ?? BLANK)
   const [figures, setFigures] = React.useState('')
+  const [aliases, setAliases] = React.useState('')
   const [isSaving, setIsSaving] = React.useState(false)
   const fileRef = React.useRef<HTMLInputElement>(null)
 
@@ -111,12 +135,36 @@ export function EventEditor({
     const base = event ?? BLANK
     setDraft(base)
     setFigures((base.keyFigures ?? []).join(', '))
+    setAliases((base.person?.aliases ?? []).join(', '))
   }, [event, open])
+
+  const isPersonDraft = draft.kind === 'person'
+  const personDraft = draft.person ?? BLANK_PERSON
+  // The church on another lane this person belonged to, and whether they left it.
+  const parentChurch = personDraft.affiliation ?? personDraft.formerly
+  const leftChurch = Boolean(personDraft.formerly)
+  const updatePerson = (patch: Partial<PersonDetails>) =>
+    setDraft((current) => ({
+      ...current,
+      person: { ...(current.person ?? BLANK_PERSON), ...patch },
+    }))
 
   const update = <K extends keyof TimelineEvent>(
     key: K,
     value: TimelineEvent[K],
   ) => setDraft((current) => ({ ...current, [key]: value }))
+
+  // People groups already used on this lane, and the landmark events this
+  // person lived through (which keep them out of any group).
+  const groupNames = React.useMemo(
+    () => groupNamesOn(draft.tradition, events),
+    [draft.tradition, events],
+  )
+  const conflicts = React.useMemo(
+    () => (isPersonDraft && personDraft.group?.trim() ? groupConflicts(draft, events) : []),
+    [draft, events, isPersonDraft, personDraft.group],
+  )
+  const groupListId = React.useId()
 
   const traditionItems = React.useMemo(
     () =>
@@ -169,7 +217,52 @@ export function EventEditor({
       return
     }
 
-    const id = draft.id || slugify(draft.title)
+    let person: PersonDetails | undefined
+    if (isPersonDraft) {
+      const role = personDraft.role.trim()
+      if (!role || role.length > 200) {
+        toast.error('A person needs a short role, such as "Bishop of Hippo".')
+        return
+      }
+      const aliasList = aliases.split(',').map((alias) => alias.trim()).filter(Boolean)
+      if (aliasList.length > 20 || aliasList.some((alias) => alias.length > 200)) {
+        toast.error('Use no more than 20 other names, with shorter names.')
+        return
+      }
+      person = { role, type: personDraft.type }
+      const church = personDraft.affiliation ?? personDraft.formerly
+      if (church && church !== draft.tradition) {
+        if (personDraft.formerly) person.formerly = church
+        else person.affiliation = church
+      }
+      if (aliasList.length) person.aliases = aliasList
+      const persecution = personDraft.persecution?.trim()
+      if (persecution && persecution.length > 300) {
+        toast.error('Keep the persecution note to 300 characters or fewer.')
+        return
+      }
+      if (persecution) person.persecution = persecution
+      const group = personDraft.group?.trim()
+      if (group && group.length > 100) {
+        toast.error('Use a group name of 100 characters or fewer.')
+        return
+      }
+      if (group) person.group = group
+      const region = personDraft.region?.trim()
+      if (region && region.length > 100) {
+        toast.error('Use a region of 100 characters or fewer.')
+        return
+      }
+      if (region) person.region = region
+      const movement = personDraft.movement?.trim()
+      if (movement && movement.length > 60) {
+        toast.error('Use a movement tag of 60 characters or fewer.')
+        return
+      }
+      if (movement) person.movement = movement
+    }
+
+    const id = draft.id || slugify(isPersonDraft ? `person-${draft.title}` : draft.title)
     if (isNew && events.some((candidate) => candidate.id === id)) {
       toast.error('An event with that title already exists.')
       return
@@ -214,6 +307,9 @@ export function EventEditor({
       detail: draft.detail.trim(),
       keyFigures,
       links: links.map((link) => ({ label: link.label.trim(), url: link.url.trim() })),
+      // People sit on a lane without growing out of anything.
+      parents: isPersonDraft ? [] : draft.parents,
+      person,
       })
       onOpenChange(false)
       toast.success(isNew ? 'Event added to the timeline.' : 'Event updated.')
@@ -235,7 +331,7 @@ export function EventEditor({
       <DialogContent className="max-h-[90svh] gap-0 overflow-y-auto sm:max-w-2xl">
         <DialogHeader className="pb-4">
           <DialogTitle className="font-serif text-xl">
-            {isNew ? 'Add an event' : 'Edit event'}
+            {isNew ? 'Add an event or person' : isPersonDraft ? 'Edit person' : 'Edit event'}
           </DialogTitle>
           <DialogDescription>
             Changes are saved to the curator database after validation.
@@ -254,7 +350,9 @@ export function EventEditor({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="event-year">Year (for ordering)</FieldLabel>
+              <FieldLabel htmlFor="event-year">
+                {isPersonDraft ? 'Year born (for ordering)' : 'Year (for ordering)'}
+              </FieldLabel>
               <Input
                 id="event-year"
                 type="number"
@@ -266,21 +364,35 @@ export function EventEditor({
           </div>
 
           <Field>
-            <FieldLabel htmlFor="event-date">Date label</FieldLabel>
+            <FieldLabel htmlFor="event-date">
+              {isPersonDraft ? 'Lifespan' : 'Date label'}
+            </FieldLabel>
             <Input
               id="event-date"
               value={draft.dateLabel}
-              onChange={(e) => update('dateLabel', e.target.value)}
-              placeholder="16 July 1054"
+              onChange={(e) => {
+                const dateLabel = e.target.value
+                // People are placed by birth: fill the year from the lifespan
+                // whenever it gives one.
+                const born = isPersonDraft ? birthYearOf({ ...draft, dateLabel }) : null
+                setDraft((current) => ({
+                  ...current,
+                  dateLabel,
+                  ...(born !== null ? { year: born } : {}),
+                }))
+              }}
+              placeholder={isPersonDraft ? '354–430' : '16 July 1054'}
             />
             <FieldDescription>
-              Shown on the node exactly as written — &quot;c. AD 33&quot;, &quot;1517&quot;, &quot;1962–65&quot;.
+              {isPersonDraft
+                ? 'Shown on the node exactly as written — "354–430", "c. 1570–1612", "b. 1940".'
+                : 'Shown on the node exactly as written — "c. AD 33", "1517", "1962–65".'}
             </FieldDescription>
           </Field>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <Field>
-              <FieldLabel>Branch</FieldLabel>
+              <FieldLabel>{isPersonDraft ? 'Lane (drawn on)' : 'Branch'}</FieldLabel>
               <Select
                 items={traditionItems}
                 value={draft.tradition}
@@ -332,6 +444,198 @@ export function EventEditor({
               </Select>
             </Field>
           </div>
+
+          {isPersonDraft && (
+            <>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="person-role">Role</FieldLabel>
+                  <Input
+                    id="person-role"
+                    value={personDraft.role}
+                    onChange={(e) => updatePerson({ role: e.target.value })}
+                    placeholder="Bishop of Hippo"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel>Person type</FieldLabel>
+                  <Select
+                    items={PERSON_TYPE_ITEMS}
+                    value={personDraft.type}
+                    onValueChange={(value) => updatePerson({ type: value as PersonType })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {PERSON_TYPE_ITEMS.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+              <Field>
+                <FieldLabel>Larger church</FieldLabel>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Select
+                    items={[
+                      { value: 'same', label: 'None — just this lane' },
+                      ...traditionItems,
+                    ]}
+                    value={parentChurch ?? 'same'}
+                    onValueChange={(value) => {
+                      const church =
+                        !value || value === 'same' ? undefined : (value as TraditionId)
+                      updatePerson(
+                        leftChurch
+                          ? { formerly: church, affiliation: undefined }
+                          : { affiliation: church, formerly: undefined },
+                      )
+                    }}
+                  >
+                    <SelectTrigger className="w-full" aria-label="Larger church">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="same">None — just this lane</SelectItem>
+                        {traditionItems.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            <span
+                              className="size-2 rounded-full"
+                              style={{
+                                backgroundColor: traditionColor(item.value as TraditionId),
+                              }}
+                            />
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  {parentChurch && (
+                    <Select
+                      items={MEMBERSHIP_ITEMS}
+                      value={leftChurch ? 'formerly' : 'member'}
+                      onValueChange={(value) =>
+                        updatePerson(
+                          value === 'formerly'
+                            ? { formerly: parentChurch, affiliation: undefined }
+                            : { affiliation: parentChurch, formerly: undefined },
+                        )
+                      }
+                    >
+                      <SelectTrigger className="w-full" aria-label="Membership">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {MEMBERSHIP_ITEMS.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <FieldDescription>
+                  A church on another lane they were part of: still a member
+                  (John Wycliffe, Catholic, on the Anglican lane) or left it
+                  (Martin Luther, once a Catholic monk). The node gets a dot
+                  and a dashed line from that church&apos;s lane, and their
+                  tags list the church. Explain the move in the description.
+                </FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="person-persecution">
+                  Persecution or condemnation
+                </FieldLabel>
+                <Input
+                  id="person-persecution"
+                  value={personDraft.persecution ?? ''}
+                  onChange={(e) => updatePerson({ persecution: e.target.value })}
+                  placeholder="Excommunicated by Pope Leo X, 1521"
+                />
+                <FieldDescription>
+                  Optional. How they were martyred, jailed, exiled, excommunicated
+                  or condemned, with the year. Shown in a red callout on their card.
+                </FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="person-region">Country or region</FieldLabel>
+                <Input
+                  id="person-region"
+                  value={personDraft.region ?? ''}
+                  onChange={(e) => updatePerson({ region: e.target.value })}
+                  placeholder="North Africa"
+                />
+                <FieldDescription>
+                  Where they lived and worked, shown as a tag on their card.
+                </FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="person-movement">Movement tag</FieldLabel>
+                <Input
+                  id="person-movement"
+                  value={personDraft.movement ?? ''}
+                  onChange={(e) => updatePerson({ movement: e.target.value })}
+                  placeholder="Quaker"
+                />
+                <FieldDescription>
+                  Optional. Replaces the lane&apos;s name in their tags when it
+                  is more specific, e.g. &ldquo;Quaker&rdquo; or &ldquo;Amish&rdquo;.
+                </FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="person-aliases">Other names</FieldLabel>
+                <Input
+                  id="person-aliases"
+                  value={aliases}
+                  onChange={(e) => setAliases(e.target.value)}
+                  placeholder="Augustine, Saint Augustine"
+                />
+                <FieldDescription>
+                  Separate names with commas. Key-figure tags on events that
+                  use any of these names (or the title) link to this person.
+                </FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="person-group">Group</FieldLabel>
+                <Input
+                  id="person-group"
+                  list={groupListId}
+                  value={personDraft.group ?? ''}
+                  onChange={(e) => updatePerson({ group: e.target.value })}
+                  placeholder="Early Church Fathers"
+                />
+                <datalist id={groupListId}>
+                  {groupNames.map((name) => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
+                <FieldDescription>
+                  Optional. People with the same group name on the same lane
+                  are drawn as one node to keep busy stretches readable.
+                  Anyone who lived through a major event on the lane (a
+                  council, division or milestone) is always drawn on their own.
+                </FieldDescription>
+                {conflicts.length > 0 && (
+                  <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-foreground">
+                    Drawn on their own: their lifetime (
+                    <DateText value={draft.dateLabel} />) spans{' '}
+                    {conflicts.map((item) => item.title).join(', ')}.
+                  </p>
+                )}
+              </Field>
+            </>
+          )}
 
           <Field>
             <FieldLabel>Progressive detail group</FieldLabel>
@@ -394,7 +698,9 @@ export function EventEditor({
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="event-figures">Key figures</FieldLabel>
+            <FieldLabel htmlFor="event-figures">
+              {isPersonDraft ? 'Associated people' : 'Key figures'}
+            </FieldLabel>
             <Input
               id="event-figures"
               value={figures}
@@ -407,17 +713,28 @@ export function EventEditor({
           <Separator />
 
           <FieldSet>
-            <FieldLegend variant="label">Icon</FieldLegend>
+            <FieldLegend variant="label">{isPersonDraft ? 'Portrait' : 'Icon'}</FieldLegend>
             <FieldDescription>
-              Pick a line icon, or upload a picture to use instead.
+              {isPersonDraft
+                ? 'People are drawn as a bust in an arched frame. Upload a portrait to fill the frame instead.'
+                : 'Pick a line icon, or upload a picture to use instead.'}
             </FieldDescription>
             <div className="flex items-center gap-3">
-              <span
-                className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-card"
-                style={{ borderColor: traditionColor(draft.tradition) }}
-              >
-                <EventIcon icon={draft.icon} title={draft.title || 'Preview'} />
-              </span>
+              {isPersonDraft ? (
+                <PersonPortrait
+                  icon={draft.icon}
+                  title={draft.title || 'Preview'}
+                  color={traditionColor(draft.tradition)}
+                  className="h-14 w-11"
+                />
+              ) : (
+                <span
+                  className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-card"
+                  style={{ borderColor: traditionColor(draft.tradition) }}
+                >
+                  <EventIcon icon={draft.icon} title={draft.title || 'Preview'} />
+                </span>
+              )}
               <Button
                 variant="outline"
                 onClick={() => fileRef.current?.click()}
@@ -429,7 +746,7 @@ export function EventEditor({
                 <Button
                   variant="ghost"
                   onClick={() =>
-                    update('icon', { type: 'lucide', name: 'Landmark' })
+                    update('icon', { type: 'lucide', name: isPersonDraft ? 'User' : 'Landmark' })
                   }
                 >
                   <XIcon data-icon="inline-start" />
@@ -444,6 +761,7 @@ export function EventEditor({
                 onChange={(e) => handleUpload(e.target.files?.[0])}
               />
             </div>
+            {!isPersonDraft && (
             <div className="grid grid-cols-8 gap-1.5 sm:grid-cols-14">
               {ICON_NAMES.map((name) => {
                 const Glyph = ICON_LIBRARY[name]
@@ -467,10 +785,12 @@ export function EventEditor({
                 )
               })}
             </div>
+            )}
           </FieldSet>
 
           <Separator />
 
+          {!isPersonDraft && (
           <FieldSet>
             <FieldLegend variant="label">Grows out of</FieldLegend>
             <FieldDescription>
@@ -479,7 +799,7 @@ export function EventEditor({
             </FieldDescription>
             <div className="grid max-h-52 gap-1 overflow-y-auto rounded-lg border border-border p-2 sm:grid-cols-2">
               {[...events]
-                .filter((candidate) => candidate.id !== draft.id)
+                .filter((candidate) => candidate.id !== draft.id && candidate.kind !== 'person')
                 .sort((a, b) => a.year - b.year)
                 .map((candidate) => {
                   const isActive = draft.parents.includes(candidate.id)
@@ -514,7 +834,42 @@ export function EventEditor({
                   )
                 })}
             </div>
+            {draft.parents.length > 0 && (
+              <Field className="mt-3">
+                <FieldLabel>Branch line starts from</FieldLabel>
+                <Select
+                  items={BRANCH_FROM_ITEMS}
+                  value={draft.branchFrom ?? 'auto'}
+                  onValueChange={(value) =>
+                    update(
+                      'branchFrom',
+                      value === 'node' || value === 'date' ? value : undefined,
+                    )
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {BRANCH_FROM_ITEMS.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <FieldDescription>
+                  For parents on another lane. Automatic draws the line from
+                  the parent&apos;s node when it is a schism (the division this
+                  branch came out of), and otherwise from the parent&apos;s line
+                  at the date this branch began.
+                </FieldDescription>
+              </Field>
+            )}
           </FieldSet>
+          )}
 
           <Separator />
 

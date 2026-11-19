@@ -136,6 +136,10 @@ export function TimelinePage() {
       ),
       hiddenKinds: current.hiddenKinds.filter((kind) => kind !== event.kind),
       hiddenEras: current.hiddenEras.filter((label) => label !== era?.label),
+      showPeople: current.showPeople || event.kind === 'person',
+      hiddenPersonTypes: current.hiddenPersonTypes.filter(
+        (type) => type !== event.person?.type,
+      ),
       showPresentDay: current.showPresentDay || Boolean(event.presentDay),
     }))
     setSelected(event)
@@ -289,6 +293,7 @@ export function TimelinePage() {
             showOrigins={filters.showOrigins}
             compactLabels={filters.compactLabels}
             showLaneLabels={filters.showLaneLabels}
+            groupPeople={filters.groupPeople}
             enlarge={{
               origins: filters.enlargeOrigins,
               kinds: filters.enlargeKinds,
@@ -349,6 +354,7 @@ export function TimelinePage() {
 
       <EventDialog
         event={selected}
+        events={displayedEvents}
         open={dialogOpen}
         isAdmin={isAdmin}
         onOpenChange={setDialogOpen}
@@ -359,6 +365,11 @@ export function TimelinePage() {
         }}
         onEdit={(event) => openEditor(event)}
         onSuggestEdit={openSuggest}
+        onOpenPerson={(person) => {
+          // Reveal and fly to the person, keeping their quick card open.
+          jumpTo(person)
+          setDialogOpen(true)
+        }}
       />
 
       <EventDetailPanel
@@ -366,7 +377,8 @@ export function TimelinePage() {
         events={displayedEvents}
         open={panelOpen}
         onOpenChange={setPanelOpen}
-        onNavigate={(event) => setSelected(event)}
+        // Follow the link on the map too, revealing it if filtered out.
+        onNavigate={jumpTo}
         onSuggestEdit={openSuggest}
       />
 

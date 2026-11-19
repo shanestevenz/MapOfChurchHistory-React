@@ -1,11 +1,13 @@
 import { TRADITION_MAP, TRADITIONS } from './timeline-data'
 import type {
+  BranchFrom,
   ColorFamily,
   LaneGroup,
   TimelineEvent,
   TraditionId,
   TraditionOrigin,
 } from './timeline-types'
+import { parentChurchOf } from './timeline-types'
 
 /** Time runs left to right: one column per event. */
 export const COL_WIDTH = 172
@@ -30,6 +32,8 @@ export const FAMILY_COLOR: Record<ColorFamily, string> = {
   emerald: 'var(--chart-4)',
   amethyst: 'var(--chart-5)',
   copper: 'var(--chart-6)',
+  // Neutral in every skin: World History is context, not a branch.
+  slate: 'var(--muted-foreground)',
 }
 
 export function traditionColor(id: TraditionId): string {
@@ -75,6 +79,8 @@ export interface PositionedLaneGroup {
   lanes: TraditionId[]
   /** 0 for a top-level group, 1 for a group inside it, and so on. */
   depth: number
+  /** Drawn visibly apart from the rest of the timeline (see LaneGroup). */
+  setApart: boolean
 }
 
 /** A "began here" flag drawn above the event that starts a movement. */
@@ -103,6 +109,21 @@ export interface PositionedEdge {
   /** Cross-lane edges are the actual branch points — drawn heavier. */
   isBranch: boolean
 }
+
+/**
+ * A dashed line from the larger church a person was a member of over to their
+ * node on another lane: e.g. from the Undivided Church to Vladimir the Great
+ * on the Eastern Orthodox lane, or from Roman Catholicism to Martin Luther.
+ */
+export interface PositionedAffiliation {
+  id: string
+  personId: string
+  path: string
+  color: string
+}
+
+/** Half the width of a person node (PERSON_NODE_WIDTH in person-node.tsx). */
+const PERSON_HALF_WIDTH = 23
 
 export interface Era {
   label: string
@@ -149,6 +170,15 @@ function orderEvents(events: TimelineEvent[]): TimelineEvent[] {
   return ordered
 }
 
+/**
+ * People and World History nodes are context rather than links in the tree:
+ * they never branch, so they can share a column with whatever else is
+ * happening at that point, as long as their own lane is free there.
+ */
+export function isContextNode(event: TimelineEvent): boolean {
+  return event.kind === 'person' || Boolean(TRADITION_MAP[event.tradition]?.continuous)
+}
+
 /** Both events branch from exactly the same (non-empty) set of parents. */
 function sameParents(a: TimelineEvent, b: TimelineEvent): boolean {
   if (a.parents.length === 0 || a.parents.length !== b.parents.length) return false
@@ -162,6 +192,25 @@ function edgePath(from: PositionedEvent, to: PositionedEvent): string {
   if (from.y === to.y) return `M ${x1} ${from.y} L ${x2} ${to.y}`
   const dx = Math.max(x2 - x1, 28)
   return `M ${x1} ${from.y} C ${x1 + dx * 0.5} ${from.y} ${x2 - dx * 0.5} ${to.y} ${x2} ${to.y}`
+}
+
+/**
+ * A new branch's dotted line. Rather than reaching back to the parent node,
+ * which may be centuries earlier, it leaves the parent's rail at the moment
+ * the branch began: halfway between the child's column and the one before it
+ * (where no node sits), then curves in to the child. The parent's rail always
+ * exists there, since the parent is drawn in an earlier column.
+ */
+function branchPath(parentY: number, to: PositionedEvent): string {
+  const x1 = to.x - COL_WIDTH / 2
+  const x2 = to.x - (NODE_SIZE / 2 + 5)
+  const dx = x2 - x1
+  return `M ${x1} ${parentY} C ${x1 + dx * 0.5} ${parentY} ${x2 - dx * 0.5} ${to.y} ${x2} ${to.y}`
+}
+
+/** Where an event's branch line leaves a given parent (see TimelineEvent.branchFrom). */
+export function branchStart(event: TimelineEvent, parent: TimelineEvent): BranchFrom {
+  return event.branchFrom ?? (parent.kind === 'schism' ? 'node' : 'date')
 }
 
 export function buildLayout(
@@ -212,6 +261,7 @@ export function buildLayout(
         color: group.color ?? traditionColor(tradition.id),
         lanes: [],
         depth: open.length,
+        setApart: Boolean(group.setApart),
       }
       groups.push(positioned)
       open.push(positioned)
@@ -242,20 +292,25 @@ export function buildLayout(
   // Each event normally gets its own column. Branches born together share
   // one: events in the same year with exactly the same parents, in different
   // lanes (e.g. Eastern Orthodoxy and Roman Catholicism, both from the 1054
-  // schism), are drawn one above the other.
+  // schism), are drawn one above the other. Context nodes (people and World
+  // History) join the latest column whenever their lane is free in it, so
+  // turning people on adds columns only where a lane is crowded. Because
+  // events are in year order, this never puts a node before an earlier one.
   const columnOf = new Map<string, number>()
   let column = -1
   let current: TimelineEvent[] = []
   for (const event of ordered) {
     if (event.presentDay) continue
+    const laneFree = current.every((other) => other.tradition !== event.tradition)
     const sharesColumn =
       current.length > 0 &&
-      current.every(
-        (other) =>
-          other.year === event.year &&
-          other.tradition !== event.tradition &&
-          sameParents(other, event),
-      )
+      laneFree &&
+      (isContextNode(event) ||
+        current
+          .filter((other) => !isContextNode(other))
+          .every(
+            (other) => other.year === event.year && sameParents(other, event),
+          ))
     if (!sharesColumn) {
       column += 1
       current = []
@@ -286,8 +341,18 @@ export function buildLayout(
   const origins: PositionedOrigin[] = []
   for (const lane of lanes) {
     const tradition = TRADITION_MAP[lane.id]
+    // A continuous lane (World History) is one solid rail end to end.
+    if (tradition.continuous) {
+      lane.startX = 0
+      continue
+    }
+    // People don't start a branch: Augustine on the Undivided lane, or Jan
+    // Hus drawn ahead of the Lutheran branch, leave the rail where it was.
     const laneNodes = nodes.filter(
-      (node) => node.event.tradition === lane.id && !node.event.presentDay,
+      (node) =>
+        node.event.tradition === lane.id &&
+        !node.event.presentDay &&
+        node.event.kind !== 'person',
     )
     if (laneNodes.length === 0) continue
     lane.startX = laneNodes[0].x
@@ -316,11 +381,37 @@ export function buildLayout(
       if (!parent) continue
       edges.push({
         id: `${parentId}->${node.event.id}`,
-        path: edgePath(parent, node),
+        path:
+          parent.y === node.y || branchStart(node.event, parent.event) === 'node'
+            ? edgePath(parent, node)
+            : branchPath(parent.y, node),
         color: node.color,
         isBranch: parent.y !== node.y,
       })
     }
+  }
+
+  // Each line leaves the home branch's rail halfway between columns (where no
+  // node sits) and curves in to the person's side, like a branch edge.
+  const affiliations: PositionedAffiliation[] = []
+  for (const node of nodes) {
+    const home = parentChurchOf(node.event)
+    if (!home) continue
+    const lane = laneOf.get(home)
+    if (!lane) continue
+    const x1 = node.x - COL_WIDTH / 2
+    // People are placed by birth, which can come before their church's
+    // branch begins (Conrad Grebel, born 1498, later joined the Reformed in
+    // Zürich). There is no rail there yet, so no line: the tag still says it.
+    if (lane.startX === null || x1 < lane.startX) continue
+    const x2 = node.x - PERSON_HALF_WIDTH - 4
+    const dx = x2 - x1
+    affiliations.push({
+      id: `affiliation:${node.event.id}`,
+      personId: node.event.id,
+      path: `M ${x1} ${lane.y} C ${x1 + dx * 0.5} ${lane.y} ${x2 - dx * 0.5} ${node.y} ${x2} ${node.y}`,
+      color: lane.color,
+    })
   }
 
   const columnCount = nodes.length > 0
@@ -349,6 +440,7 @@ export function buildLayout(
   return {
     nodes,
     edges,
+    affiliations,
     eras,
     lanes,
     laneGroups: groups,
