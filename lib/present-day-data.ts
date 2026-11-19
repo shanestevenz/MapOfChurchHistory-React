@@ -6,7 +6,8 @@ import type {
 
 export const PRESENT_DAY_YEAR = 2026
 
-type ContinuingTradition = Exclude<TraditionId, 'undivided'>
+/** World History is context, not a church, so it has no present-day profile. */
+type ContinuingTradition = Exclude<TraditionId, 'undivided' | 'world'>
 
 interface PresentDayDefinition {
   title: string
@@ -190,7 +191,7 @@ export const PRESENT_DAY_DEFINITIONS: Record<
   radical: {
     title: 'Anabaptist churches today',
     summary:
-      'Mennonite, Amish, Hutterite and Brethren in Christ communities, now mostly in the Global South.',
+      'Mennonite, Amish, Hutterite and Brethren communities, now mostly in the Global South.',
     detail:
       'Anabaptist churches keep believer’s baptism, nonviolence and close-knit community life. Plain communities such as the Amish and Hutterites are mainly in North America; most Mennonites now live in Africa, Asia and Latin America.',
     profile: {
@@ -209,6 +210,32 @@ export const PRESENT_DAY_DEFINITIONS: Record<
       {
         label: 'Mennonite World Conference — About and statistics',
         url: 'https://mwc-cmm.org/en/about-mwc/',
+      },
+
+    ],
+  },
+  quaker: {
+    title: 'Quakers today',
+    summary:
+      'A small, diverse worldwide society, from silent unprogrammed meetings to evangelical Friends churches, now largest in East Africa.',
+    detail:
+      'Quakers continue their testimonies of peace, simplicity, integrity and equality. Liberal, unprogrammed meetings that worship in silence are most common in Britain and North America, while most Friends in Africa and Latin America belong to programmed, evangelical churches with pastors.',
+    profile: {
+      asOf: 'FWCC 2017 figures',
+      membership: 'Roughly 380,000–400,000',
+      membershipNote:
+        'Friends World Committee for Consultation estimates; counts vary with how yearly meetings report membership.',
+      geography:
+        'Nearly half of all Quakers live in Africa, chiefly Kenya (about 119,000) and Burundi; most of the rest are in the Americas and Britain.',
+      currentDevelopments: [
+        'Quaker service agencies such as the American Friends Service Committee and Quaker United Nations Office continue peace and relief work.',
+        'Only a handful of Shakers, the Quakers’ celibate offshoot, remain, at Sabbathday Lake in Maine.',
+      ],
+    },
+    links: [
+      {
+        label: 'Friends World Committee for Consultation',
+        url: 'https://fwcc.world/',
       },
     ],
   },
@@ -391,6 +418,31 @@ export const PRESENT_DAY_DEFINITIONS: Record<
       },
     ],
   },
+  'unitarian-universalist': {
+    title: 'Unitarian Universalists today',
+    summary:
+      'A small, creedless association in which Christians, humanists, theists and others worship together.',
+    detail:
+      'Unitarian Universalist congregations have no required creed and place weight on conscience, social justice and shared values. A minority of members identify as Christian, and the historic Unitarian churches of Transylvania and Hungary remain more traditionally Christian in worship.',
+    profile: {
+      asOf: 'UUA 2024',
+      membership: 'About 1,000 congregations',
+      membershipNote:
+        'Member congregations of the Unitarian Universalist Association, which reported overall membership as flat in 2024.',
+      geography:
+        'Mostly in the United States; Unitarian churches also continue in Romania, Hungary, Britain and elsewhere.',
+      currentDevelopments: [
+        'In 2024 the General Assembly replaced the Seven Principles with seven shared values centred on love.',
+        'A small Unitarian Universalist Christian Fellowship continues within the association.',
+      ],
+    },
+    links: [
+      {
+        label: 'Unitarian Universalist Association',
+        url: 'https://www.uua.org/',
+      },
+    ],
+  },
   'latter-day-saints': {
     title: 'Latter-day Saints today',
     summary:
@@ -441,6 +493,31 @@ export const PRESENT_DAY_DEFINITIONS: Record<
       },
     ],
   },
+  'christian-science': {
+    title: 'Christian Science today',
+    summary:
+      'A shrinking movement that still keeps branch churches and Reading Rooms and publishes The Christian Science Monitor.',
+    detail:
+      'Members continue to rely on prayer and Christian Science practitioners for healing, and Sunday services are still led by Readers from the Bible and Science and Health. The church has declined steadily since the mid-20th century, though growth has been reported in parts of Africa.',
+    profile: {
+      asOf: 'Estimates to 2015',
+      membership: 'Not published',
+      membershipNote:
+        'The church releases no membership figures; outside estimates range from under 100,000 to a few hundred thousand worldwide.',
+      geography:
+        'Mainly the United States, with branch churches in many other countries.',
+      currentDevelopments: [
+        'US branch churches fell from about 1,300 in 1995 to about 800 by 2015.',
+        'The Christian Science Monitor continues online with a weekly print magazine.',
+      ],
+    },
+    links: [
+      {
+        label: 'Church of Christ, Scientist — Wikipedia',
+        url: 'https://en.wikipedia.org/wiki/Church_of_Christ,_Scientist',
+      },
+    ],
+  },
 }
 
 const continuingTraditions = Object.keys(
@@ -454,7 +531,8 @@ export function withPresentDayEndpoints(
   const historicalOnly = historicalEvents.filter((event) => !event.presentDay)
   const endpoints = continuingTraditions.flatMap((tradition) => {
     const latest = historicalOnly
-      .filter((event) => event.tradition === tradition)
+      // A branch continues from its latest event, never from a person.
+      .filter((event) => event.tradition === tradition && event.kind !== 'person')
       .sort((a, b) => b.year - a.year)[0]
     if (!latest) return []
 

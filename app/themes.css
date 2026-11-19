@@ -454,6 +454,72 @@
   outline-offset: 4px;
 }
 
+/* People: a bust in an arched frame (components/person-node.tsx). Skins
+   restyle it through these variables rather than the event-node rules. */
+.tl-person {
+  --person-bg: var(--card);
+  --person-figure: var(--node-color);
+  --person-frame: var(--node-color);
+  --person-stroke: 2.5;
+}
+.tl-person-bg {
+  fill: var(--person-bg);
+}
+/* The busts behind the front one in a group of people. */
+.tl-person-back .tl-person-figure {
+  opacity: 0.55;
+}
+.tl-person-figure {
+  fill: var(--person-figure);
+}
+.tl-person-frame {
+  stroke: var(--person-frame);
+  stroke-width: var(--person-stroke);
+  stroke-linejoin: round;
+}
+.tl-person[data-selected] .tl-person-svg {
+  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--node-color) 60%, transparent));
+}
+.tl-person[data-flash] .tl-person-svg {
+  filter:
+    drop-shadow(0 0 3px var(--node-color))
+    drop-shadow(0 0 16px color-mix(in oklab, var(--node-color) 50%, transparent));
+}
+:root .tl-person.tl-person:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+/* Manuscript: an illuminated portrait on parchment. */
+[data-skin='manuscript'] .tl-person {
+  --person-bg: oklch(0.95 0.035 86);
+  --person-figure: color-mix(in oklab, var(--node-color), oklch(0.25 0.05 50) 25%);
+  --person-frame: var(--gilt);
+  --person-stroke: 3;
+}
+[data-skin='manuscript'] .tl-person .tl-person-svg {
+  filter: drop-shadow(0 2px 1.5px oklch(0.25 0.04 50 / 45%));
+}
+/* Stained glass: a lit lancet window with a pale figure, leaded. */
+[data-skin='glass'] .tl-person {
+  --person-bg: var(--node-color);
+  --person-figure: oklch(0.97 0.02 90);
+  --person-frame: var(--lead);
+  --person-stroke: 3;
+}
+[data-skin='glass'] .tl-person .tl-person-svg {
+  filter: drop-shadow(0 0 8px color-mix(in oklab, var(--node-color) 55%, transparent));
+}
+/* Blueprint: the figure drawn in outline. */
+[data-skin='blueprint'] .tl-person {
+  --person-stroke: 1.5;
+}
+[data-skin='blueprint'] .tl-person-figure {
+  fill: color-mix(in oklab, var(--node-color) 25%, transparent);
+  stroke: var(--node-color);
+  stroke-width: 1.25;
+}
+
 /* Manuscript: each event is a wax seal pressed in its tradition's colour,
    titled on a little unrolled scroll. The seal is drawn on ::before (the
    lumpy outline is a mask, public/skins/manuscript/seal.svg), so the node
@@ -675,4 +741,13 @@
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 220ms;
+}
+
+/* Movements outside the historic Nicene creeds (Other / Adjacent) are set
+   apart in every skin by a plain neutral grey band. Placed last so it
+   overrides the skins' own band rules. */
+.tl-band.tl-band-apart,
+.tl-band-apart {
+  background-color: color-mix(in oklab, var(--foreground) 7%, transparent);
+  border-top: 0;
 }
