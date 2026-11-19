@@ -1,9 +1,25 @@
 'use client'
 
 import * as React from 'react'
-import { ChevronRightIcon, FlagIcon, PencilIcon, PlusIcon } from 'lucide-react'
+import { ChevronRightIcon, FlagIcon, PencilIcon } from 'lucide-react'
 import { DateText, formatDecades } from '@/components/date-text'
 import { EventIcon } from '@/components/event-icon'
+import {
+  PERSON_GROUP_WIDTH,
+  PERSON_NODE_WIDTH,
+  PersonFrame,
+  PersonGroupFrame,
+  PersonPortrait,
+} from '@/components/person-node'
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { TRADITION_MAP } from '@/lib/timeline-data'
 import {
   buildLayout,
   COL_WIDTH,
@@ -11,9 +27,16 @@ import {
   LANE_HEIGHT,
   NODE_SIZE,
   type PositionedEvent,
+  traditionColor,
 } from '@/lib/timeline-layout'
-import type { TimelineEvent, TimelineGroup, TraditionId } from '@/lib/timeline-types'
+import {
+  parentChurchOf,
+  type TimelineEvent,
+  type TimelineGroup,
+  type TraditionId,
+} from '@/lib/timeline-types'
 import type { EnlargeMode } from '@/lib/timeline-filters'
+import { CHURCH_TAG, groupPeople } from '@/lib/timeline-people'
 import { cn } from '@/lib/utils'
 
 const KIND_LABEL: Record<TimelineEvent['kind'], string> = {
@@ -21,6 +44,7 @@ const KIND_LABEL: Record<TimelineEvent['kind'], string> = {
   council: 'Council',
   schism: 'Division',
   reunion: 'Reunion',
+  person: 'Person',
 }
 
 export const MIN_ZOOM = 0.3
@@ -106,6 +130,8 @@ interface TimelineGraphProps {
   enlarge?: NodeEnlargement
   /** The lane-label panel on the left; hiding it slides it out. */
   showLaneLabels?: boolean
+  /** Draw runs of people on one lane as a single group node. */
+  groupPeople?: boolean
 }
 
 export interface NodeEnlargement {
@@ -127,6 +153,8 @@ const LINE_BOOST_ZOOM = 0.45
  * to clear the founding node's outer ring (5px) and its 10% hover bump.
  */
 const FLAG_HEIGHT = 22
+/** How long people take to glide into a group before it replaces them. */
+const PEOPLE_GATHER_MS = 220
 const FLAG_GAP = 10
 /** A grown node (and its flag) stops at least this far below the canvas top. */
 const GROW_TOP_MARGIN = 8
@@ -144,6 +172,8 @@ function useCanvasGestures(
 ) {
   const [isPanning, setIsPanning] = React.useState(false)
   const [renderedZoom, setRenderedZoom] = React.useState(zoom)
+  // Bumped when a pan stops a zoom mid-animation, so the gesture still settles.
+  const [zoomStops, setZoomStops] = React.useState(0)
 
   // The requested zoom and the zoom currently drawn are deliberately separate:
   // wheel notches update the target, while one animation loop eases the canvas
@@ -282,6 +312,18 @@ function useCanvasGestures(
     const el = ref.current
     if (!el) return
 
+    // Ends a zoom that is still easing, at the zoom it has reached: the
+    // remaining animation frames would otherwise re-set the scroll position to
+    // the zoom anchor and fight the user's own pan (the view "jumping").
+    const stopZoom = () => {
+      anchorRef.current = null
+      if (animationRef.current === null) return
+      cancelAnimationFrame(animationRef.current)
+      animationRef.current = null
+      targetZoomRef.current = renderedZoomRef.current
+      setZoomStops((count) => count + 1)
+    }
+
     let active = false
     let originX = 0
     let originY = 0
@@ -318,6 +360,7 @@ function useCanvasGestures(
       // Keep background drags from selecting labels or starting native drags.
       event.preventDefault()
       cancelFlight()
+      stopZoom()
       active = true
       setIsPanning(true)
       originX = event.clientX
@@ -329,8 +372,13 @@ function useCanvasGestures(
     }
 
     const onWheel = (event: WheelEvent) => {
-      // Shift+wheel keeps a conventional sideways scroll available.
-      if (event.shiftKey) return
+      // Shift+wheel keeps a conventional sideways scroll available, and so
+      // does a mostly sideways trackpad swipe. Either way the user is now
+      // moving the view, so stop any zoom still easing towards its anchor.
+      if (event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+        stopZoom()
+        return
+      }
       event.preventDefault()
 
       const current = committedZoomRef.current
@@ -360,7 +408,6 @@ function useCanvasGestures(
       }
 
       targetZoomRef.current = next
-      onZoomChangeRef.current(next)
       animate()
     }
 
@@ -378,7 +425,7 @@ function useCanvasGestures(
     }
   }, [animate, cancelFlight, gutterRef, ref])
 
-  return { isPanning, renderedZoom, anchorRef, flyTo }
+  return { isPanning, renderedZoom, anchorRef, flyTo, targetZoomRef, onZoomChangeRef, zoomStops }
 }
 
 export function TimelineGraph({
@@ -397,13 +444,14 @@ export function TimelineGraph({
   focusRequest = null,
   enlarge,
   showLaneLabels = true,
+  groupPeople: groupPeopleOn = true,
 }: TimelineGraphProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null)
   // The lane-label gutter's width: everything left of the canvas.
   const gutter = showLaneLabels ? LANE_GUTTER : 0
   const gutterRef = React.useRef(gutter)
   gutterRef.current = gutter
-  const { isPanning, renderedZoom, anchorRef, flyTo } = useCanvasGestures(
+  const { isPanning, renderedZoom, anchorRef, flyTo, targetZoomRef, onZoomChangeRef, zoomStops } = useCanvasGestures(
     scrollRef,
     zoom,
     onZoomChange,
@@ -490,11 +538,78 @@ export function TimelineGraph({
     },
     [],
   )
-  const layout = React.useMemo(
-    () => buildLayout(visibleEvents, hidden),
-    [hidden, visibleEvents],
+  // Runs of people on a lane become one group node (see groupPeople).
+  // Whether people are drawn grouped. It trails the setting so toggling can
+  // animate: spreading out starts at once, with members gliding out of their
+  // group (spreadFrom); grouping first glides members into the group's first
+  // member and fades them (gatherTo), then swaps in the group node.
+  const [groupedOn, setGroupedOn] = React.useState(groupPeopleOn)
+  const [prevGroupSetting, setPrevGroupSetting] = React.useState(groupPeopleOn)
+  const [spreadFrom, setSpreadFrom] = React.useState<Map<string, number> | null>(null)
+  const [gatherTo, setGatherTo] = React.useState<Map<string, number> | null>(null)
+  const drawnEvents = React.useMemo(
+    () => (groupedOn ? groupPeople(visibleEvents) : visibleEvents),
+    [groupedOn, visibleEvents],
   )
-  const { nodes, edges, eras, lanes, laneGroups, origins, width, height } =
+  const layout = React.useMemo(
+    () => buildLayout(drawnEvents, hidden),
+    [hidden, drawnEvents],
+  )
+  /** The group node whose list of people is open. */
+  const [openGroup, setOpenGroup] = React.useState<string | null>(null)
+
+  // Set during render (like the gutter toggle) so the new layout and the
+  // transition flag land in the same commit.
+  if (groupPeopleOn !== prevGroupSetting) {
+    setPrevGroupSetting(groupPeopleOn)
+    setOpenGroup(null)
+    if (!groupPeopleOn) {
+      // Each member starts where its group node was.
+      const from = new Map<string, number>()
+      for (const node of layout.nodes) {
+        for (const member of node.event.personGroup?.slice(1) ?? []) {
+          from.set(member.id, node.x)
+        }
+      }
+      setGatherTo(null)
+      setSpreadFrom(from)
+      setGroupedOn(false)
+      setIsLayoutAnimating(true)
+    } else {
+      // Each member glides to the first member of the group it will join.
+      const xOf = new Map(layout.nodes.map((node) => [node.event.id, node.x]))
+      const to = new Map<string, number>()
+      for (const group of groupPeople(visibleEvents)) {
+        const [first, ...rest] = group.personGroup ?? []
+        const firstX = first && xOf.get(first.id)
+        if (firstX === undefined) continue
+        for (const member of rest) {
+          const x = xOf.get(member.id)
+          if (x !== undefined) to.set(member.id, firstX - x)
+        }
+      }
+      setSpreadFrom(null)
+      setGatherTo(to)
+    }
+  }
+  // Grouping, second step: once members have gathered, swap in group nodes.
+  React.useEffect(() => {
+    if (!gatherTo) return
+    const timer = window.setTimeout(() => {
+      startLayoutAnimation()
+      setGroupedOn(true)
+      setGatherTo(null)
+    }, PEOPLE_GATHER_MS)
+    return () => window.clearTimeout(timer)
+  }, [gatherTo, startLayoutAnimation])
+  // Spreading out: let the layout animation finish, then forget the offsets.
+  React.useEffect(() => {
+    if (!spreadFrom) return
+    startLayoutAnimation()
+    const timer = window.setTimeout(() => setSpreadFrom(null), 400)
+    return () => window.clearTimeout(timer)
+  }, [spreadFrom, startLayoutAnimation])
+  const { nodes, edges, affiliations, eras, lanes, laneGroups, origins, width, height } =
     layout
 
   // Latest values for the scroll listener, which outlives individual renders.
@@ -590,11 +705,12 @@ export function TimelineGraph({
     el.scrollLeft += shift * renderedZoom
     if (anchor) anchor.contentX += shift
   }, [anchorRef, autoExpanded, nodes, renderedZoom])
-  // The zoom the canvas is laid out at with CSS `zoom` (sharp text). While a
-  // zoom is animating, the canvas is instead scaled from this by a cheap
-  // transform: re-laying out every element each frame cost ~270 ms per frame
-  // on a slow CPU, against ~9 ms for the transform. It catches up shortly
-  // after the last frame, so text is only resampled (slightly soft) mid-zoom.
+  // The zoom at which the last gesture came to rest. The canvas is always
+  // drawn with a GPU transform of the live zoom and never re-laid out (CSS
+  // zoom re-laid out every element when a gesture ended: a long stall on slow
+  // machines). --z, which enlarged nodes and line weights derive from, follows
+  // this settled value rather than every frame: changing it restyles every
+  // element on the canvas, which was most of the cost of each zoom frame.
   const [settledZoom, setSettledZoom] = React.useState(zoom)
 
   // While the zoom is changing, mark the canvas so node size changes aren't
@@ -605,17 +721,27 @@ export function TimelineGraph({
   React.useLayoutEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    el.dataset.zooming = ''
-    // Settle only once the animation has reached its target. A timer alone
-    // fired between frames on a slow CPU (frames > 120 ms), re-laying out the
-    // canvas mid-gesture, which is exactly the cost the transform avoids.
-    if (Math.abs(renderedZoom - clampZoom(zoom)) > 0.0005) return
+    // Mark the canvas only while the zoom is actually moving. Re-marking it
+    // when the settle itself re-renders (the page receiving the final zoom)
+    // switched transitions off at the very moment enlarged nodes take their
+    // new size, so they snapped instead of easing into it.
+    // Settle only once the animation has reached its target, so slow frames
+    // can't end a gesture early.
+    if (Math.abs(renderedZoom - targetZoomRef.current) > 0.0005) {
+      el.dataset.zooming = ''
+      return
+    }
     const timer = window.setTimeout(() => {
       delete el.dataset.zooming
       setSettledZoom(renderedZoom)
+      // Report the zoom once per gesture, not per wheel notch: every report
+      // re-renders the whole page.
+      if (Math.abs(zoom - targetZoomRef.current) > 0.0001) {
+        onZoomChangeRef.current(targetZoomRef.current)
+      }
     }, 120)
     return () => window.clearTimeout(timer)
-  }, [renderedZoom, zoom])
+  }, [onZoomChangeRef, renderedZoom, targetZoomRef, zoom, zoomStops])
 
   const originIds = React.useMemo(
     () => new Set(origins.map((origin) => origin.eventId)),
@@ -780,7 +906,12 @@ export function TimelineGraph({
     if (!focusRequest || handledFocusRef.current === focusRequest.key) return
     const el = scrollRef.current
     if (!el) return
-    const node = nodes.find((item) => item.event.id === focusRequest.id)
+    // A person drawn inside a group node: go to the group.
+    const node = nodes.find(
+      (item) =>
+        item.event.id === focusRequest.id ||
+        item.event.personGroup?.some((member) => member.id === focusRequest.id),
+    )
     if (!node) {
       const groupId = events.find(
         (event) => event.id === focusRequest.id,
@@ -812,9 +943,12 @@ export function TimelineGraph({
     // zoom (1.5x at 30%); above it, lines are exactly as designed. CSS from
     // --z, so zooming re-renders nothing.
     const boost = `max(1, calc(${LINE_BOOST_ZOOM} / var(--z)))`
-    const boostedPx = (canvasPx: number) => `calc(${canvasPx}px * ${boost})`
-    const boostedDashes = (on: number, off: number) => `${boostedPx(on)} ${boostedPx(off)}`
-    const boostedOpacity = (opacity: number) => `min(1, calc(${opacity} * ${boost}))`
+    // Values may be numbers or CSS variables: each skin (app/themes.css)
+    // sets its own line weights, dash patterns and opacity.
+    const boostedPx = (canvasPx: number | string) => `calc(${canvasPx} * 1px * ${boost})`
+    const boostedDashes = (on: number | string, off: number | string) =>
+      `${boostedPx(on)} ${boostedPx(off)}`
+    const boostedOpacity = (opacity: number | string) => `min(1, calc(${opacity} * ${boost}))`
 
     // Background bands, sorted top to bottom. Each stretches up to meet the
     // band above, so header rows that belong to an untinted parent group
@@ -830,10 +964,10 @@ export function TimelineGraph({
                 other.bottom <= group.bottom,
             ),
         )
-        .map((group) => ({ key: group.id, top: group.top, bottom: group.bottom, color: group.color })),
+        .map((group) => ({ key: group.id, top: group.top, bottom: group.bottom, color: group.color, setApart: group.setApart })),
       ...lanes
         .filter((lane) => !lane.groupId)
-        .map((lane) => ({ key: `lane-${lane.id}`, top: lane.top, bottom: lane.top + LANE_HEIGHT, color: lane.color })),
+        .map((lane) => ({ key: `lane-${lane.id}`, top: lane.top, bottom: lane.top + LANE_HEIGHT, color: lane.color, setApart: false })),
     ].sort((a, b) => a.top - b.top)
     const bands = bandsTopDown.map((band, index) =>
       index > 0 && band.top > bandsTopDown[index - 1].bottom
@@ -850,11 +984,18 @@ export function TimelineGraph({
             {bands.map((band) => (
               <div
                 key={band.key}
-                className="pointer-events-none absolute inset-x-0"
+                className={cn(
+                  'tl-band pointer-events-none absolute inset-x-0',
+                  // Movements outside the Nicene creeds: a plain grey band
+                  // in every skin (see .tl-band-apart in themes.css).
+                  band.setApart && 'tl-band-apart',
+                )}
                 style={{
                   top: band.top,
                   height: band.bottom - band.top,
-                  backgroundColor: `color-mix(in oklab, ${band.color} 5%, transparent)`,
+                  ...(band.setApart
+                    ? {}
+                    : { backgroundColor: `color-mix(in oklab, ${band.color} var(--tl-band-tint), transparent)` }),
                 }}
                 aria-hidden="true"
               />
@@ -928,7 +1069,10 @@ export function TimelineGraph({
                       y2={lane.y}
                       stroke="currentColor"
                       className="text-border"
-                      style={{ strokeWidth: boostedPx(1), strokeDasharray: boostedDashes(2, 8) }}
+                      style={{
+                        strokeWidth: boostedPx(1),
+                        strokeDasharray: boostedDashes('var(--tl-lane-dash)', 'var(--tl-lane-gap)'),
+                      }}
                     />
                     {lane.startX !== null && (
                       <line
@@ -937,9 +1081,11 @@ export function TimelineGraph({
                         x2={width}
                         y2={lane.y}
                         stroke={lane.color}
-                        strokeLinecap="round"
-                        opacity={0.12}
-                        style={{ strokeWidth: boostedPx(6) }}
+                        className="tl-rail"
+                        style={{
+                          strokeWidth: boostedPx('var(--tl-rail-w)'),
+                          opacity: 'var(--tl-rail-opacity)',
+                        }}
                       />
                     )}
                   </g>
@@ -972,18 +1118,46 @@ export function TimelineGraph({
                     d={edge.path}
                     fill="none"
                     stroke={edge.color}
-                    strokeLinecap="round"
+                    className="tl-edge"
                     // Branch edges are thicker and dotted.
                     style={{
                       ...(edge.isBranch
-                        ? { strokeWidth: boostedPx(3), strokeDasharray: boostedDashes(2, 8) }
-                        : { strokeWidth: boostedPx(1.75) }),
-                      // Only the resting 0.42 is boosted; highlighted and
-                      // faded-out edges keep their opacity.
+                        ? {
+                            strokeWidth: boostedPx('var(--tl-branch-w)'),
+                            strokeDasharray: boostedDashes('var(--tl-branch-dash)', 'var(--tl-branch-gap)'),
+                          }
+                        : { strokeWidth: boostedPx('var(--tl-edge-w)') }),
+                      // Only the resting opacity is boosted; highlighted and
+                      // faded-out edges keep theirs.
                       opacity: isFocused
                         ? isActive || focusIds
                           ? 1
-                          : boostedOpacity(0.42)
+                          : boostedOpacity('var(--tl-edge-opacity)')
+                        : 0.08,
+                    }}
+                  />
+                )
+              })}
+
+              {/* Dashed lines from the larger church a person belonged to
+                  (or left) over to them on another lane. */}
+              {affiliations.map((link) => {
+                const isActive = selectedId === link.personId
+                const isFocused = !focusIds || focusIds.has(link.personId)
+                return (
+                  <path
+                    key={link.id}
+                    d={link.path}
+                    fill="none"
+                    stroke={link.color}
+                    className="tl-edge tl-affiliation"
+                    style={{
+                      strokeWidth: boostedPx('var(--tl-edge-w)'),
+                      strokeDasharray: boostedDashes('3', '4'),
+                      opacity: isFocused
+                        ? isActive
+                          ? 1
+                          : `calc(${boostedOpacity('var(--tl-edge-opacity)')} * 0.8)`
                         : 0.08,
                     }}
                   />
@@ -1016,15 +1190,43 @@ export function TimelineGraph({
                   onClick={() => expandGroup(group.id)}
                   aria-label={label}
                   title={label}
-                  className="absolute z-20 flex size-6 -translate-1/2 cursor-pointer items-center justify-center rounded-full border border-dashed border-primary/70 bg-card text-primary shadow-sm transition-colors hover:border-solid hover:bg-primary/15 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-75"
-                  style={{
-                    left: left + span / 2,
-                    top: lane.y,
-                    // Shrinks less than the canvas when zoomed out, so it stays findable.
-                    scale: 'max(1, pow(calc(1 / var(--z)), 0.6))',
-                  }}
+                  className="group/plus absolute z-20 block cursor-pointer rounded-full p-0 text-primary drop-shadow-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none motion-safe:animate-in motion-safe:fade-in-0"
+                  style={
+                    {
+                      left: left + span / 2,
+                      top: lane.y,
+                      // Shrinks less than the canvas when zoomed out, so it
+                      // stays findable. Sized in layout rather than with a
+                      // scale transform: a transform enlarges an already
+                      // shrunk raster, which is what made it blurry.
+                      '--plus': 'max(1, pow(calc(1 / var(--z)), 0.6))',
+                      width: 'calc(24px * var(--plus))',
+                      height: 'calc(24px * var(--plus))',
+                      marginLeft: 'calc(-12px * var(--plus))',
+                      marginTop: 'calc(-12px * var(--plus))',
+                    } as React.CSSProperties
+                  }
                 >
-                  <PlusIcon className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
+                  {/* Circle and plus share one drawing, so the plus is always
+                      centred whatever the zoom does to pixel rounding. */}
+                  <svg viewBox="0 0 24 24" className="block size-full" aria-hidden="true">
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="11"
+                      pathLength={48}
+                      strokeDasharray="2.5 1.5"
+                      className="fill-card stroke-current opacity-90 transition-[fill] group-hover/plus:fill-[color-mix(in_oklab,var(--primary)_15%,var(--card))] group-hover/plus:[stroke-dasharray:none]"
+                      strokeWidth={1.25}
+                    />
+                    <path
+                      d="M12 8v8M8 12h8"
+                      className="stroke-current"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      fill="none"
+                    />
+                  </svg>
                 </button>
               )
             })}
@@ -1033,10 +1235,17 @@ export function TimelineGraph({
                 "Began here" flag inside it, so anything that scales the node
                 (hover, focus, zoomed-out enlarging) scales the flag with it. */}
             {nodes.map(({ event, x, y, color }) => {
-              const isSelected = selectedId === event.id
+              const members = event.personGroup
+              const isSelected = members
+                ? members.some((member) => member.id === selectedId)
+                : selectedId === event.id
               const origin = showOrigins ? originByEvent.get(event.id) : undefined
               const isOrigin = Boolean(origin)
-              const isFaded = focusIds !== null && !focusIds.has(event.id)
+              const isFaded =
+                focusIds !== null &&
+                !(members ?? [event]).some((member) => focusIds.has(member.id))
+              const onNodeClick = () =>
+                members ? setOpenGroup(event.id) : selectEvent(event)
               const enlarged = isEnlarged(event)
               const scaleNode = enlarged && enlargeMode === 'node'
               const scaleText = enlarged && enlargeMode === 'text'
@@ -1060,9 +1269,15 @@ export function TimelineGraph({
                 '--rest-origin': growOrigin('var(--rest, 1)'),
                 '--hover-origin': growOrigin(hoverScale),
               } as React.CSSProperties
+              // Spreading out: start at the old group node and glide out.
+              // Grouping: glide into the group's first member and fade.
+              const spreadX = spreadFrom?.get(event.id)
+              const gatherX = gatherTo?.get(event.id)
               return (
                 <div
-                  key={event.id}
+                  // A group node keeps its first member's key, so toggling
+                  // grouping slides that one element rather than replacing it.
+                  key={members ? members[0].id : event.id}
                   className={cn(
                     // The box itself never takes the pointer: once scaled up it
                     // would cover neighbouring nodes. Only the circle, edit
@@ -1087,18 +1302,26 @@ export function TimelineGraph({
                     event.groupId &&
                       collapsingGroups.has(event.groupId) &&
                       'detail-node-collapse',
+                    spreadX !== undefined && 'person-spread',
+                    gatherX !== undefined && 'person-gather',
                   )}
                   style={{
                     left: x - COL_WIDTH / 2,
                     top: y - NODE_SIZE / 2,
                     width: COL_WIDTH,
                     ...nodeVars,
-                  }}
+                    ...(spreadX !== undefined
+                      ? { '--spread-from': `${spreadX - x}px` }
+                      : {}),
+                    ...(gatherX !== undefined
+                      ? { '--gather-to': `${gatherX}px` }
+                      : {}),
+                  } as React.CSSProperties}
                 >
                   {origin && (
                     <div
                       className={cn(
-                        'pointer-events-none absolute flex items-center gap-1 rounded-full border bg-card px-2 py-0.5 text-[10px] leading-4 whitespace-nowrap shadow-sm',
+                        'tl-flag pointer-events-none absolute flex items-center gap-1 rounded-full border bg-card px-2 py-0.5 text-[10px] leading-4 whitespace-nowrap shadow-sm',
                         // Centred over the circle, except where that would run
                         // off the start of the canvas.
                         x >= COL_WIDTH && '-translate-x-1/2',
@@ -1107,7 +1330,7 @@ export function TimelineGraph({
                         // instead, so this drops to avoid scaling it twice.
                         enlargeOrigins &&
                           enlargeMode === 'text' &&
-                          '[scale:var(--grow-auto)] group-has-[.node-hit:hover]/node:[scale:none] group-has-[:focus-visible]/node:[scale:none]',
+                          '[scale:var(--grow-auto)] transition-[scale] duration-300 ease-out [[data-zooming]_&]:transition-none group-has-[.node-hit:hover]/node:[scale:none] group-has-[:focus-visible]/node:[scale:none]',
                       )}
                       style={{
                         // Just above the circle (whose top is this box's top).
@@ -1115,7 +1338,8 @@ export function TimelineGraph({
                         left: x >= COL_WIDTH ? '50%' : COL_WIDTH / 2 - NODE_SIZE / 2,
                         transformOrigin: x >= COL_WIDTH ? 'bottom center' : 'bottom left',
                         borderColor: `color-mix(in oklab, ${origin.color} 55%, transparent)`,
-                      }}
+                        '--flag-color': origin.color,
+                      } as React.CSSProperties}
                       aria-hidden="true"
                     >
                       <FlagIcon
@@ -1129,40 +1353,154 @@ export function TimelineGraph({
                     </div>
                   )}
                   <div className="relative">
+                    {members ? (
+                    <Popover
+                      open={openGroup === event.id}
+                      onOpenChange={(open) => setOpenGroup(open ? event.id : null)}
+                    >
+                      <PopoverTrigger
+                        render={
+                          <button
+                            type="button"
+                            aria-label={`${event.title}, ${members.length} people, ${event.dateLabel}: ${event.summary}`}
+                            className={cn(
+                              // Several people in a row on this lane, drawn as
+                              // one group portrait; opens a list of them.
+                              'tl-person node-hit pointer-events-auto relative block cursor-default transition-transform duration-150 outline-none hover:scale-110',
+                              isSelected && 'scale-110',
+                              flashId === event.id && 'scale-125',
+                            )}
+                            data-selected={isSelected || undefined}
+                            data-flash={flashId === event.id || undefined}
+                            style={{
+                              width: PERSON_GROUP_WIDTH,
+                              height: NODE_SIZE,
+                              '--node-color': color,
+                            } as React.CSSProperties}
+                          />
+                        }
+                      >
+                        <PersonGroupFrame />
+                        <span
+                          className="absolute -right-1.5 -bottom-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-card px-1 text-[10px] leading-none font-semibold text-card tabular-nums"
+                          style={{ backgroundColor: color }}
+                        >
+                          {members.length}
+                        </span>
+                      </PopoverTrigger>
+                      <PopoverContent side="bottom" className="w-80 gap-1 p-1.5">
+                        <PopoverHeader className="px-2 pt-1.5 pb-1">
+                          <PopoverTitle className="font-serif text-base">
+                            {event.title}
+                          </PopoverTitle>
+                          <PopoverDescription className="text-xs">
+                            {members.length} people ·{' '}
+                            {TRADITION_MAP[event.tradition]?.name}. Turn off
+                            &ldquo;Group people&rdquo; in Filters to draw each one.
+                          </PopoverDescription>
+                        </PopoverHeader>
+                        <ul className="flex max-h-80 flex-col overflow-y-auto">
+                          {members.map((member) => (
+                            <li key={member.id}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenGroup(null)
+                                  selectEvent(member)
+                                }}
+                                className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left outline-none hover:bg-accent focus-visible:bg-accent"
+                              >
+                                <PersonPortrait
+                                  icon={member.icon}
+                                  title={member.title}
+                                  color={color}
+                                  className="h-8 w-[26px]"
+                                />
+                                <span className="flex min-w-0 flex-col">
+                                  <span className="truncate font-serif text-sm text-foreground">
+                                    {member.title}
+                                  </span>
+                                  <span className="truncate text-xs text-muted-foreground">
+                                    <DateText value={member.dateLabel} /> · {member.person?.role}
+                                  </span>
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </PopoverContent>
+                    </Popover>
+                    ) : event.person ? (
+                    <button
+                      type="button"
+                      onClick={() => selectEvent(event)}
+                      aria-label={`${event.title}, ${event.person.role}, ${event.dateLabel}`}
+                      className={cn(
+                        // A person: a bust in an arched frame (see PersonFrame),
+                        // styled per skin by .tl-person in app/themes.css.
+                        'tl-person node-hit pointer-events-auto relative block cursor-default transition-transform duration-150 outline-none hover:scale-110',
+                        isSelected && 'scale-110',
+                        flashId === event.id && 'scale-125',
+                      )}
+                      data-selected={isSelected || undefined}
+                      data-flash={flashId === event.id || undefined}
+                      style={{
+                        width: PERSON_NODE_WIDTH,
+                        height: NODE_SIZE,
+                        '--node-color': color,
+                      } as React.CSSProperties}
+                    >
+                      <PersonFrame icon={event.icon} title={event.title} />
+                      {/* Drawn on another branch's lane: a pip in the colour
+                          of the branch the person belongs to. */}
+                      {parentChurchOf(event) && (
+                          <span
+                            className="absolute -right-1 -bottom-0.5 size-3 rounded-full border-2 border-card"
+                            style={{ backgroundColor: traditionColor(parentChurchOf(event)!) }}
+                            title={CHURCH_TAG[parentChurchOf(event)!]}
+                          />
+                        )}
+                    </button>
+                    ) : (
                     <button
                       type="button"
                       onClick={() => selectEvent(event)}
                       aria-label={`${event.title}, ${event.dateLabel}`}
                       className={cn(
-                        'node-hit group pointer-events-auto relative flex cursor-default items-center justify-center rounded-full border-2 bg-card text-foreground transition-transform duration-150 outline-none hover:scale-110 focus-visible:ring-3 focus-visible:ring-ring/50',
+                        // Colours, rim and state rings come from the skin
+                        // (.tl-node in app/themes.css).
+                        'tl-node node-hit group pointer-events-auto relative flex cursor-default items-center justify-center rounded-full border-2 bg-card text-foreground transition-transform duration-150 outline-none hover:scale-110',
                         event.presentDay && 'border-[3px] bg-primary/10',
                         isSelected && 'scale-110',
                         flashId === event.id && 'scale-125',
                       )}
+                      data-origin={isOrigin || undefined}
+                      data-present={event.presentDay || undefined}
+                      data-selected={isSelected || undefined}
+                      data-flash={flashId === event.id || undefined}
                       style={{
                         width: NODE_SIZE,
                         height: NODE_SIZE,
-                        borderColor: color,
-                        boxShadow: flashId === event.id
-                          ? `0 0 0 6px color-mix(in oklab, ${color} 45%, transparent), 0 0 24px 6px color-mix(in oklab, ${color} 35%, transparent)`
-                          : isSelected
-                          ? `0 0 0 5px color-mix(in oklab, ${color} 22%, transparent)`
-                          : event.presentDay
-                            ? `0 0 0 4px color-mix(in oklab, ${color} 16%, transparent)`
-                            : isOrigin
-                              ? `0 0 0 3px var(--card), 0 0 0 5px ${color}`
-                              : undefined,
-                      }}
+                        '--node-color': color,
+                      } as React.CSSProperties}
                     >
                       {event.icon.type === 'image' ? (
                         <span className="size-full overflow-hidden rounded-full p-0.5">
                           <EventIcon icon={event.icon} title={event.title} />
                         </span>
                       ) : (
+                        // The icon fills the whole circle, inset to a 20px
+                        // glyph by padding, rather than being a 20px box
+                        // centred in it. Settled zooms lay the canvas out
+                        // with CSS zoom, where the browser snaps each box to
+                        // whole pixels on its own: a separate icon box could
+                        // land a pixel off the circle's centre, an error that
+                        // enlarging and hovering then magnify. Sharing the
+                        // circle's box keeps them snapped together.
                         <EventIcon
                           icon={event.icon}
                           title={event.title}
-                          className="size-5"
+                          className="absolute inset-0 size-full p-[calc(50%-10px)]"
                         />
                       )}
                       {event.kind === 'schism' && (
@@ -1172,8 +1510,9 @@ export function TimelineGraph({
                         />
                       )}
                     </button>
+                    )}
 
-                    {isAdmin && !event.presentDay && (
+                    {isAdmin && !event.presentDay && !members && (
                       <button
                         type="button"
                         onClick={() => editEvent(event)}
@@ -1187,7 +1526,7 @@ export function TimelineGraph({
 
                   <button
                     type="button"
-                    onClick={() => selectEvent(event)}
+                    onClick={onNodeClick}
                     className={cn(
                       'pointer-events-auto mt-2 flex w-full cursor-default flex-col items-center gap-0.5 px-2 text-center outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                       // While the node is enlarged by hover, its (much bigger)
@@ -1198,7 +1537,7 @@ export function TimelineGraph({
                       // Text-only growth; on hover the whole node grows instead,
                       // so drop this to avoid scaling the text twice.
                       scaleText &&
-                        'origin-top [scale:var(--grow-auto)] group-has-[.node-hit:hover]/node:[scale:none] group-has-[:focus-visible]/node:[scale:none]',
+                        'origin-top [scale:var(--grow-auto)] transition-[scale] duration-300 ease-out [[data-zooming]_&]:transition-none group-has-[.node-hit:hover]/node:[scale:none] group-has-[:focus-visible]/node:[scale:none]',
                       // A hovered node far zoomed out also gets a readable backing.
                       zoomedOut &&
                         'group-has-[.node-hit:hover]/node:rounded-md group-has-[.node-hit:hover]/node:bg-card/90',
@@ -1209,7 +1548,7 @@ export function TimelineGraph({
                     </span>
                     <span
                       className={cn(
-                        'font-serif text-[13px] leading-snug text-pretty text-foreground/90',
+                        'tl-title font-serif text-[13px] leading-snug text-pretty text-foreground/90',
                         compactLabels && 'line-clamp-2',
                         isSelected && 'text-foreground',
                       )}
@@ -1219,7 +1558,11 @@ export function TimelineGraph({
                     </span>
                     {!compactLabels && (
                       <span className="label-caps text-[9px] text-muted-foreground/70">
-                        {event.presentDay ? 'Today' : KIND_LABEL[event.kind]}
+                        {event.presentDay
+                          ? 'Today'
+                          : members
+                            ? `${members.length} people`
+                            : (event.person?.role ?? KIND_LABEL[event.kind])}
                       </span>
                     )}
                   </button>
@@ -1232,9 +1575,13 @@ export function TimelineGraph({
     events,
     expandGroup,
     expandedGroups,
+    openGroup,
+    spreadFrom,
+    gatherTo,
     collapsingGroups,
     compactLabels,
     edges,
+    affiliations,
     editEvent,
     enlargeKinds,
     enlargeMode,
@@ -1263,7 +1610,7 @@ export function TimelineGraph({
     <div
       ref={scrollRef}
       className={cn(
-        'no-scrollbar relative h-full cursor-grab overflow-auto rounded-xl border border-border bg-card/40',
+        'tl-canvas no-scrollbar relative h-full cursor-grab overflow-auto rounded-xl border border-border',
         isPanning && 'cursor-grabbing select-none [&_*]:cursor-grabbing',
       )}
     >
@@ -1308,7 +1655,7 @@ export function TimelineGraph({
               }}
               title={`${era.label}, ${era.dates}`}
             >
-              <span className="label-caps shrink-0 text-[10px] whitespace-nowrap text-muted-foreground">
+              <span className="tl-era-label label-caps shrink-0 text-[10px] whitespace-nowrap text-muted-foreground">
                 {era.label}
               </span>
               <span className="text-[10px] whitespace-nowrap text-muted-foreground/70 tabular-nums">
@@ -1453,6 +1800,17 @@ export function TimelineGraph({
               const bracketTop = headerTop + GROUP_HEADER_TEXT
               return (
                 <React.Fragment key={group.id}>
+                  {/* The canvas band, continued behind the lane labels. */}
+                  {group.setApart && (
+                    <div
+                      className="tl-band-apart pointer-events-none absolute inset-x-0"
+                      style={{
+                        top: headerTop - 6,
+                        height: Math.max(0, group.bottom * renderedZoom - (headerTop - 6)),
+                      }}
+                      aria-hidden="true"
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => jumpToLanes(group.lanes)}
@@ -1524,35 +1882,32 @@ export function TimelineGraph({
           </div>
           </div>
 
-          {/* Geometry and nodes scale together. CSS zoom (not a transform)
-              so the browser lays text out again at its on-screen size and it
-              stays sharp; a scale transform resamples it and blurs when zoomed
-              out. zoom also scales the element's own offsets, so the gutter
-              offset sits on an unzoomed wrapper. */}
+          {/* Geometry and nodes scale together with one GPU transform, so
+              zooming never re-lays out the canvas. While a gesture runs the
+              canvas is a cached bitmap (will-change, see globals.css) and may
+              look soft; when it settles the browser repaints it at the new
+              scale. The wrapper is sized to the scaled canvas and clips the
+              unscaled layout box, which would otherwise stretch the
+              scrollable area. */}
           {/* isolate: a stacking context of its own, so nothing on the canvas
               (enlarged flags, hovered nodes) can draw over the label gutter. */}
           <div
             className={cn(
-              'absolute top-0 isolate',
+              'absolute top-0 isolate overflow-clip',
               isLayoutAnimating && 'transition-[left] duration-[350ms] ease-in-out',
             )}
-            style={{ left: gutter }}
+            style={{ left: gutter, width: scaledWidth, height: scaledHeight }}
           >
           <div
-            className="relative"
+            className="tl-paper relative"
             style={{
               width,
               height,
-              zoom: settledZoom,
-              // Bridges from the laid-out zoom to the drawn zoom mid-animation.
-              transform:
-                renderedZoom === settledZoom
-                  ? undefined
-                  : `scale(${renderedZoom / settledZoom})`,
+              transform: `scale(${renderedZoom})`,
               transformOrigin: '0 0',
-              // The drawn zoom, and the enlarged-node scale derived from it
+              // The settled zoom, and the enlarged-node scale derived from it
               // (zoomOutScale in CSS: max(1, (1 / zoom) ^ strength)).
-              '--z': String(renderedZoom),
+              '--z': String(settledZoom),
               '--grow-auto': `max(1, pow(calc(1 / var(--z)), ${enlargeStrength}))`,
             } as React.CSSProperties}
           >

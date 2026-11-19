@@ -82,6 +82,8 @@ export async function POST(request: Request) {
         key_figures: (event.keyFigures as string[] | undefined) ?? [],
         links: (event.links as Json | undefined) ?? [],
         group_id: (event.groupId as string | undefined) ?? null,
+        person: (event.person as Json | undefined) ?? null,
+        branch_from: (event.branchFrom as string | undefined) ?? null,
       }
       const parents = Array.isArray(event.parents) ? event.parents.filter((value): value is string => typeof value === 'string') : []
       await pool.query('select public.save_timeline_event($1, $2::jsonb, $3::text[])', [userId, JSON.stringify(value), parents])

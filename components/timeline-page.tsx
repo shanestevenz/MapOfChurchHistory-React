@@ -11,7 +11,9 @@ import { AdminBar } from '@/components/admin-bar'
 import { EventDetailPanel } from '@/components/event-detail-panel'
 import { EventDialog } from '@/components/event-dialog'
 import { EventEditor } from '@/components/event-editor'
+import { SiteDisclaimer } from '@/components/site-disclaimer'
 import { SuggestEditDialog } from '@/components/suggest-edit-dialog'
+import { ThemePicker } from '@/components/theme-picker'
 import { SuggestionQueue } from '@/components/suggestion-queue'
 import { TimelineFiltersPanel } from '@/components/timeline-filters-panel'
 import { TimelineGraph } from '@/components/timeline-graph'
@@ -134,6 +136,10 @@ export function TimelinePage() {
       ),
       hiddenKinds: current.hiddenKinds.filter((kind) => kind !== event.kind),
       hiddenEras: current.hiddenEras.filter((label) => label !== era?.label),
+      showPeople: current.showPeople || event.kind === 'person',
+      hiddenPersonTypes: current.hiddenPersonTypes.filter(
+        (type) => type !== event.person?.type,
+      ),
       showPresentDay: current.showPresentDay || Boolean(event.presentDay),
     }))
     setSelected(event)
@@ -190,15 +196,20 @@ export function TimelinePage() {
             height={36}
             className="size-9 shrink-0 object-contain"
           />
-          {/* Baseline-align the title and its meta, then optically centre the pair against the mark. */}
-          <div className="flex min-w-0 items-baseline gap-3">
-            <h1 className="truncate font-serif text-2xl leading-none">
-              Map of Church History
+          {/* Wordmark: the name over its tagline, stacked to fit the 56px bar. */}
+          <div className="flex min-w-0 flex-col justify-center gap-1">
+            <h1 className="truncate font-serif text-[1.45rem] leading-none font-medium tracking-[0.01em]">
+              Ecclesio<span className="text-primary">Graph</span>
             </h1>
-            <span className="label-caps hidden text-[10px] whitespace-nowrap text-muted-foreground sm:inline">
-              AD {span.first}—Present · {events.length} historical events
-            </span>
+            <p className="label-caps truncate text-[9.5px] leading-none text-muted-foreground">
+              A Timeline of Church History
+            </p>
           </div>
+          <Separator orientation="vertical" className="hidden h-7 lg:block" />
+          <span className="label-caps hidden text-[10px] whitespace-nowrap text-muted-foreground lg:inline">
+            AD {span.first}—Present · {events.length} events
+          </span>
+          <SiteDisclaimer />
         </div>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
@@ -207,6 +218,7 @@ export function TimelinePage() {
             Wheel to zoom · left-drag to pan
           </p>
           <Separator orientation="vertical" className="hidden h-6 2xl:block" />
+          <ThemePicker />
           <Button
             variant={filtersOpen ? 'secondary' : 'ghost'}
             size="sm"
@@ -281,6 +293,7 @@ export function TimelinePage() {
             showOrigins={filters.showOrigins}
             compactLabels={filters.compactLabels}
             showLaneLabels={filters.showLaneLabels}
+            groupPeople={filters.groupPeople}
             enlarge={{
               origins: filters.enlargeOrigins,
               kinds: filters.enlargeKinds,
@@ -341,6 +354,7 @@ export function TimelinePage() {
 
       <EventDialog
         event={selected}
+        events={displayedEvents}
         open={dialogOpen}
         isAdmin={isAdmin}
         onOpenChange={setDialogOpen}
@@ -351,6 +365,11 @@ export function TimelinePage() {
         }}
         onEdit={(event) => openEditor(event)}
         onSuggestEdit={openSuggest}
+        onOpenPerson={(person) => {
+          // Reveal and fly to the person, keeping their quick card open.
+          jumpTo(person)
+          setDialogOpen(true)
+        }}
       />
 
       <EventDetailPanel
@@ -358,7 +377,8 @@ export function TimelinePage() {
         events={displayedEvents}
         open={panelOpen}
         onOpenChange={setPanelOpen}
-        onNavigate={(event) => setSelected(event)}
+        // Follow the link on the map too, revealing it if filtered out.
+        onNavigate={jumpTo}
         onSuggestEdit={openSuggest}
       />
 

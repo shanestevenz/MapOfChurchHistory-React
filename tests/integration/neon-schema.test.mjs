@@ -1,7 +1,20 @@
 import assert from 'node:assert/strict'
 import { randomUUID, createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import pg from 'pg'
+
+/**
+ * How many lanes the seed creates, read from the same db/seed.sql the database
+ * was seeded with, so adding a lane doesn't break this test.
+ */
+function seededTraditionCount() {
+  const seed = readFileSync(new URL('../../db/seed.sql', import.meta.url), 'utf8')
+  const start = seed.indexOf('insert into public.traditions')
+  const end = seed.indexOf('on conflict', start)
+  assert.ok(start >= 0 && end > start, 'db/seed.sql inserts the traditions')
+  return seed.slice(start, end).split('\n').filter((line) => line.startsWith("  ('")).length
+}
 
 const connectionString = process.env.TEST_DATABASE_URL
 
@@ -60,7 +73,7 @@ test('Neon Postgres schema, moderation, and retention integration', async (t) =>
       const { rows: parents } = await client.query('select count(*)::integer as count from public.event_parents')
       const pentecost = await client.query("select id from public.timeline_events where id = 'pentecost'")
 
-      assert.equal(traditions[0].count, 17)
+      assert.equal(traditions[0].count, seededTraditionCount())
       assert.ok(events[0].count >= 50)
       assert.ok(groups[0].count > 0)
       assert.ok(parents[0].count > 0)

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="48" viewBox="0 0 120 48">
+  <defs>
+    <linearGradient id="sheet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#efe0bb"/>
+      <stop offset="0.5" stop-color="#f6ead0"/>
+      <stop offset="1" stop-color="#e6d3a6"/>
+    </linearGradient>
+    <linearGradient id="roll" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b89a63"/>
+      <stop offset="0.35" stop-color="#f3e4bf"/>
+      <stop offset="0.7" stop-color="#d9c08c"/>
+      <stop offset="1" stop-color="#a5864f"/>
+    </linearGradient>
+  </defs>
+  <!-- the sheet, with slightly wavy top and bottom edges -->
+  <path d="M10 6 Q35 4.5 60 6 T110 6 L110 42 Q85 43.5 60 42 T10 42 Z" fill="url(#sheet)" stroke="#8a6a3c" stroke-opacity="0.55" stroke-width="0.8"/>
+  <!-- left roll -->
+  <rect x="3" y="2" width="12" height="44" rx="6" fill="url(#roll)" stroke="#7a5a2e" stroke-opacity="0.7" stroke-width="0.8"/>
+  <ellipse cx="9" cy="5" rx="5" ry="2.2" fill="#c9ab72" stroke="#7a5a2e" stroke-opacity="0.6" stroke-width="0.6"/>
+  <path d="M9 5 m-2.6 0 a2.6 1.1 0 1 0 5.2 0 a1.6 0.7 0 1 0 -3.2 0" fill="none" stroke="#7a5a2e" stroke-opacity="0.6" stroke-width="0.5"/>
+  <!-- right roll -->
+  <rect x="105" y="2" width="12" height="44" rx="6" fill="url(#roll)" stroke="#7a5a2e" stroke-opacity="0.7" stroke-width="0.8"/>
+  <ellipse cx="111" cy="43" rx="5" ry="2.2" fill="#c9ab72" stroke="#7a5a2e" stroke-opacity="0.6" stroke-width="0.6"/>
+  <path d="M111 43 m-2.6 0 a2.6 1.1 0 1 0 5.2 0 a1.6 0.7 0 1 0 -3.2 0" fill="none" stroke="#7a5a2e" stroke-opacity="0.6" stroke-width="0.5"/>
+</svg>

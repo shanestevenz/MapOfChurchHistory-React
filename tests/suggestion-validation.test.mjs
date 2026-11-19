@@ -69,3 +69,17 @@ test('requires CAPTCHA only when configured', () => {
 test('documents the endpoint body limit', () => {
   assert.equal(MAX_SUGGESTION_BODY_BYTES, 65_536)
 })
+
+test('a person’s group can be suggested, or cleared with an empty value', () => {
+  const withGroup = (after) => ({ ...valid(), changes: [{ field: 'personGroup', after }] })
+  const set = validateSuggestionSubmission(withGroup(' Early Church Fathers '), { requireTurnstile: true })
+  assert.equal(set.ok, true)
+  if (set.ok) assert.deepEqual(set.value.changes, [{ field: 'personGroup', after: 'Early Church Fathers' }])
+  assert.equal(validateSuggestionSubmission(withGroup(''), { requireTurnstile: true }).ok, true)
+  assert.equal(validateSuggestionSubmission(withGroup('x'.repeat(101)), { requireTurnstile: true }).ok, false)
+  // Other fields still may not be emptied.
+  assert.equal(
+    validateSuggestionSubmission({ ...valid(), changes: [{ field: 'title', after: ' ' }] }, { requireTurnstile: true }).ok,
+    false,
+  )
+})

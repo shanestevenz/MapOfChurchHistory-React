@@ -11,6 +11,9 @@ import {
 } from 'lucide-react'
 import { DateText } from '@/components/date-text'
 import { EventIcon } from '@/components/event-icon'
+import { KeyFigureBadges } from '@/components/key-figure-badges'
+import { PersonPortrait } from '@/components/person-node'
+import { PersonPersecution, PersonTags } from '@/components/person-tags'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -22,9 +25,10 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { TRADITION_MAP } from '@/lib/timeline-data'
-import { traditionColor } from '@/lib/timeline-layout'
-import type { PresentDayProfile, TimelineEvent } from '@/lib/timeline-types'
+import { branchStart, traditionColor } from '@/lib/timeline-layout'
+import type { PresentDayProfile, TimelineEvent, TraditionId } from '@/lib/timeline-types'
 import { safeHttpsUrl } from '@/lib/safe-url'
+import { eventsFeaturing } from '@/lib/timeline-people'
 
 interface EventDetailPanelProps {
   event: TimelineEvent | null
@@ -43,13 +47,35 @@ export function EventDetailPanel({
   onNavigate,
   onSuggestEdit,
 }: EventDetailPanelProps) {
-  const parents = event
+  // A branch line drawn from a parent's rail at the founding date (rather
+  // than from the parent's node) connects to that whole branch, not to
+  // whichever event happens to come last on it: list the branch instead, and
+  // leave the event's own "Leads to" out of it.
+  const fromRail = (child: TimelineEvent, parent: TimelineEvent) =>
+    parent.tradition !== child.tradition && branchStart(child, parent) === 'date'
+  const parentEvents = event
     ? events.filter((candidate) => event.parents.includes(candidate.id))
     : []
+  const parents = event
+    ? parentEvents.filter((parent) => !fromRail(event, parent))
+    : []
+  const parentBranches = event
+    ? [
+        ...new Set(
+          parentEvents
+            .filter((parent) => fromRail(event, parent))
+            .map((parent) => parent.tradition),
+        ),
+      ]
+    : []
   const children = event
-    ? events.filter((candidate) => candidate.parents.includes(event.id))
+    ? events.filter(
+        (candidate) =>
+          candidate.parents.includes(event.id) && !fromRail(candidate, event),
+      )
     : []
   const color = event ? traditionColor(event.tradition) : undefined
+  const featuredIn = event?.person ? eventsFeaturing(event, events) : []
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -61,12 +87,21 @@ export function EventDetailPanel({
           <>
             <SheetHeader className="gap-3 border-b border-border p-6">
               <div className="flex items-start gap-3">
-                <span
-                  className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-card"
-                  style={{ borderColor: color }}
-                >
-                  <EventIcon icon={event.icon} title={event.title} />
-                </span>
+                {event.person ? (
+                  <PersonPortrait
+                    icon={event.icon}
+                    title={event.title}
+                    color={color!}
+                    className="h-14 w-11"
+                  />
+                ) : (
+                  <span
+                    className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-card"
+                    style={{ borderColor: color }}
+                  >
+                    <EventIcon icon={event.icon} title={event.title} />
+                  </span>
+                )}
                 <div className="flex flex-col gap-1 pr-8">
                   <span className="label-caps text-[10px]" style={{ color }}>
                     <DateText value={event.dateLabel} />
@@ -74,24 +109,34 @@ export function EventDetailPanel({
                   <SheetTitle className="font-serif text-2xl leading-tight text-balance">
                     {event.title}
                   </SheetTitle>
+                  {event.person && (
+                    <span className="text-sm text-muted-foreground">
+                      {event.person.role}
+                    </span>
+                  )}
                 </div>
               </div>
               <SheetDescription className="leading-relaxed">
                 {event.summary}
               </SheetDescription>
               <div className="flex flex-wrap gap-1.5">
-                <Badge variant="secondary">
-                  {TRADITION_MAP[event.tradition]?.name ?? event.tradition}
-                </Badge>
-                {event.keyFigures?.map((figure) => (
-                  <Badge key={figure} variant="outline">
-                    {figure}
+                {event.person ? (
+                  <PersonTags event={event} />
+                ) : (
+                  <Badge variant="secondary">
+                    {TRADITION_MAP[event.tradition]?.name ?? event.tradition}
                   </Badge>
-                ))}
+                )}
+                <KeyFigureBadges
+                  figures={event.keyFigures ?? []}
+                  events={events}
+                  onOpenPerson={onNavigate}
+                />
               </div>
             </SheetHeader>
 
             <div className="flex flex-col gap-6 p-6">
+              <PersonPersecution event={event} />
               <div className="flex flex-col gap-4">
                 {event.detail
                   .split('\n\n')
@@ -110,7 +155,29 @@ export function EventDetailPanel({
                 <PresentDayDetails profile={event.presentDay} />
               )}
 
-              {(parents.length > 0 || children.length > 0) && (
+              {featuredIn.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="flex flex-col gap-3">
+                    <h3 className="label-caps flex items-center gap-2 text-[10px] text-muted-foreground">
+                      <UsersIcon className="size-3.5" />
+                      Key figure in
+                    </h3>
+                    <div className="flex flex-col gap-2">
+                      {featuredIn.map((featured) => (
+                        <ConnectionRow
+                          key={featured.id}
+                          label="Event"
+                          event={featured}
+                          onNavigate={onNavigate}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(parents.length > 0 || parentBranches.length > 0 || children.length > 0) && (
                 <>
                   <Separator />
                   <div className="flex flex-col gap-3">
@@ -119,6 +186,9 @@ export function EventDetailPanel({
                       Connected on the timeline
                     </h3>
                     <div className="flex flex-col gap-2">
+                      {parentBranches.map((branch) => (
+                        <BranchRow key={branch} label="Grows out of" branch={branch} />
+                      ))}
                       {parents.map((parent) => (
                         <ConnectionRow
                           key={parent.id}
@@ -253,6 +323,29 @@ function PresentDayDetails({ profile }: { profile: PresentDayProfile }) {
   )
 }
 
+/** A connection to a whole branch (its rail), not to one of its events. */
+function BranchRow({ label, branch }: { label: string; branch: TraditionId }) {
+  const color = traditionColor(branch)
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-dashed px-3 py-2.5">
+      <span
+        className="flex size-8 shrink-0 items-center justify-center rounded-full border"
+        style={{ borderColor: color, color }}
+      >
+        <GitBranchIcon className="size-4" />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="label-caps text-[9px] text-muted-foreground">
+          {label} · Branch
+        </span>
+        <span className="truncate font-serif text-sm">
+          {TRADITION_MAP[branch]?.name ?? branch}
+        </span>
+      </span>
+    </div>
+  )
+}
+
 function ConnectionRow({
   label,
   event,
@@ -268,12 +361,21 @@ function ConnectionRow({
       onClick={() => onNavigate(event)}
       className="h-auto justify-start gap-3 px-3 py-2.5 text-left"
     >
-      <span
-        className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border"
-        style={{ borderColor: traditionColor(event.tradition) }}
-      >
-        <EventIcon icon={event.icon} title={event.title} className="size-4" />
-      </span>
+      {event.person ? (
+        <PersonPortrait
+          icon={event.icon}
+          title={event.title}
+          color={traditionColor(event.tradition)}
+          className="h-8 w-7"
+        />
+      ) : (
+        <span
+          className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border"
+          style={{ borderColor: traditionColor(event.tradition) }}
+        >
+          <EventIcon icon={event.icon} title={event.title} className="size-4" />
+        </span>
+      )}
       <span className="flex min-w-0 flex-col">
         <span className="label-caps text-[9px] text-muted-foreground">
           {label} · <DateText value={event.dateLabel} />

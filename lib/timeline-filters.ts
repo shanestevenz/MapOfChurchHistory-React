@@ -1,7 +1,9 @@
 import { TRADITIONS } from './timeline-data'
 import { ERAS } from './timeline-layout'
+import { PERSON_TYPES } from './timeline-people'
 import type {
   EventKind,
+  PersonType,
   TimelineEvent,
   TraditionCategory,
   TraditionId,
@@ -17,6 +19,11 @@ export interface CategoryDefinition {
 }
 
 const CATEGORY_META: Omit<CategoryDefinition, 'traditions'>[] = [
+  {
+    id: 'world',
+    label: 'World History',
+    description: 'Events and people outside the church, for context.',
+  },
   {
     id: 'shared',
     label: 'Early Church',
@@ -66,10 +73,22 @@ export const EVENT_KINDS: { id: EventKind; label: string }[] = [
   { id: 'reunion', label: 'Reunions' },
 ]
 
+/** Kinds that can be enlarged when zoomed out: every event kind, plus people. */
+export const ENLARGE_KINDS: { id: EventKind; label: string }[] = [
+  ...EVENT_KINDS,
+  { id: 'person', label: 'People' },
+]
+
 export interface TimelineFilters {
   hiddenTraditions: TraditionId[]
   hiddenKinds: EventKind[]
   hiddenEras: string[]
+  /** Person nodes (Augustine, Luther…), drawn as portrait busts. */
+  showPeople: boolean
+  /** Person roles hidden while people are shown, e.g. popes. */
+  hiddenPersonTypes: PersonType[]
+  /** Draw three or more people in a row on one lane as one group node. */
+  groupPeople: boolean
   /** The generated "today" node at the end of every living branch. */
   showPresentDay: boolean
   /** "Began here" flags on each branch's founding event. */
@@ -112,6 +131,9 @@ export const DEFAULT_FILTERS: TimelineFilters = {
   hiddenTraditions: [],
   hiddenKinds: [],
   hiddenEras: [],
+  showPeople: true,
+  hiddenPersonTypes: [],
+  groupPeople: true,
   showPresentDay: true,
   showOrigins: true,
   compactLabels: false,
@@ -134,6 +156,7 @@ export function activeFilterCount(filters: TimelineFilters): number {
     Number(filters.hiddenTraditions.length > 0) +
     Number(filters.hiddenKinds.length > 0) +
     Number(filters.hiddenEras.length > 0) +
+    Number(filters.hiddenPersonTypes.length > 0) +
     Number(filters.enlargeKinds.length > 0) +
     (Object.keys(DEFAULT_FILTERS) as (keyof TimelineFilters)[]).filter(
       (key) =>
@@ -191,7 +214,7 @@ export const FILTER_PRESETS: FilterPreset[] = [
     apply: (current) => ({
       ...current,
       hiddenTraditions: traditionsExcept(
-        categoryMembers('shared', 'eastern', 'western'),
+        categoryMembers('world', 'shared', 'eastern', 'western'),
       ),
       hiddenKinds: [],
       hiddenEras: ['Reformation', 'Modern'],
@@ -205,7 +228,7 @@ export const FILTER_PRESETS: FilterPreset[] = [
     apply: (current) => ({
       ...current,
       hiddenTraditions: traditionsExcept(
-        categoryMembers('shared', 'eastern', 'western'),
+        categoryMembers('world', 'shared', 'eastern', 'western'),
       ),
       hiddenKinds: [],
       hiddenEras: [],
@@ -218,7 +241,7 @@ export const FILTER_PRESETS: FilterPreset[] = [
     apply: (current) => ({
       ...current,
       hiddenTraditions: traditionsExcept(
-        categoryMembers('western', 'protestant'),
+        categoryMembers('world', 'western', 'protestant'),
       ),
       hiddenKinds: [],
       hiddenEras: ['Apostolic', 'Imperial', 'Medieval'],
@@ -244,11 +267,15 @@ export function applyFilters(
   const hiddenTraditions = new Set(filters.hiddenTraditions)
   const hiddenKinds = new Set(filters.hiddenKinds)
   const hiddenEras = new Set(filters.hiddenEras)
+  const hiddenPersonTypes = new Set(filters.hiddenPersonTypes)
 
   const isVisible = (event: TimelineEvent) => {
     if (hiddenTraditions.has(event.tradition)) return false
     if (event.presentDay) return filters.showPresentDay
-    if (hiddenKinds.has(event.kind)) return false
+    if (event.kind === 'person') {
+      if (!filters.showPeople) return false
+      if (event.person && hiddenPersonTypes.has(event.person.type)) return false
+    } else if (hiddenKinds.has(event.kind)) return false
     const era = eraOf(event.year)
     return !(era && hiddenEras.has(era))
   }
@@ -353,8 +380,12 @@ export function loadFilters(): TimelineFilters {
       ),
       hiddenKinds: parsed.hiddenKinds ?? [],
       hiddenEras: parsed.hiddenEras ?? [],
+      showPeople: parsed.showPeople !== false,
+      hiddenPersonTypes: (Array.isArray(parsed.hiddenPersonTypes) ? parsed.hiddenPersonTypes : []).filter(
+        (type) => PERSON_TYPES.some((known) => known.id === type),
+      ),
       enlargeKinds: (Array.isArray(parsed.enlargeKinds) ? parsed.enlargeKinds : []).filter(
-        (kind) => EVENT_KINDS.some((known) => known.id === kind),
+        (kind) => ENLARGE_KINDS.some((known) => known.id === kind),
       ),
       enlargeMode: parsed.enlargeMode === 'text' ? 'text' : 'node',
       enlargeStrength:
