@@ -3,6 +3,9 @@
 import { ArrowRightIcon, FilePenLineIcon, PencilIcon } from 'lucide-react'
 import { DateText } from '@/components/date-text'
 import { EventIcon } from '@/components/event-icon'
+import { KeyFigureBadges } from '@/components/key-figure-badges'
+import { PersonPortrait } from '@/components/person-node'
+import { PersonPersecution, PersonTags } from '@/components/person-tags'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,22 +23,27 @@ import type { TimelineEvent } from '@/lib/timeline-types'
 
 interface EventDialogProps {
   event: TimelineEvent | null
+  /** Every event, so key-figure tags can link to people. */
+  events: TimelineEvent[]
   open: boolean
   isAdmin: boolean
   onOpenChange: (open: boolean) => void
   onLearnMore: (event: TimelineEvent) => void
   onEdit: (event: TimelineEvent) => void
   onSuggestEdit: (event: TimelineEvent) => void
+  onOpenPerson: (person: TimelineEvent) => void
 }
 
 export function EventDialog({
   event,
+  events,
   open,
   isAdmin,
   onOpenChange,
   onLearnMore,
   onEdit,
   onSuggestEdit,
+  onOpenPerson,
 }: EventDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,12 +52,21 @@ export function EventDialog({
           <>
             <DialogHeader>
               <div className="flex items-start gap-3">
-                <span
-                  className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-card"
-                  style={{ borderColor: traditionColor(event.tradition) }}
-                >
-                  <EventIcon icon={event.icon} title={event.title} />
-                </span>
+                {event.person ? (
+                  <PersonPortrait
+                    icon={event.icon}
+                    title={event.title}
+                    color={traditionColor(event.tradition)}
+                    className="h-12 w-10"
+                  />
+                ) : (
+                  <span
+                    className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-card"
+                    style={{ borderColor: traditionColor(event.tradition) }}
+                  >
+                    <EventIcon icon={event.icon} title={event.title} />
+                  </span>
+                )}
                 <div className="flex flex-col gap-1">
                   <span
                     className="label-caps text-[10px]"
@@ -60,22 +77,32 @@ export function EventDialog({
                   <DialogTitle className="font-serif text-xl leading-tight text-balance">
                     {event.title}
                   </DialogTitle>
+                  {event.person && (
+                    <span className="text-sm text-muted-foreground">
+                      {event.person.role}
+                    </span>
+                  )}
                 </div>
               </div>
               <DialogDescription className="mt-1 leading-relaxed">
                 {event.summary}
               </DialogDescription>
               <div className="flex flex-wrap gap-1.5 pt-1">
-                <Badge variant="secondary">
-                  {TRADITION_MAP[event.tradition]?.name ?? event.tradition}
-                </Badge>
-                {event.presentDay && <Badge variant="outline">Current profile</Badge>}
-                {event.keyFigures?.slice(0, 3).map((figure) => (
-                  <Badge key={figure} variant="outline">
-                    {figure}
+                {event.person ? (
+                  <PersonTags event={event} showType={false} />
+                ) : (
+                  <Badge variant="secondary">
+                    {TRADITION_MAP[event.tradition]?.name ?? event.tradition}
                   </Badge>
-                ))}
+                )}
+                {event.presentDay && <Badge variant="outline">Current profile</Badge>}
+                <KeyFigureBadges
+                  figures={(event.keyFigures ?? []).slice(0, 3)}
+                  events={events}
+                  onOpenPerson={onOpenPerson}
+                />
               </div>
+              <PersonPersecution event={event} className="mt-1" />
             </DialogHeader>
             <DialogFooter>
               {!event.presentDay && (isAdmin ? (
@@ -85,7 +112,7 @@ export function EventDialog({
                     className="sm:mr-auto"
                   >
                     <PencilIcon data-icon="inline-start" />
-                    Edit event
+                    {event.person ? 'Edit person' : 'Edit event'}
                   </Button>
                 ) : (
                   <Button

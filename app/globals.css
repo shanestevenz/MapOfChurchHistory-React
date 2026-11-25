@@ -117,10 +117,45 @@
   }
 }
 
+/* While a zoom gesture runs, keep the canvas as one cached GPU layer so each
+   frame only re-composites it (it may look soft). Removed when the gesture
+   settles, and the browser then repaints it sharp at the new scale. */
+.tl-canvas[data-zooming] .tl-paper {
+  will-change: transform;
+}
+
+/* Toggling "Group people": members glide out of, or into, their group. */
+.person-spread {
+  animation: person-spread 350ms ease-in-out both;
+}
+
+@keyframes person-spread {
+  from {
+    translate: var(--spread-from, 0) 0;
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.person-gather {
+  animation: person-gather 220ms ease-in both;
+}
+
+@keyframes person-gather {
+  to {
+    translate: var(--gather-to, 0) 0;
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .detail-group-reveal,
   .detail-group-collapse,
-  .detail-node-collapse {
+  .detail-node-collapse,
+  .person-spread,
+  .person-gather {
     animation: none;
   }
 }

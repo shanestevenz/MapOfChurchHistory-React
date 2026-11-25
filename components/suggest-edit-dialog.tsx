@@ -27,8 +27,10 @@ import {
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import { groupNamesOn } from '@/lib/timeline-people'
 import {
   SUGGESTABLE_FIELDS,
+  suggestableValue,
   type SuggestionChange,
   type TimelineEvent,
 } from '@/lib/timeline-types'
@@ -46,7 +48,13 @@ const draftFrom = (event: TimelineEvent | null): Draft => ({
   dateLabel: event?.dateLabel ?? '',
   summary: event?.summary ?? '',
   detail: event?.detail ?? '',
+  personGroup: event?.person?.group ?? '',
+  personRegion: event?.person?.region ?? '',
 })
+
+/** The fields offered for an event: people also get their group. */
+const fieldsFor = (event: TimelineEvent) =>
+  SUGGESTABLE_FIELDS.filter((item) => !item.personOnly || event.kind === 'person')
 
 /**
  * Wikipedia-style contribution flow: any visitor may propose wording changes
@@ -58,7 +66,12 @@ export function SuggestEditDialog({
   open,
   onOpenChange,
 }: SuggestEditDialogProps) {
-  const { submitSuggestion } = useTimeline()
+  const { submitSuggestion, events } = useTimeline()
+  const groupListId = React.useId()
+  const groupNames = React.useMemo(
+    () => (event ? groupNamesOn(event.tradition, events) : []),
+    [event, events],
+  )
 
   const [draft, setDraft] = React.useState<Draft>(() => draftFrom(event))
   const [contributor, setContributor] = React.useState('')
@@ -85,11 +98,18 @@ export function SuggestEditDialog({
 
   const changes: SuggestionChange[] = React.useMemo(() => {
     if (!event) return []
-    return SUGGESTABLE_FIELDS.map(({ field }) => ({
-      field,
-      before: event[field],
-      after: draft[field]?.trim() ?? '',
-    })).filter((change) => change.after && change.after !== change.before)
+    return fieldsFor(event)
+      .map(({ field, allowEmpty }) => ({
+        field,
+        allowEmpty,
+        before: suggestableValue(event, field),
+        after: draft[field]?.trim() ?? '',
+      }))
+      .filter(
+        (change) =>
+          (change.after || change.allowEmpty) && change.after !== change.before,
+      )
+      .map(({ field, before, after }) => ({ field, before, after }))
   }, [draft, event])
 
   const hasSource = sourceUrl.trim().length > 0
@@ -157,10 +177,10 @@ export function SuggestEditDialog({
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 flex flex-col gap-6 py-4">
               <FieldGroup>
-                {SUGGESTABLE_FIELDS.map(({ field, label, multiline }) => {
+                {fieldsFor(event).map(({ field, label, multiline, allowEmpty }) => {
                   const changed =
-                    draft[field]?.trim() !== event[field] &&
-                    draft[field]?.trim().length > 0
+                    draft[field]?.trim() !== suggestableValue(event, field) &&
+                    (allowEmpty || draft[field]?.trim().length > 0)
                   return (
                     <Field key={field}>
                       <FieldLabel htmlFor={`suggest-${field}`}>
@@ -183,11 +203,33 @@ export function SuggestEditDialog({
                       ) : (
                         <Input
                           id={`suggest-${field}`}
+                          list={field === 'personGroup' ? groupListId : undefined}
+                          placeholder={
+                            field === 'personGroup'
+                              ? 'Early Church Fathers'
+                              : field === 'personRegion'
+                                ? 'North Africa'
+                                : undefined
+                          }
                           value={draft[field]}
                           onChange={(e) =>
                             setDraft((d) => ({ ...d, [field]: e.target.value }))
                           }
                         />
+                      )}
+                      {field === 'personGroup' && (
+                        <>
+                          <datalist id={groupListId}>
+                            {groupNames.map((name) => (
+                              <option key={name} value={name} />
+                            ))}
+                          </datalist>
+                          <FieldDescription>
+                            People sharing a group name on a lane are drawn as
+                            one node. Leave it empty to draw this person on
+                            their own.
+                          </FieldDescription>
+                        </>
                       )}
                     </Field>
                   )

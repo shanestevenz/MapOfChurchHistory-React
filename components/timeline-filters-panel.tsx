@@ -18,6 +18,7 @@ import { TRADITION_MAP } from '@/lib/timeline-data'
 import {
   activeFilterCount,
   DEFAULT_FILTERS,
+  ENLARGE_KINDS,
   EVENT_KINDS,
   FILTER_PRESETS,
   TRADITION_CATEGORIES,
@@ -26,6 +27,8 @@ import {
 } from '@/lib/timeline-filters'
 import { MIN_ZOOM } from '@/components/timeline-graph'
 import { ERAS, traditionColor } from '@/lib/timeline-layout'
+import { PERSON_TYPES, searchableText } from '@/lib/timeline-people'
+import { PersonGlyph } from '@/components/person-node'
 import type {
   LaneGroup,
   TimelineEvent,
@@ -170,9 +173,7 @@ export function TimelineFiltersPanel({
     if (needle.length < 2) return []
     return events
       .filter((event) =>
-        [event.title, event.dateLabel, ...(event.keyFigures ?? [])].some(
-          (text) => text.toLowerCase().includes(needle),
-        ),
+        searchableText(event).some((text) => text.toLowerCase().includes(needle)),
       )
       .sort((a, b) => a.year - b.year)
       .slice(0, 8)
@@ -221,7 +222,7 @@ export function TimelineFiltersPanel({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <Section title="Find an event">
+        <Section title="Find an event or person">
           <div className="relative">
             <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -246,12 +247,19 @@ export function TimelineFiltersPanel({
                     onClick={() => onJump(event)}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
                   >
-                    <span
-                      className="size-2 shrink-0 rounded-full"
-                      style={{
-                        backgroundColor: traditionColor(event.tradition),
-                      }}
-                    />
+                    {event.kind === 'person' ? (
+                      <PersonGlyph
+                        className="size-3 shrink-0"
+                        style={{ color: traditionColor(event.tradition) }}
+                      />
+                    ) : (
+                      <span
+                        className="size-2 shrink-0 rounded-full"
+                        style={{
+                          backgroundColor: traditionColor(event.tradition),
+                        }}
+                      />
+                    )}
                     <span className="min-w-0 flex-1 truncate">
                       {event.title}
                     </span>
@@ -457,6 +465,45 @@ export function TimelineFiltersPanel({
           </div>
         </Section>
 
+        <Section title="People">
+          <div className="flex flex-col gap-3">
+            <Toggle
+              label="Show people"
+              hint="Church Fathers, reformers, rulers and other key figures, drawn as portrait busts."
+              checked={filters.showPeople}
+              onChange={(showPeople) => set({ showPeople })}
+            />
+            <Toggle
+              label="Group people"
+              hint="People in a named group, such as the Early Church Fathers, are drawn as one node you can open. Anyone who lived through a major event stays on their own."
+              checked={filters.groupPeople}
+              onChange={(groupPeople) => set({ groupPeople })}
+            />
+            <div
+              className={cn(
+                'flex flex-wrap gap-1.5 transition-opacity',
+                !filters.showPeople && 'pointer-events-none opacity-50',
+              )}
+              aria-disabled={!filters.showPeople || undefined}
+            >
+              {PERSON_TYPES.map((type) => (
+                <Chip
+                  key={type.id}
+                  title={type.description}
+                  active={!filters.hiddenPersonTypes.includes(type.id)}
+                  onClick={() =>
+                    set({
+                      hiddenPersonTypes: toggleIn(filters.hiddenPersonTypes, type.id),
+                    })
+                  }
+                >
+                  {type.label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        </Section>
+
         <Section title="Eras">
           <div className="flex flex-wrap gap-1.5">
             {ERAS.map((era) => (
@@ -652,7 +699,7 @@ function ZoomReadabilitySection({
 }) {
   const strengthId = React.useId()
   const anyEnlarged = filters.enlargeOrigins || filters.enlargeKinds.length > 0
-  const allKinds = EVENT_KINDS.every((kind) => filters.enlargeKinds.includes(kind.id))
+  const allKinds = ENLARGE_KINDS.every((kind) => filters.enlargeKinds.includes(kind.id))
   const atMinZoom = zoomOutScale(MIN_ZOOM, filters.enlargeStrength)
 
   return (
@@ -684,7 +731,7 @@ function ZoomReadabilitySection({
             <button
               type="button"
               onClick={() =>
-                set({ enlargeKinds: allKinds ? [] : EVENT_KINDS.map((kind) => kind.id) })
+                set({ enlargeKinds: allKinds ? [] : ENLARGE_KINDS.map((kind) => kind.id) })
               }
               className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
@@ -692,7 +739,7 @@ function ZoomReadabilitySection({
             </button>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {EVENT_KINDS.map((kind) => (
+            {ENLARGE_KINDS.map((kind) => (
               <Chip
                 key={kind.id}
                 strikeInactive={false}

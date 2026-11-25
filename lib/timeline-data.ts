@@ -1,4 +1,6 @@
 import type {
+  PersonDetails,
+  PersonType,
   TimelineEvent,
   TimelineGroup,
   Tradition,
@@ -42,7 +44,7 @@ const MAGISTERIAL_GROUP: LaneGroup = {
 const RADICAL_GROUP: LaneGroup = {
   id: 'radical-free-church',
   name: 'Radical & Free Church',
-  blurb: 'Believer’s-baptism churches independent of the state: Anabaptists and Baptists.',
+  blurb: 'Churches independent of the state: Anabaptists, Baptists and Quakers.',
   parent: PROTESTANT_GROUP,
 }
 
@@ -64,15 +66,29 @@ const RESTORATIONIST_GROUP: LaneGroup = {
 const OTHER_ADJACENT_GROUP: LaneGroup = {
   id: 'other-adjacent',
   name: 'Other / Adjacent',
-  blurb: 'Latter-day Saint and Jehovah’s Witness movements, distinct from Nicene Christianity; their classification as Christian is disputed by other traditions.',
+  blurb: 'Unitarian Universalist, Latter-day Saint, Jehovah’s Witness and Christian Science movements, outside the historic Nicene creeds; their classification as Christian is disputed by other traditions.',
+  color: 'var(--muted-foreground)',
+  setApart: true,
 }
 
 export const TRADITIONS: Tradition[] = [
   {
+    // Not a church: the wider world the church lived in, for context. Drawn
+    // as one continuous grey rail across the whole timeline.
+    id: 'world',
+    name: 'World History',
+    blurb: 'Events and people outside the church that shaped the world it lived in.',
+    lane: 0,
+    family: 'slate',
+    category: 'world',
+    origins: [],
+    continuous: true,
+  },
+  {
     id: 'east-syriac',
     name: 'Church of the East',
     blurb: 'The East Syriac church of Persia, Central Asia and China.',
-    lane: 0,
+    lane: 1,
     family: 'sapphire',
     category: 'eastern',
     laneGroup: EASTERN_GROUP,
@@ -82,7 +98,7 @@ export const TRADITIONS: Tradition[] = [
     id: 'oriental',
     name: 'Oriental Orthodox',
     blurb: 'Coptic, Syriac, Armenian, Ethiopian and Indian churches.',
-    lane: 1,
+    lane: 2,
     family: 'sapphire',
     category: 'eastern',
     laneGroup: EASTERN_GROUP,
@@ -92,7 +108,7 @@ export const TRADITIONS: Tradition[] = [
     id: 'orthodox',
     name: 'Eastern Orthodox',
     blurb: 'The Greek and Slavic communion of autocephalous churches.',
-    lane: 2,
+    lane: 3,
     family: 'sapphire',
     category: 'eastern',
     laneGroup: EASTERN_GROUP,
@@ -102,7 +118,7 @@ export const TRADITIONS: Tradition[] = [
     id: 'undivided',
     name: 'Undivided Church',
     blurb: 'The shared trunk of the first millennium — and later attempts to rejoin it.',
-    lane: 3,
+    lane: 4,
     family: 'gold',
     category: 'shared',
     origins: [{ eventId: 'pentecost', dateLabel: 'c. AD 33', place: 'Jerusalem' }],
@@ -111,7 +127,7 @@ export const TRADITIONS: Tradition[] = [
     id: 'catholic',
     name: 'Roman Catholic',
     blurb: 'The Latin West gathered around the See of Rome.',
-    lane: 4,
+    lane: 5,
     family: 'ruby',
     category: 'western',
     laneGroup: WESTERN_GROUP,
@@ -121,7 +137,7 @@ export const TRADITIONS: Tradition[] = [
     id: 'protestant',
     name: 'Lutheran',
     blurb: 'From the sixteenth-century Reformation through Lutheran churches worldwide, including the Church of Sweden, LCMS and ELCA.',
-    lane: 5,
+    lane: 6,
     family: 'emerald',
     category: 'protestant',
     laneGroup: MAGISTERIAL_GROUP,
@@ -131,7 +147,7 @@ export const TRADITIONS: Tradition[] = [
     id: 'reformed',
     name: 'Reformed & Presbyterian',
     blurb: 'Reformed churches shaped by Zwingli and Calvin, including the RCA, CRC, PC(USA) and PCA.',
-    lane: 6,
+    lane: 7,
     family: 'emerald',
     category: 'protestant',
     laneGroup: MAGISTERIAL_GROUP,
@@ -141,7 +157,7 @@ export const TRADITIONS: Tradition[] = [
     id: 'anglican',
     name: 'Anglican & Episcopal',
     blurb: 'The Church of England and autonomous Anglican and Episcopal churches worldwide.',
-    lane: 7,
+    lane: 8,
     family: 'amethyst',
     category: 'protestant',
     laneGroup: MAGISTERIAL_GROUP,
@@ -150,8 +166,8 @@ export const TRADITIONS: Tradition[] = [
   {
     id: 'radical',
     name: 'Anabaptist',
-    blurb: 'The Radical Reformation and its continuing Mennonite, Amish and Hutterite communities.',
-    lane: 8,
+    blurb: 'The Radical Reformation and its continuing Mennonite, Amish, Hutterite and Brethren communities.',
+    lane: 9,
     family: 'copper',
     category: 'protestant',
     laneGroup: RADICAL_GROUP,
@@ -161,17 +177,27 @@ export const TRADITIONS: Tradition[] = [
     id: 'baptist',
     name: 'Baptist',
     blurb: 'A free-church tradition with autonomous congregations and many distinct conventions.',
-    lane: 9,
+    lane: 10,
     family: 'copper',
     category: 'protestant',
     laneGroup: RADICAL_GROUP,
     origins: [{ eventId: 'baptists', dateLabel: '1609', place: 'Amsterdam' }],
   },
   {
+    id: 'quaker',
+    name: 'Quakers (Friends)',
+    blurb: 'The Religious Society of Friends, born in 1650s England, and its offshoot the Shakers; a historic peace church alongside the Anabaptists.',
+    lane: 11,
+    family: 'emerald',
+    category: 'protestant',
+    laneGroup: RADICAL_GROUP,
+    origins: [{ eventId: 'quakers-founded', dateLabel: '1652', place: 'North-west England' }],
+  },
+  {
     id: 'methodist',
     name: 'Methodist & Wesleyan',
     blurb: 'The Wesleyan revival, Methodist churches and holiness descendants such as Free Methodists and Nazarenes.',
-    lane: 10,
+    lane: 12,
     family: 'amethyst',
     category: 'protestant',
     laneGroup: REVIVAL_GROUP,
@@ -181,7 +207,7 @@ export const TRADITIONS: Tradition[] = [
     id: 'pentecostal',
     name: 'Pentecostal & Charismatic',
     blurb: 'Pentecostal denominations and the wider charismatic renewal.',
-    lane: 11,
+    lane: 13,
     family: 'amethyst',
     category: 'protestant',
     laneGroup: REVIVAL_GROUP,
@@ -191,7 +217,7 @@ export const TRADITIONS: Tradition[] = [
     id: 'evangelical',
     name: 'Evangelical & Non-denominational',
     blurb: 'A diverse, decentralized movement with no single founding body or central governing authority.',
-    lane: 12,
+    lane: 14,
     family: 'gold',
     category: 'protestant',
     laneGroup: REVIVAL_GROUP,
@@ -201,7 +227,7 @@ export const TRADITIONS: Tradition[] = [
     id: 'adventist',
     name: 'Adventist',
     blurb: 'Sabbatarian Adventism and the Seventh-day Adventist Church.',
-    lane: 13,
+    lane: 15,
     family: 'sapphire',
     category: 'protestant',
     laneGroup: RESTORATIONIST_GROUP,
@@ -211,17 +237,27 @@ export const TRADITIONS: Tradition[] = [
     id: 'restoration',
     name: 'Restoration Movement',
     blurb: 'The Stone–Campbell movement, including Disciples of Christ, Churches of Christ and independent Christian Churches.',
-    lane: 14,
+    lane: 16,
     family: 'gold',
     category: 'protestant',
     laneGroup: RESTORATIONIST_GROUP,
     origins: [{ eventId: 'stone-campbell-union', dateLabel: '1832', place: 'Lexington, Kentucky' }],
   },
   {
+    id: 'unitarian-universalist',
+    name: 'Unitarian Universalist',
+    blurb: 'Heirs of the anti-Trinitarian Unitarians and the Universalists, united in 1961 as a creedless association; outside the historic Nicene creeds, and many members no longer describe themselves as Christian.',
+    lane: 17,
+    family: 'sapphire',
+    category: 'other',
+    laneGroup: OTHER_ADJACENT_GROUP,
+    origins: [{ eventId: 'edict-of-torda', dateLabel: '1568', place: 'Transylvania' }],
+  },
+  {
     id: 'latter-day-saints',
     name: 'Latter-day Saints',
     blurb: 'The Church of Jesus Christ of Latter-day Saints, outside the historic Nicene creeds; its classification as Christian is disputed by other traditions.',
-    lane: 15,
+    lane: 18,
     family: 'ruby',
     category: 'other',
     laneGroup: OTHER_ADJACENT_GROUP,
@@ -231,11 +267,21 @@ export const TRADITIONS: Tradition[] = [
     id: 'jehovahs-witnesses',
     name: 'Jehovah’s Witnesses',
     blurb: 'A movement grown from the Bible Students, outside the historic Nicene creeds; its classification as Christian is disputed by other traditions.',
-    lane: 16,
+    lane: 19,
     family: 'ruby',
     category: 'other',
     laneGroup: OTHER_ADJACENT_GROUP,
     origins: [{ eventId: 'bible-students-begin', dateLabel: 'c. 1870', place: 'Allegheny, Pennsylvania' }],
+  },
+  {
+    id: 'christian-science',
+    name: 'Christian Science',
+    blurb: 'Mary Baker Eddy’s Church of Christ, Scientist, which teaches healing through prayer; outside the historic Nicene creeds, and its classification as Christian is disputed by other traditions.',
+    lane: 20,
+    family: 'emerald',
+    category: 'other',
+    laneGroup: OTHER_ADJACENT_GROUP,
+    origins: [{ eventId: 'church-of-christ-scientist', dateLabel: '1879', place: 'Boston, Massachusetts' }],
   },
 ]
 
@@ -580,6 +626,1418 @@ const FOUNDATION_EVENTS: TimelineEvent[] = denominationMilestones.map((milestone
   detail: `${milestone.detail}\n\nOrigin location: ${milestone.location}.`,
   links: [{ label: milestone.sourceLabel, url: milestone.sourceUrl }],
 }))
+
+/* --- World History ------------------------------------------------------
+ * A grey context lane across the top: the wider world the church lived in.
+ * These are ordinary events, but they never branch, so the layout lets them
+ * share columns with church events (see isContextNode).
+ */
+
+interface WorldEventSeed {
+  id: string
+  year: number
+  dateLabel: string
+  title: string
+  icon: string
+  summary: string
+  detail: string
+  wiki: string
+  keyFigures?: string[]
+}
+
+const worldEvent = (seed: WorldEventSeed): TimelineEvent => ({
+  id: seed.id,
+  year: seed.year,
+  dateLabel: seed.dateLabel,
+  title: seed.title,
+  tradition: 'world',
+  parents: [],
+  kind: 'event',
+  icon: { type: 'lucide', name: seed.icon },
+  summary: seed.summary,
+  detail: seed.detail,
+  keyFigures: seed.keyFigures ?? [],
+  links: [{ label: `${seed.title} — Wikipedia`, url: wiki(seed.wiki) }],
+})
+
+const WORLD_EVENTS: TimelineEvent[] = [
+  worldEvent({
+    id: 'world-temple-destroyed', year: 70, dateLabel: 'AD 70', icon: 'Flame',
+    title: 'Destruction of the Second Temple',
+    summary: 'Roman legions under Titus capture Jerusalem and burn the Temple, ending the First Jewish–Roman War.',
+    detail: 'The fall of Jerusalem ended Temple worship and scattered the Jerusalem church. Christianity’s centre of gravity moved decisively to the Gentile cities of the empire — Antioch, Alexandria and Rome — and the separation of church and synagogue sharpened.',
+    keyFigures: ['Titus', 'Vespasian'], wiki: 'Siege_of_Jerusalem_(70_CE)',
+  }),
+  worldEvent({
+    id: 'world-sack-of-rome', year: 410, dateLabel: '24 Aug 410', icon: 'Swords',
+    title: 'Visigoths sack Rome',
+    summary: 'Alaric’s Visigoths sack the city of Rome for the first time in eight centuries.',
+    detail: 'The shock was felt across the Roman world. Pagans blamed the abandonment of the old gods; Augustine answered with The City of God, which set the earthly city against the heavenly one and shaped Western political thought for a millennium.',
+    keyFigures: ['Alaric I', 'Augustine of Hippo'], wiki: 'Sack_of_Rome_(410)',
+  }),
+  worldEvent({
+    id: 'world-fall-of-rome', year: 476, dateLabel: '476', icon: 'Crown',
+    title: 'Fall of the Western Roman Empire',
+    summary: 'Odoacer deposes Romulus Augustulus, the last emperor in the West.',
+    detail: 'With no emperor in the West, bishops — above all the bishop of Rome — became the most stable public authority in much of Latin Europe. The Eastern empire, ruled from Constantinople, continued for nearly a thousand years, and East and West began to drift apart.',
+    keyFigures: ['Odoacer', 'Romulus Augustulus'], wiki: 'Fall_of_the_Western_Roman_Empire',
+  }),
+  worldEvent({
+    id: 'world-rise-of-islam', year: 622, dateLabel: '622', icon: 'Moon',
+    title: 'The Hijra and the rise of Islam',
+    summary: 'Muhammad leaves Mecca for Medina; within a century Arab armies rule the ancient Christian heartlands.',
+    detail: 'Jerusalem, Antioch and Alexandria fell under Muslim rule in the 630s and 640s, and North Africa soon after. The churches of the East — Oriental Orthodox, Church of the East and Melkite alike — became minorities living under Islamic rule, while Rome and Constantinople grew more isolated from one another.',
+    keyFigures: ['Muhammad'], wiki: 'Hijrah',
+  }),
+  worldEvent({
+    id: 'world-black-death', year: 1347, dateLabel: '1347–51', icon: 'Skull',
+    title: 'The Black Death',
+    summary: 'Bubonic plague kills perhaps a third to a half of Europe’s population in four years.',
+    detail: 'Clergy died in great numbers ministering to the sick, and the church’s ranks were refilled hastily. Flagellant movements, persecution of Jews and a new preoccupation with death marked late-medieval piety, while the shaken social order fed the criticisms of Wycliffe and later reformers.',
+    wiki: 'Black_Death',
+  }),
+  worldEvent({
+    id: 'world-printing-press', year: 1450, dateLabel: 'c. 1450', icon: 'Printer',
+    title: 'Gutenberg’s printing press',
+    summary: 'Movable-type printing in Mainz makes books cheap; the Gutenberg Bible follows around 1455.',
+    detail: 'Printing made the Reformation possible at the speed it happened: Luther’s pamphlets reached hundreds of thousands of readers within a few years. Vernacular Bibles, catechisms and confessions spread in print, and so did the Catholic response.',
+    keyFigures: ['Johannes Gutenberg'], wiki: 'Printing_press',
+  }),
+  worldEvent({
+    id: 'world-columbus', year: 1492, dateLabel: '1492', icon: 'Ship',
+    title: 'Columbus reaches the Americas',
+    summary: 'A Spanish expedition lands in the Caribbean, beginning European conquest and colonisation of the Americas.',
+    detail: 'Spanish and Portuguese colonisation carried Catholic Christianity across the Americas, often by force; missionaries such as Bartolomé de las Casas protested the treatment of Indigenous peoples. Later Protestant colonies made North America a seedbed of new denominations.',
+    keyFigures: ['Christopher Columbus', 'Isabella I of Castile'], wiki: 'Voyages_of_Christopher_Columbus',
+  }),
+  worldEvent({
+    id: 'world-westphalia', year: 1648, dateLabel: '1648', icon: 'Handshake',
+    title: 'Peace of Westphalia',
+    summary: 'Treaties end the Thirty Years’ War, Europe’s most devastating war of religion.',
+    detail: 'The settlement confirmed that each territory’s ruler would decide its religion, now recognising Calvinism alongside Lutheranism and Catholicism. It marks the end of attempts to restore a single Western church by war, and the rise of the sovereign state.',
+    wiki: 'Peace_of_Westphalia',
+  }),
+  worldEvent({
+    id: 'world-industrial-revolution', year: 1760, dateLabel: 'c. 1760–1840', icon: 'Factory',
+    title: 'The Industrial Revolution',
+    summary: 'Mechanised industry transforms Britain, then the world, moving millions into growing cities.',
+    detail: 'New industrial towns outgrew the parish system. Methodism, the Sunday school movement and later the Salvation Army grew among the working poor, and Christian social reformers took up child labour, slavery and urban poverty.',
+    wiki: 'Industrial_Revolution',
+  }),
+  worldEvent({
+    id: 'world-american-independence', year: 1776, dateLabel: '4 Jul 1776', icon: 'ScrollText',
+    title: 'American Declaration of Independence',
+    summary: 'Thirteen British colonies declare independence, founding the United States.',
+    detail: 'The new republic, and its First Amendment of 1791, separated church and state at the federal level. Without established churches, American Christianity became a competitive marketplace in which Baptists, Methodists and entirely new movements flourished.',
+    keyFigures: ['Thomas Jefferson', 'George Washington'], wiki: 'United_States_Declaration_of_Independence',
+  }),
+  worldEvent({
+    id: 'world-french-revolution', year: 1789, dateLabel: '1789', icon: 'Flag',
+    title: 'The French Revolution',
+    summary: 'Revolution overturns the French monarchy and, with it, the privileged place of the Catholic Church.',
+    detail: 'Church lands were seized, clergy forced to swear loyalty to the state, and for a time Christian worship was suppressed. The upheaval pushed nineteenth-century Catholicism toward a strongly centralised papacy, culminating in the First Vatican Council.',
+    keyFigures: ['Napoleon Bonaparte'], wiki: 'French_Revolution',
+  }),
+  worldEvent({
+    id: 'world-first-world-war', year: 1914, dateLabel: '1914–18', icon: 'Swords',
+    title: 'The First World War',
+    summary: 'A war between Europe’s Christian nations kills some twenty million people.',
+    detail: 'Churches on every side blessed their own armies, and the slaughter shook confidence in Christian Europe. In its aftermath came the Russian Revolution and the persecution of the Orthodox Church, and a new theology — notably Karl Barth’s — that refused to identify God with any nation’s cause.',
+    wiki: 'World_War_I',
+  }),
+  worldEvent({
+    id: 'world-second-world-war', year: 1939, dateLabel: '1939–45', icon: 'Flame',
+    title: 'The Second World War',
+    summary: 'The deadliest war in history, which tested and divided the churches of Europe.',
+    detail: 'The Confessing Church resisted Nazi control of German Protestantism, and figures such as Dietrich Bonhoeffer paid with their lives. In the war’s aftermath, the Holocaust led many Christian denominations to rethink their relationship to Jews and Judaism — reflected in Vatican II’s Nostra aetate — and the war’s end brought the World Council of Churches into being.',
+    keyFigures: ['Dietrich Bonhoeffer'], wiki: 'World_War_II',
+  }),
+  worldEvent({
+    id: 'world-berlin-wall', year: 1989, dateLabel: '9 Nov 1989', icon: 'BrickWall',
+    title: 'Fall of the Berlin Wall',
+    summary: 'Communist rule collapses across Eastern Europe, followed by the Soviet Union itself in 1991.',
+    detail: 'Churches had sheltered dissent — Leipzig’s Monday prayers at St Nicholas Church fed the protests in East Germany, and the Polish church backed Solidarity. The end of communism brought a revival, and new tensions, for the Orthodox churches of Russia, Ukraine and Eastern Europe.',
+    keyFigures: ['John Paul II', 'Mikhail Gorbachev'], wiki: 'Fall_of_the_Berlin_Wall',
+  }),
+  worldEvent({
+    id: 'world-attila', year: 452, dateLabel: '434–453', icon: 'Swords',
+    title: 'Attila and the Huns',
+    summary: 'The Huns under Attila ravage the Roman Empire, until Pope Leo I meets Attila in northern Italy and he turns back.',
+    detail: 'Sweeping out of the steppe, the Huns drove Goths and other peoples into Roman territory and helped bring on the Western Empire’s collapse. Attila invaded Gaul in 451 and Italy in 452, where Leo led an embassy that met him near Mantua. Church tradition credits Leo with saving Rome; historians also point to famine and disease in Attila’s army. Attila died in 453 and his empire fell apart.',
+    keyFigures: ['Attila', 'Pope Leo I'], wiki: 'Attila',
+  }),
+  worldEvent({
+    id: 'world-arab-conquests', year: 634, dateLabel: '634–732', icon: 'Moon',
+    title: 'The Arab conquests',
+    summary: 'Within a century of Muhammad’s death, Arab armies take Jerusalem, Syria, Egypt, Persia, North Africa and Spain, much of the ancient Christian heartland.',
+    detail: 'Jerusalem surrendered to Caliph Umar around 637–38, Alexandria in 641, Carthage in 698, and Visigothic Spain fell from 711; the advance into Francia was halted near Tours in 732. Christians and Jews became protected but subordinate dhimmi communities, paying a special tax.\n\nConversion was gradual: Christians remained a majority in many lands for centuries, and the Coptic, Syriac and Church of the East traditions have lived under Islamic rule ever since. Alexandria, Antioch and Jerusalem, three of the five ancient patriarchates, would never again be in Christian-ruled lands for long.',
+    keyFigures: ['Umar', 'Charles Martel'], wiki: 'Early_Muslim_conquests',
+  }),
+  worldEvent({
+    id: 'world-lindisfarne', year: 793, dateLabel: '8 Jun 793', icon: 'Ship',
+    title: 'Viking raid on Lindisfarne',
+    summary: 'Norse raiders sack the island monastery of Lindisfarne, opening two centuries of Viking attacks on Christian Europe.',
+    detail: 'Rich and undefended, monasteries were easy targets; the scholar Alcuin wrote that such an attack had never before been thought possible. Vikings went on to raid and settle in England, Ireland, Normandy and the lands of the Rus’.\n\nWithin two centuries the raiders’ own homelands turned Christian: Harald Bluetooth claimed to have made the Danes Christian, and Iceland adopted Christianity by decision of its assembly around the year 1000.',
+    keyFigures: ['Alcuin of York', 'Harald Bluetooth'], wiki: 'Lindisfarne',
+  }),
+  worldEvent({
+    id: 'world-classic-maya', year: 250, dateLabel: 'c. 250–900', icon: 'Sun',
+    title: 'Classic Maya civilisation',
+    summary: 'Maya city-states across Mesoamerica build great cities and the most developed writing system of the pre-Columbian Americas.',
+    detail: 'Cities such as Tikal, Calakmul, Palenque and Copán raised pyramids and palaces, tracked the heavens with remarkable accuracy and recorded their history in hieroglyphs. Kings drew their own blood in offerings to the gods, and captives taken in war were sacrificed.\n\nMany southern lowland cities were abandoned around 800–900, probably through drought and warfare, though the Maya peoples survived. After the Spanish conquest, Bishop Diego de Landa burned Maya books as idolatrous in 1562; only four Maya codices are known to survive.',
+    keyFigures: ['Pakal the Great', 'Diego de Landa'], wiki: 'Maya_civilization',
+  }),
+  worldEvent({
+    id: 'world-mongol-empire', year: 1206, dateLabel: '1206–1368', icon: 'Crown',
+    title: 'Genghis Khan and the Mongol Empire',
+    summary: 'Genghis Khan unites the Mongols and launches conquests that create the largest contiguous land empire in history.',
+    detail: 'Mongol campaigns killed millions, and the sack of Baghdad in 1258 ended the Abbasid caliphate. Yet the khans tolerated many religions: several Mongol tribes were Church of the East Christians, and Kublai Khan’s mother, Sorghaghtani Beki, was one of them.\n\nEurope dreamed of a Mongol alliance against Islam and sent friars such as John of Plano Carpini and William of Rubruck to the khan’s court. Trade along the routes the Mongols secured later helped carry the Black Death west.',
+    keyFigures: ['Genghis Khan', 'Kublai Khan', 'Rabban Bar Sauma'], wiki: 'Mongol_Empire',
+  }),
+  worldEvent({
+    id: 'world-conquest-of-the-americas', year: 1519, dateLabel: '1519–1533', icon: 'Swords',
+    title: 'Spanish conquest of the Aztec and Inca empires',
+    summary: 'Small Spanish forces, with Indigenous allies and devastating epidemics, topple the Aztec and Inca empires.',
+    detail: 'The Aztec capital, Tenochtitlan, was among the largest cities in the world, and its state religion demanded human sacrifice on a large scale: excavations of its great skull rack have recovered the remains of hundreds of men, women and children. Hernán Cortés and his Tlaxcalan allies took the city in 1521 as smallpox swept through it; Francisco Pizarro seized the Inca ruler Atahualpa in 1532 and had him executed the next year.\n\nThe conquerors claimed to spread the faith, but war, forced labour and disease killed millions. Friars such as Bartolomé de las Casas denounced the abuses, leading to the Valladolid debate of 1550–51 on the rights of Indigenous peoples. Within a century most of Latin America was Catholic.',
+    keyFigures: ['Hernán Cortés', 'Moctezuma II', 'Francisco Pizarro', 'Atahualpa', 'Bartolomé de las Casas'], wiki: 'Spanish_conquest_of_the_Aztec_Empire',
+  }),
+  worldEvent({
+    id: 'world-atlantic-slave-trade', year: 1501, dateLabel: 'c. 1501–1867', icon: 'Anchor',
+    title: 'The transatlantic slave trade',
+    summary: 'Over three and a half centuries, some 12.5 million Africans are shipped in chains across the Atlantic, most of them to Brazil and the Caribbean.',
+    detail: 'Nearly half of those who survived the crossing were landed in Brazil and most of the rest in the Caribbean; only about 4 per cent were sold in North America. Every Atlantic power took part, and some clergy and slaveholders cited Scripture in its defence.\n\nThe opposition also came from within the churches. Quakers protested as early as 1688, and evangelicals such as William Wilberforce and Granville Sharp, with former slaves like Olaudah Equiano, made abolition a national cause. Britain banned the trade in 1807 and slavery in 1833, then used its navy to hunt down slave ships. The enslaved, meanwhile, made the faith their own in the spirituals and the Black church.',
+    keyFigures: [], wiki: 'Atlantic_slave_trade',
+  }),
+  worldEvent({
+    id: 'world-japan-christian-ban', year: 1597, dateLabel: '1597–1873', icon: 'Flame',
+    title: 'Japan’s persecution of Christians',
+    summary: 'After Jesuit missions win some 300,000 converts, Japan’s rulers ban Christianity and kill those who will not renounce it.',
+    detail: 'Francis Xavier landed in 1549, and Christianity spread quickly, especially in the south. In 1597 twenty-six Christians were crucified at Nagasaki; the Tokugawa shogunate banned the faith in 1614, crushed the largely Christian Shimabara Rebellion in 1637–38 and made suspects trample on images of Christ and Mary. Rulers feared the missions as a vanguard of European colonial power.\n\nThousands of “hidden Christians” kept the faith in secret for some 250 years, until the ban was lifted in 1873.',
+    keyFigures: ['Francis Xavier', 'Tokugawa Ieyasu'], wiki: 'Persecution_of_Christians_in_Japan',
+  }),
+  worldEvent({
+    id: 'world-taiping-rebellion', year: 1850, dateLabel: '1850–64', icon: 'Flame',
+    title: 'The Taiping Rebellion',
+    summary: 'A Chinese visionary who believed he was the younger brother of Jesus leads a rebellion that becomes one of the deadliest wars in history.',
+    detail: 'Inspired by a Protestant tract and his own visions, Hong Xiuquan founded the Taiping Heavenly Kingdom and made Nanjing its capital in 1853. Some Western missionaries were hopeful at first, then rejected its theology as heresy. The Qing dynasty, eventually with Western help, crushed the rebellion in 1864; an estimated 20–30 million people died.',
+    keyFigures: ['Hong Xiuquan'], wiki: 'Taiping_Rebellion',
+  }),
+  worldEvent({
+    id: 'world-boxer-rebellion', year: 1899, dateLabel: '1899–1901', icon: 'Swords',
+    title: 'The Boxer Rebellion',
+    summary: 'An anti-foreign uprising in northern China kills tens of thousands of Chinese Christians and some 200 foreign missionaries.',
+    detail: 'The Boxers fed on resentment of foreign imperialism, unequal treaties and the legal privileges missionaries and their converts enjoyed. Commonly cited figures put the dead at about 32,000 Chinese Christians and 200 missionaries. An eight-nation foreign army relieved the besieged legations in Beijing, followed by looting, reprisals and a crushing indemnity. In 2000 the Catholic Church canonised 120 martyrs of China, many of them killed in 1900.',
+    keyFigures: [], wiki: 'Boxer_Rebellion',
+  }),
+  worldEvent({
+    id: 'world-russian-revolution', year: 1917, dateLabel: 'Nov 1917', icon: 'Hammer',
+    title: 'The Russian Revolution',
+    summary: 'The Bolsheviks seize power and set out to build the first officially atheist state.',
+    detail: 'The new regime seized church property and waged campaigns against religion; the historian Dimitry Pospielovsky estimates that some 40,000 Orthodox priests were killed, with probably as many monks and nuns. Commonly cited figures suggest only a few hundred of more than 50,000 churches remained open by 1939.\n\nStalin eased the pressure during the Second World War, and persecution returned under Khrushchev. State atheism spread across Eastern Europe, China and elsewhere; after 1991 the Russian church revived, often in close alliance with the state.',
+    keyFigures: ['Vladimir Lenin', 'Joseph Stalin', 'Patriarch Tikhon'], wiki: 'Russian_Revolution',
+  }),
+  worldEvent({
+    id: 'world-rwandan-genocide', year: 1994, dateLabel: 'Apr–Jul 1994', icon: 'Skull',
+    title: 'The Rwandan genocide',
+    summary: 'In about a hundred days, Hutu extremists murder hundreds of thousands of people, mostly Tutsi, in one of Africa’s most Christian countries.',
+    detail: 'Thousands were killed in churches where they had sought sanctuary, at Ntarama, Nyamata, Nyange and elsewhere. Some clergy took part: the UN tribunal sentenced the Catholic priest Athanase Seromba to life for ordering a church sheltering about 2,000 Tutsi to be bulldozed. Other Christians hid neighbours at the risk of their own lives.\n\nChurches had long been entangled with Rwanda’s ethnic politics. In 2017 Pope Francis asked forgiveness for the sins and failings of the Church and its members during the genocide.',
+    keyFigures: [], wiki: 'Rwandan_genocide',
+  }),
+]
+
+/* --- People ---------------------------------------------------------------
+ * Person nodes sit on a lane like events, but are drawn as portrait busts.
+ * `year` places them at their most significant moment; the node shows their
+ * lifespan. `lane` is where they are drawn and `affiliation` the branch they
+ * belong to, when that differs: pre-1054 figures whose legacy runs mainly
+ * through one later branch sit on that lane but stay "Undivided Church".
+ * Popes are kept to a handful of turning points; the rest stay off the
+ * Catholic lane, which would otherwise be a wall of popes.
+ */
+
+interface PersonSeed {
+  id: string
+  year: number
+  lifespan: string
+  name: string
+  lane: TraditionId
+  type: PersonType
+  role: string
+  summary: string
+  detail: string
+  wiki: string
+  aliases?: string[]
+  affiliation?: TraditionId
+  keyFigures?: string[]
+  /** A named group drawn as one node; see PersonDetails.group. */
+  group?: string
+  /** Where they lived and worked; see PersonDetails.region. */
+  region?: string
+  /** A movement tag for their lane church; see PersonDetails.movement. */
+  movement?: string
+  /** The church they belonged to before; see PersonDetails.formerly. */
+  formerly?: TraditionId
+  /** How they were persecuted or condemned; see PersonDetails.persecution. */
+  persecution?: string
+}
+
+const person = (seed: PersonSeed): TimelineEvent => {
+  const details: PersonDetails = { role: seed.role, type: seed.type }
+  if (seed.affiliation) details.affiliation = seed.affiliation
+  if (seed.aliases?.length) details.aliases = seed.aliases
+  if (seed.group) details.group = seed.group
+  if (seed.region) details.region = seed.region
+  if (seed.formerly) details.formerly = seed.formerly
+  if (seed.movement) details.movement = seed.movement
+  if (seed.persecution) details.persecution = seed.persecution
+  return {
+    id: `person-${seed.id}`,
+    year: seed.year,
+    dateLabel: seed.lifespan,
+    title: seed.name,
+    tradition: seed.lane,
+    parents: [],
+    kind: 'person',
+    icon: { type: 'lucide', name: 'User' },
+    summary: seed.summary,
+    detail: seed.detail,
+    keyFigures: seed.keyFigures ?? [],
+    links: [{ label: `${seed.name} — Wikipedia`, url: wiki(seed.wiki) }],
+    person: details,
+  }
+}
+
+const PEOPLE: TimelineEvent[] = [
+  /* World History */
+  person({
+    id: 'nero', year: 37, lifespan: '37–68', name: 'Nero', lane: 'world', type: 'ruler', region: 'Rome',
+    role: 'Roman emperor',
+    summary: 'The emperor who blamed Rome’s Christians for the great fire of AD 64 and began the first state persecution.',
+    detail: 'Tacitus records Christians burned as torches and thrown to beasts after the fire. Tradition holds that both Peter and Paul were executed in Rome under Nero, and “Nero” became the early church’s byword for a persecuting ruler.',
+    wiki: 'Nero', aliases: ['Emperor Nero'],
+  }),
+  person({
+    id: 'diocletian', year: 244, lifespan: 'c. 244–311', name: 'Diocletian', lane: 'world', type: 'ruler', region: 'Roman Empire',
+    role: 'Roman emperor',
+    summary: 'Launched the Great Persecution of 303, the last and most severe attempt to destroy the church.',
+    detail: 'Diocletian restored the empire after a century of crisis and divided it among four rulers. His edicts ordered churches destroyed, scriptures burned and clergy arrested. Ten years later, Constantine’s Edict of Milan reversed everything.',
+    wiki: 'Diocletian',
+  }),
+  person({
+    id: 'muhammad', year: 570, lifespan: 'c. 570–632', name: 'Muhammad', lane: 'world', type: 'world', region: 'Arabia',
+    role: 'Founder of Islam',
+    summary: 'The prophet of Islam, whose followers within a century ruled most of the ancient Christian world.',
+    detail: 'Born in Mecca, Muhammad preached a strict monotheism that honoured Jesus as a prophet but denied his divinity and crucifixion. The rapid Arab conquests after his death permanently reshaped Christianity in the Middle East and North Africa.',
+    wiki: 'Muhammad',
+  }),
+  person({
+    id: 'charles-v', year: 1500, lifespan: '1500–1558', name: 'Charles V', lane: 'world', type: 'ruler', affiliation: 'catholic', region: 'Spain & the Holy Roman Empire',
+    role: 'Holy Roman Emperor',
+    summary: 'The Catholic emperor who faced Luther at Worms and spent his reign trying to hold Christendom together.',
+    detail: 'Ruler of Spain, the Netherlands, much of Italy, the Americas and the Holy Roman Empire, Charles outlawed Luther in 1521 but was repeatedly distracted by France and the Ottomans. The Peace of Augsburg (1555) conceded what he could not prevent, and he abdicated soon after.',
+    wiki: 'Charles_V,_Holy_Roman_Emperor', aliases: ['Emperor Charles V'],
+  }),
+  person({
+    id: 'galileo', year: 1564, lifespan: '1564–1642', name: 'Galileo Galilei', lane: 'world', type: 'world', region: 'Italy', affiliation: 'catholic',
+    persecution: 'Condemned by the Roman Inquisition, 1633, and kept under house arrest until his death',
+    role: 'Astronomer',
+    summary: 'The astronomer condemned by the Roman Inquisition in 1633 for teaching that the Earth moves around the Sun.',
+    detail: 'Galileo’s telescope observations supported Copernicus, and his trial became the emblem of conflict between science and religion. He remained a Catholic all his life; the church formally acknowledged its error in 1992 under John Paul II.',
+    wiki: 'Galileo_Galilei', aliases: ['Galileo'],
+  }),
+  person({
+    id: 'napoleon', year: 1769, lifespan: '1769–1821', name: 'Napoleon Bonaparte', lane: 'world', type: 'ruler', region: 'France', affiliation: 'catholic',
+    persecution: 'Excommunicated by Pope Pius VII, 1809',
+    role: 'Emperor of the French',
+    summary: 'Restored the Catholic Church in France by the Concordat of 1801 — on his own terms.',
+    detail: 'Napoleon ended revolutionary persecution but bound the church to the state, imprisoned Pope Pius VII and crowned himself emperor in Notre-Dame. His conquests dissolved the Holy Roman Empire and the old prince-bishoprics of Germany.',
+    wiki: 'Napoleon', aliases: ['Napoleon'],
+  }),
+
+  /* Undivided Church: the Fathers */
+  person({
+    id: 'ignatius-of-antioch', year: 35, lifespan: 'c. 35 – c. 108', name: 'Ignatius of Antioch', lane: 'undivided', type: 'theologian', group: 'Early Church Fathers', region: 'Syria',
+    persecution: 'Taken to Rome under guard and thrown to the beasts, c. 108',
+    role: 'Bishop of Antioch',
+    summary: 'Wrote seven letters on his way to martyrdom in Rome — the earliest witness to a single bishop leading each church.',
+    detail: 'Ignatius urged unity around the bishop, presbyters and deacons, and is the first known writer to call the church “catholic”. His letters, full of longing for martyrdom, are among the most vivid documents of the generation after the apostles.',
+    wiki: 'Ignatius_of_Antioch', aliases: ['Saint Ignatius of Antioch'],
+  }),
+  person({
+    id: 'polycarp', year: 69, lifespan: 'c. 69 – c. 155', name: 'Polycarp', lane: 'undivided', type: 'theologian', group: 'Early Church Fathers', region: 'Asia Minor',
+    persecution: 'Burned alive at Smyrna, c. 155',
+    role: 'Bishop of Smyrna',
+    summary: 'A disciple of John the Apostle, martyred at Smyrna at eighty-six years old.',
+    detail: '“Eighty-six years I have served him, and he has done me no wrong. How can I blaspheme my King who saved me?” The Martyrdom of Polycarp is the oldest account of a Christian martyrdom outside the New Testament, and Polycarp a living link between the apostles and the second century.',
+    wiki: 'Polycarp', aliases: ['Polycarp of Smyrna'],
+  }),
+  person({
+    id: 'justin-martyr', year: 100, lifespan: 'c. 100 – c. 165', name: 'Justin Martyr', lane: 'undivided', type: 'theologian', group: 'Early Church Fathers', region: 'Rome',
+    persecution: 'Beheaded in Rome, c. 165',
+    role: 'Apologist',
+    summary: 'A philosopher-convert who defended Christianity to the emperors and described early Sunday worship.',
+    detail: 'Justin argued that the divine Word (Logos) had sown seeds of truth in Greek philosophy before appearing in Christ. His First Apology gives the earliest detailed description of baptism and the Eucharist. He was beheaded in Rome around 165.',
+    wiki: 'Justin_Martyr', aliases: ['Justin'],
+  }),
+  person({
+    id: 'irenaeus', year: 130, lifespan: 'c. 130 – c. 202', name: 'Irenaeus of Lyon', lane: 'undivided', type: 'theologian', group: 'Early Church Fathers', region: 'Gaul',
+    role: 'Bishop of Lyon',
+    summary: 'Refuted Gnosticism in Against Heresies and set out the rule of faith, apostolic succession and a four-Gospel canon.',
+    detail: 'A hearer of Polycarp, Irenaeus became bishop in Gaul after a persecution. Against secret Gnostic teaching he appealed to the public succession of bishops from the apostles, and his theology of “recapitulation” in Christ influenced East and West alike.',
+    wiki: 'Irenaeus', aliases: ['Irenaeus'],
+  }),
+  person({
+    id: 'tertullian', year: 155, lifespan: 'c. 155 – c. 220', name: 'Tertullian', lane: 'undivided', type: 'theologian', group: 'Early Church Fathers', region: 'North Africa',
+    persecution: 'Later counted a heretic for his Montanism, and never named a saint',
+    role: 'Theologian of Carthage',
+    summary: 'The father of Latin theology, who coined the word “Trinity” (trinitas) — but who left for the Montanists and was later counted a heretic.',
+    detail: 'A North African writer of fierce wit — “the blood of the martyrs is seed” is adapted from him — Tertullian gave the Latin church much of its theological vocabulary. Late in life he joined the rigorist Montanist movement, and the later church counted him a heretic: he was never named a saint, and the sixth-century Gelasian Decree listed his works among those not to be accepted.',
+    wiki: 'Tertullian',
+  }),
+  person({
+    id: 'origen', year: 185, lifespan: 'c. 185 – c. 253', name: 'Origen', lane: 'undivided', type: 'theologian', group: 'Early Church Fathers', region: 'Egypt',
+    persecution: 'Tortured in the Decian persecution, 250; condemned as a heretic in 553',
+    role: 'Theologian of Alexandria',
+    summary: 'The early church’s greatest scholar and biblical interpreter — condemned as a heretic three centuries after his death.',
+    detail: 'Origen compiled the Hexapla, a six-column Old Testament, wrote commentaries on most of Scripture and laid foundations for Christian philosophy. Tortured in the Decian persecution, he died soon after. His speculations, such as the pre-existence of souls and the final restoration of all things, led the Second Council of Constantinople (553) to name him among the heretics it condemned.',
+    wiki: 'Origen', aliases: ['Origen of Alexandria'],
+  }),
+  person({
+    id: 'constantine', year: 272, lifespan: 'c. 272–337', name: 'Constantine the Great', lane: 'undivided', type: 'ruler', region: 'Roman Empire',
+    role: 'Roman emperor',
+    summary: 'The first Christian emperor, who ended persecution and called the Council of Nicaea.',
+    detail: 'After his victory at the Milvian Bridge in 312, Constantine favoured the church, built basilicas and founded Constantinople as a Christian capital. He was baptised on his deathbed. The Orthodox honour him as a saint “equal to the apostles”.',
+    wiki: 'Constantine_the_Great', aliases: ['Constantine I', 'Constantine'],
+  }),
+  person({
+    id: 'athanasius', year: 296, lifespan: 'c. 296–373', name: 'Athanasius of Alexandria', lane: 'undivided', type: 'theologian', region: 'Egypt',
+    persecution: 'Exiled five times by four emperors',
+    role: 'Bishop of Alexandria',
+    summary: 'Defended the full divinity of Christ against Arianism through five exiles.',
+    detail: '“Athanasius against the world”: he spent seventeen years in exile for upholding Nicaea. His On the Incarnation remains a classic, and his Easter letter of 367 is the first to list exactly the 27 books of the New Testament.',
+    wiki: 'Athanasius_of_Alexandria', aliases: ['Athanasius', 'Athanasius the Great'],
+  }),
+  person({
+    id: 'basil', year: 330, lifespan: 'c. 330–379', name: 'Basil the Great', lane: 'undivided', type: 'theologian', region: 'Cappadocia',
+    role: 'Bishop of Caesarea',
+    summary: 'The leading Cappadocian Father, who shaped the doctrine of the Holy Spirit and Eastern monasticism.',
+    detail: 'With Gregory of Nazianzus and his brother Gregory of Nyssa, Basil formulated the Trinity as one essence in three persons, the settlement confirmed in 381. His monastic rules still guide Orthodox monasteries, and he founded one of the first hospitals.',
+    wiki: 'Basil_of_Caesarea', aliases: ['Basil of Caesarea'],
+  }),
+  person({
+    id: 'chrysostom', year: 347, lifespan: 'c. 347–407', name: 'John Chrysostom', lane: 'undivided', type: 'theologian', region: 'Constantinople',
+    persecution: 'Deposed and exiled by the empress Eudoxia; died on a forced march into exile, 407',
+    role: 'Archbishop of Constantinople',
+    summary: 'The “golden-mouthed” preacher whose liturgy the Orthodox still celebrate every Sunday.',
+    detail: 'Chrysostom’s sermons on Scripture made him the greatest preacher of the early church. As archbishop he denounced the luxury of the court and was exiled by the Empress Eudoxia, dying on the road. The Divine Liturgy bearing his name is the standard Eastern Orthodox Eucharist.',
+    wiki: 'John_Chrysostom', aliases: ['Chrysostom'],
+  }),
+  person({
+    id: 'jerome', year: 342, lifespan: 'c. 342–420', name: 'Jerome', lane: 'undivided', type: 'theologian', region: 'Bethlehem & Rome',
+    role: 'Biblical scholar',
+    summary: 'Translated the Bible into Latin — the Vulgate, the Western church’s Bible for a thousand years.',
+    detail: 'A brilliant and quarrelsome scholar, Jerome learned Hebrew in order to translate the Old Testament from the original rather than the Greek. He spent his last decades in a monastery at Bethlehem. Trent declared the Vulgate the church’s authoritative Latin text in 1546.',
+    wiki: 'Jerome', aliases: ['Saint Jerome', 'Jerome of Stridon'],
+  }),
+  person({
+    id: 'augustine', year: 354, lifespan: '354–430', name: 'Augustine of Hippo', lane: 'undivided', type: 'theologian', region: 'North Africa',
+    role: 'Bishop of Hippo',
+    summary: 'The most influential theologian of the Western church, author of the Confessions and The City of God.',
+    detail: 'Converted in Milan in 386, Augustine became bishop of Hippo in North Africa. His teaching on grace, original sin and the church shaped all Western theology: Catholics and Protestants alike — Luther was an Augustinian friar, and Calvin quoted him constantly — claim him as their own.',
+    wiki: 'Augustine_of_Hippo', aliases: ['Augustine', 'Saint Augustine'],
+  }),
+  person({
+    id: 'leo-i', year: 400, lifespan: 'c. 400–461', name: 'Pope Leo I', lane: 'undivided', type: 'church-leader', region: 'Rome',
+    role: 'Bishop of Rome',
+    summary: 'Leo the Great, whose Tome defined Christ’s two natures at Chalcedon and who faced down Attila.',
+    detail: '“Peter has spoken through Leo,” the bishops at Chalcedon declared of his Tome. Leo articulated the claim that the bishop of Rome inherits Peter’s authority over the whole church, and in 452 persuaded Attila the Hun to turn back from Italy.',
+    wiki: 'Pope_Leo_I', aliases: ['Leo I', 'Leo the Great'],
+  }),
+  person({
+    id: 'gregory-i', year: 540, lifespan: 'c. 540–604', name: 'Pope Gregory I', lane: 'undivided', type: 'church-leader', region: 'Rome',
+    role: 'Bishop of Rome',
+    summary: 'Gregory the Great: pastor, administrator and sender of the mission to the English.',
+    detail: 'A former prefect of Rome turned monk, Gregory fed the city through famine and plague, negotiated with the Lombards and wrote the Pastoral Rule, a manual for bishops. Both Catholics and Orthodox honour him; Calvin called him the last good pope.',
+    wiki: 'Pope_Gregory_I', aliases: ['Gregory I', 'Gregory the Great'],
+  }),
+
+  /* Church of the East */
+  person({
+    id: 'narsai', year: 399, lifespan: 'c. 399 – c. 502', name: 'Narsai', lane: 'east-syriac', type: 'theologian', region: 'Persia',
+    role: 'Head of the School of Nisibis',
+    summary: 'The “harp of the Spirit”, who built the School of Nisibis into the intellectual centre of the Church of the East.',
+    detail: 'Driven from Edessa, Narsai refounded its theological school across the Persian border at Nisibis. His verse homilies and the school’s teaching, following Theodore of Mopsuestia, defined East Syriac theology for centuries.',
+    wiki: 'Narsai', aliases: ['Narsai of Nisibis'],
+  }),
+  person({
+    id: 'babai', year: 551, lifespan: 'c. 551–628', name: 'Babai the Great', lane: 'east-syriac', type: 'theologian', region: 'Persia',
+    role: 'Theologian and monastic reformer',
+    summary: 'Gave the Church of the East its classic Christology in The Book of Union.',
+    detail: 'Babai led the church during a long vacancy in the patriarchate and systematised its teaching on Christ’s two natures and two qnome. He also reformed East Syriac monasticism, which would carry the faith along the Silk Road.',
+    wiki: 'Babai_the_Great',
+  }),
+  person({
+    id: 'alopen', year: 635, lifespan: 'fl. 635', name: 'Alopen', lane: 'east-syriac', type: 'evangelist', region: 'China',
+    role: 'Missionary to China',
+    summary: 'Led the first recorded Christian mission to China, welcomed at the Tang court in 635.',
+    detail: 'Known from the Xi’an Stele of 781, Alopen brought scriptures to Chang’an, where Emperor Taizong had them translated and allowed a monastery to be built. The “Luminous Religion” flourished in China for two centuries.',
+    wiki: 'Alopen',
+  }),
+  person({
+    id: 'timothy-i', year: 727, lifespan: 'c. 727–823', name: 'Timothy I', lane: 'east-syriac', type: 'church-leader', region: 'Baghdad',
+    role: 'Catholicos-Patriarch',
+    summary: 'Led the Church of the East at its height, from Baghdad to China and India.',
+    detail: 'Patriarch for over forty years under the Abbasid caliphs, Timothy oversaw metropolitans from Syria to Tibet and China. His recorded debate with Caliph al-Mahdi is one of the earliest Christian–Muslim dialogues.',
+    wiki: 'Timothy_I_(East_Syriac_patriarch)', aliases: ['Patriarch Timothy I'],
+  }),
+  person({
+    id: 'bar-sauma', year: 1220, lifespan: 'c. 1220–1294', name: 'Rabban Bar Sauma', lane: 'east-syriac', type: 'evangelist', region: 'China & Persia',
+    role: 'Monk and envoy',
+    summary: 'A monk from Mongol-ruled China who travelled to Europe as an ambassador and met the pope and kings.',
+    detail: 'Setting out on pilgrimage from near Beijing, Bar Sauma was sent by the Mongol Ilkhan to seek a Western alliance. In 1287–88 he met the kings of France and England and received communion from Pope Nicholas IV — a meeting of two churches that barely knew each other existed.',
+    wiki: 'Rabban_Bar_Sauma', aliases: ['Bar Sauma'],
+  }),
+  person({
+    id: 'dinkha-iv', year: 1935, lifespan: '1935–2015', name: 'Mar Dinkha IV', lane: 'east-syriac', type: 'church-leader', region: 'Iraq & the United States',
+    role: 'Catholicos-Patriarch',
+    summary: 'Signed the 1994 Common Christological Declaration with John Paul II, ending a 1,500-year dispute.',
+    detail: 'Patriarch of the Assyrian Church of the East for nearly forty years, largely from exile in Chicago, Dinkha IV led his scattered church through war in Iraq and Syria and opened dialogue with Rome.',
+    wiki: 'Dinkha_IV', aliases: ['Dinkha IV'],
+  }),
+
+  /* Oriental Orthodox */
+  person({
+    id: 'gregory-illuminator', year: 257, lifespan: 'c. 257 – c. 331', name: 'Gregory the Illuminator', lane: 'oriental', type: 'evangelist', affiliation: 'undivided', region: 'Armenia',
+    persecution: 'Imprisoned in a pit at Khor Virap for some thirteen years, by tradition',
+    role: 'Apostle of Armenia',
+    summary: 'Converted King Tiridates III, making Armenia the first Christian kingdom, traditionally in 301.',
+    detail: 'After years imprisoned in a pit, Gregory is said to have healed the king, who then made Christianity the state religion. He founded the cathedral of Etchmiadzin. The Armenian Apostolic Church, an Oriental Orthodox church, traces itself to him.',
+    wiki: 'Gregory_the_Illuminator',
+  }),
+  person({
+    id: 'dioscorus', year: 451, lifespan: 'd. 454', name: 'Dioscorus of Alexandria', lane: 'oriental', type: 'church-leader', region: 'Egypt', formerly: 'undivided',
+    persecution: 'Deposed and exiled by the Council of Chalcedon, 451',
+    role: 'Pope of Alexandria',
+    summary: 'Deposed at Chalcedon; honoured by the Oriental Orthodox as a defender of Cyril’s faith.',
+    detail: 'Dioscorus presided over the stormy Second Council of Ephesus (449) and was deposed and exiled at Chalcedon two years later. Chalcedonians regarded him as a heretic; the Coptic Church venerates him as a saint and confessor.',
+    wiki: 'Pope_Dioscorus_I_of_Alexandria', aliases: ['Dioscorus'],
+  }),
+  person({
+    id: 'severus', year: 465, lifespan: 'c. 465–538', name: 'Severus of Antioch', lane: 'oriental', type: 'theologian', region: 'Syria',
+    role: 'Patriarch of Antioch',
+    summary: 'The leading theologian of the non-Chalcedonian churches.',
+    detail: 'Severus taught one incarnate nature of the Word, following Cyril of Alexandria, while rejecting the confusion of Christ’s divinity and humanity. Deposed in 518, he spent his last twenty years in exile in Egypt. He remains a principal authority of the Syriac Orthodox Church.',
+    wiki: 'Severus_of_Antioch',
+  }),
+  person({
+    id: 'jacob-baradaeus', year: 500, lifespan: 'c. 500–578', name: 'Jacob Baradaeus', lane: 'oriental', type: 'church-leader', region: 'Syria',
+    role: 'Bishop of Edessa',
+    summary: 'Secretly ordained a whole hierarchy for the persecuted non-Chalcedonian churches.',
+    detail: 'Consecrated in 542 with the help of Empress Theodora, Jacob travelled in disguise — his name means “ragged” — across Syria and Asia Minor, ordaining thousands of clergy. The Syriac Orthodox were long called “Jacobites” after him.',
+    wiki: 'Jacob_Baradaeus',
+  }),
+  person({
+    id: 'shenouda-iii', year: 1923, lifespan: '1923–2012', name: 'Pope Shenouda III', lane: 'oriental', type: 'church-leader', region: 'Egypt',
+    persecution: 'Banished to a desert monastery by President Sadat, 1981–85',
+    role: 'Coptic Pope of Alexandria',
+    summary: 'Led the Coptic Orthodox Church for forty years through revival, persecution and global dispersion.',
+    detail: 'A leader of the Sunday School movement, Shenouda expanded Coptic monasticism and education and planted churches across the diaspora. Exiled to a desert monastery by President Sadat in 1981, he returned to lead the largest Christian community in the Middle East.',
+    wiki: 'Pope_Shenouda_III_of_Alexandria', aliases: ['Shenouda III'],
+  }),
+
+  /* Eastern Orthodox (and the Greek East before 1054) */
+  person({
+    id: 'justinian', year: 482, lifespan: 'c. 482–565', name: 'Justinian I', lane: 'orthodox', type: 'ruler', affiliation: 'undivided', region: 'Byzantine Empire',
+    role: 'Byzantine emperor',
+    summary: 'Built Hagia Sophia, codified Roman law and called the Fifth Ecumenical Council.',
+    detail: 'Justinian’s ideal of “symphony” between emperor and church shaped Byzantine and later Orthodox political life. Hagia Sophia, dedicated in 537, was the largest church in the world for nearly a thousand years. His efforts to reconcile the non-Chalcedonians failed.',
+    wiki: 'Justinian_I', aliases: ['Justinian', 'Justinian the Great'],
+  }),
+  person({
+    id: 'john-of-damascus', year: 675, lifespan: 'c. 675–749', name: 'John of Damascus', lane: 'orthodox', type: 'theologian', affiliation: 'undivided', region: 'Syria & Palestine',
+    role: 'Monk and theologian',
+    summary: 'Defended the veneration of icons and summed up Greek patristic theology.',
+    detail: 'Writing from a monastery under the Muslim caliphate — out of the emperor’s reach — John argued that the incarnation made images of Christ possible. His Exact Exposition of the Orthodox Faith was read by Aquinas, and his hymns are still sung at Pascha.',
+    wiki: 'John_of_Damascus',
+  }),
+  person({
+    id: 'photios', year: 810, lifespan: 'c. 810–893', name: 'Photios I', lane: 'orthodox', type: 'church-leader', affiliation: 'undivided', region: 'Constantinople',
+    persecution: 'Excommunicated by Pope Nicholas I, 863',
+    role: 'Patriarch of Constantinople',
+    summary: 'The patriarch at the centre of the first great East–West rupture, over Rome’s authority and the filioque.',
+    detail: 'A towering scholar, Photios was installed in 858 in place of a deposed patriarch, and Pope Nicholas I refused to recognise him. Photios condemned Western missionaries in Bulgaria for adding the filioque to the Creed — the argument that would resurface in 1054.',
+    wiki: 'Photios_I_of_Constantinople', aliases: ['Photius', 'Photios the Great'],
+  }),
+  person({
+    id: 'cyril-methodius', year: 815, lifespan: 'c. 815–885', name: 'Cyril and Methodius', lane: 'orthodox', type: 'evangelist', affiliation: 'undivided', region: 'Moravia',
+    role: 'Apostles to the Slavs',
+    summary: 'Brothers from Thessalonica who created a Slavic alphabet and liturgy.',
+    detail: 'Sent to Great Moravia in 863, they translated the Gospels and liturgy into Slavonic, defending worship in the vernacular before the pope. Their disciples carried the work to Bulgaria, from which it reached Serbia and Rus’; the Cyrillic alphabet bears Cyril’s name.',
+    wiki: 'Saints_Cyril_and_Methodius', aliases: ['Saints Cyril and Methodius'],
+  }),
+  person({
+    id: 'vladimir', year: 958, lifespan: 'c. 958–1015', name: 'Vladimir the Great', lane: 'orthodox', type: 'ruler', affiliation: 'undivided', region: 'Kyivan Rus’',
+    role: 'Grand Prince of Kyiv',
+    summary: 'His baptism in 988 brought Kyivan Rus’ into Byzantine Christianity.',
+    detail: 'The chronicle says Vladimir’s envoys, after attending the liturgy in Hagia Sophia, “knew not whether we were in heaven or on earth.” He married the emperor’s sister and had the people of Kyiv baptised in the Dnieper. Russia, Ukraine and Belarus trace their Christianity to this moment.',
+    wiki: 'Vladimir_the_Great', aliases: ['Vladimir I', 'Volodymyr the Great'],
+  }),
+  person({
+    id: 'cerularius', year: 1000, lifespan: 'c. 1000–1059', name: 'Michael I Cerularius', lane: 'orthodox', type: 'church-leader', region: 'Constantinople', formerly: 'undivided',
+    persecution: 'Excommunicated by the papal legates, 1054',
+    role: 'Patriarch of Constantinople',
+    summary: 'The patriarch excommunicated by the papal legates in 1054.',
+    detail: 'Cerularius closed Latin churches in Constantinople over the use of unleavened bread and resisted Roman claims. Cardinal Humbert’s bull of excommunication, laid on the altar of Hagia Sophia, and Cerularius’s counter-anathema became the symbol of the Great Schism.',
+    wiki: 'Michael_I_Cerularius', aliases: ['Michael Cerularius'],
+  }),
+  person({
+    id: 'palamas', year: 1296, lifespan: '1296–1359', name: 'Gregory Palamas', lane: 'orthodox', type: 'theologian', region: 'Greece',
+    persecution: 'Imprisoned and excommunicated by Patriarch John XIV, 1344; vindicated in 1347',
+    role: 'Archbishop of Thessalonica',
+    summary: 'Defended hesychast prayer and the distinction between God’s essence and energies.',
+    detail: 'A monk of Mount Athos, Palamas argued that the hesychasts truly saw the uncreated light of God — not his unknowable essence, but his divine energies. Councils in Constantinople upheld his teaching, which remains central to Orthodox spirituality.',
+    wiki: 'Gregory_Palamas',
+  }),
+  person({
+    id: 'seraphim', year: 1754, lifespan: '1754–1833', name: 'Seraphim of Sarov', lane: 'orthodox', type: 'evangelist', region: 'Russia',
+    role: 'Monk and elder',
+    summary: 'The best-loved Russian saint, who taught that the aim of the Christian life is acquiring the Holy Spirit.',
+    detail: 'After decades of solitude and prayer in the forest, Seraphim received crowds of pilgrims, greeting each with “My joy, Christ is risen!” He embodies the Russian tradition of the starets, the spiritual elder.',
+    wiki: 'Seraphim_of_Sarov',
+  }),
+  person({
+    id: 'athenagoras', year: 1886, lifespan: '1886–1972', name: 'Athenagoras I', lane: 'orthodox', type: 'church-leader', region: 'Constantinople',
+    role: 'Ecumenical Patriarch',
+    summary: 'Met Pope Paul VI in Jerusalem in 1964 — the first such meeting in over five centuries.',
+    detail: 'Formerly archbishop of the Greek Orthodox in America, Athenagoras made reconciliation with Rome his life’s work. In 1965 he and Paul VI lifted the mutual excommunications of 1054.',
+    wiki: 'Patriarch_Athenagoras_I_of_Constantinople', aliases: ['Patriarch Athenagoras'],
+  }),
+
+  /* Roman Catholic (and the Latin West before 1054) */
+  person({
+    id: 'benedict', year: 480, lifespan: 'c. 480 – c. 547', name: 'Benedict of Nursia', lane: 'catholic', type: 'theologian', affiliation: 'undivided', region: 'Italy',
+    role: 'Father of Western monasticism',
+    summary: 'Founded Monte Cassino and wrote the Rule that shaped Western monasticism.',
+    detail: 'Benedict’s Rule balanced prayer, work and study — “ora et labora” — under an abbot. Benedictine monasteries preserved learning through the early Middle Ages and evangelised much of Europe. He is honoured in the East as well as the West.',
+    wiki: 'Benedict_of_Nursia', aliases: ['Saint Benedict', 'Benedict'],
+  }),
+  person({
+    id: 'charlemagne', year: 747, lifespan: 'c. 747–814', name: 'Charlemagne', lane: 'catholic', type: 'ruler', affiliation: 'undivided', region: 'Francia',
+    role: 'Emperor of the Romans',
+    summary: 'Crowned emperor by Pope Leo III on Christmas Day 800, reviving a Western empire allied to Rome.',
+    detail: 'King of the Franks, Charlemagne united most of Western Europe, forcibly converted the Saxons and sponsored a revival of learning. His coronation offended Byzantium, and his court’s use of the filioque deepened the rift with the East.',
+    wiki: 'Charlemagne', aliases: ['Charles the Great'],
+  }),
+  person({
+    id: 'gregory-vii', year: 1015, lifespan: 'c. 1015–1085', name: 'Pope Gregory VII', lane: 'catholic', type: 'church-leader', region: 'Rome',
+    role: 'Pope',
+    summary: 'The reforming pope who humbled Emperor Henry IV at Canossa.',
+    detail: 'Gregory fought simony and clerical marriage and insisted that the church, not kings, appoint bishops. In the Investiture Controversy he excommunicated Henry IV, who stood barefoot in the snow at Canossa in 1077 seeking absolution. The Gregorian reform made the papacy the centre of Western Christendom.',
+    wiki: 'Pope_Gregory_VII', aliases: ['Gregory VII', 'Hildebrand'],
+  }),
+  person({
+    id: 'innocent-iii', year: 1161, lifespan: '1161–1216', name: 'Pope Innocent III', lane: 'catholic', type: 'church-leader', region: 'Rome',
+    role: 'Pope',
+    summary: 'The medieval papacy at its height: the Fourth Lateran Council, the friars — and the Fourth Crusade.',
+    detail: 'Innocent claimed authority over kings, approved the Franciscan movement and called the Fourth Lateran Council (1215), which defined transubstantiation and required annual confession. The crusade he launched sacked Christian Constantinople instead.',
+    wiki: 'Pope_Innocent_III', aliases: ['Innocent III'],
+  }),
+  person({
+    id: 'francis', year: 1181, lifespan: '1181–1226', name: 'Francis of Assisi', lane: 'catholic', type: 'reformer', region: 'Italy',
+    role: 'Founder of the Franciscans',
+    summary: 'Gave up his wealth to live the Gospel in poverty and founded the Franciscan friars.',
+    detail: 'Francis’s joyful poverty, love of creation and preaching to the poor renewed the medieval church. He visited the sultan of Egypt during the Fifth Crusade. Within a generation, Franciscans were preaching and teaching across Europe and beyond.',
+    wiki: 'Francis_of_Assisi', aliases: ['Saint Francis', 'Saint Francis of Assisi'],
+  }),
+  person({
+    id: 'aquinas', year: 1225, lifespan: '1225–1274', name: 'Thomas Aquinas', lane: 'catholic', type: 'theologian', region: 'Italy & Paris',
+    role: 'Dominican theologian',
+    summary: 'Synthesised Christian theology and Aristotle in the Summa Theologiae.',
+    detail: 'Aquinas held that faith and reason cannot contradict each other, and built a vast system from that conviction. Near the end of his life he stopped writing, saying all he had written seemed like straw. Thomism became the backbone of Catholic theology.',
+    wiki: 'Thomas_Aquinas', aliases: ['Aquinas', 'Saint Thomas Aquinas'],
+  }),
+  person({
+    id: 'ignatius-of-loyola', year: 1491, lifespan: '1491–1556', name: 'Ignatius of Loyola', lane: 'catholic', type: 'reformer', region: 'Spain & Rome',
+    role: 'Founder of the Jesuits',
+    summary: 'A wounded soldier turned founder of the Society of Jesus, spearhead of the Catholic Reformation.',
+    detail: 'Ignatius’s Spiritual Exercises remain a classic of prayer. The Jesuits, approved in 1540, founded schools and universities across Europe, won back much of central Europe for Catholicism and sent missionaries such as Francis Xavier to India, Japan and China.',
+    wiki: 'Ignatius_of_Loyola', aliases: ['Saint Ignatius', 'Saint Ignatius of Loyola'],
+  }),
+  person({
+    id: 'pius-ix', year: 1792, lifespan: '1792–1878', name: 'Pope Pius IX', lane: 'catholic', type: 'church-leader', region: 'Rome',
+    role: 'Pope',
+    summary: 'The longest-reigning pope, who defined papal infallibility and lost the Papal States.',
+    detail: 'Pius IX defined the Immaculate Conception (1854), condemned liberalism in the Syllabus of Errors and convened the First Vatican Council. The same year, 1870, Italian troops took Rome, and he declared himself a “prisoner in the Vatican.”',
+    wiki: 'Pope_Pius_IX', aliases: ['Pius IX'],
+  }),
+  person({
+    id: 'john-xxiii', year: 1881, lifespan: '1881–1963', name: 'Pope John XXIII', lane: 'catholic', type: 'church-leader', region: 'Rome',
+    role: 'Pope',
+    summary: 'Elected as a caretaker at seventy-six, he surprised the church by calling the Second Vatican Council.',
+    detail: '“Good Pope John” wanted to throw open the windows of the church — aggiornamento. A former diplomat who had helped Jews escape the Holocaust, he wrote Pacem in Terris during the Cuban Missile Crisis era and died after the council’s first session.',
+    wiki: 'Pope_John_XXIII', aliases: ['John XXIII'],
+  }),
+  person({
+    id: 'john-paul-ii', year: 1920, lifespan: '1920–2005', name: 'Pope John Paul II', lane: 'catholic', type: 'church-leader', region: 'Poland & Rome',
+    persecution: 'Shot and seriously wounded in St Peter’s Square, 1981',
+    role: 'Pope',
+    summary: 'The first non-Italian pope in 455 years, whose visits to Poland helped bring down communism.',
+    detail: 'Karol Wojtyła travelled to 129 countries, canonised hundreds of saints and apologised for the church’s historical sins. His 1979 pilgrimage to Poland inspired the Solidarity movement, and he pursued reconciliation with the Orthodox, the Church of the East and the Jewish people.',
+    wiki: 'Pope_John_Paul_II', aliases: ['John Paul II', 'Karol Wojtyła'],
+  }),
+
+  /* Lutheran */
+  person({
+    id: 'hus', year: 1372, lifespan: 'c. 1372–1415', name: 'Jan Hus', lane: 'protestant', type: 'reformer', affiliation: 'catholic', region: 'Bohemia',
+    persecution: 'Burned as a heretic by the Council of Constance, 1415',
+    role: 'Bohemian reformer',
+    summary: 'A Prague preacher burned at the Council of Constance a century before Luther.',
+    detail: 'Inspired by Wycliffe, Hus attacked indulgences and clerical corruption and taught that Christ, not the pope, is head of the church. Despite a promise of safe conduct he was burned in 1415. Luther later said, “We are all Hussites without knowing it.”',
+    wiki: 'Jan_Hus', aliases: ['John Hus', 'John Huss'],
+  }),
+  person({
+    id: 'frederick-the-wise', year: 1463, lifespan: '1463–1525', name: 'Frederick the Wise', lane: 'protestant', type: 'ruler', region: 'Saxony', formerly: 'catholic',
+    role: 'Elector of Saxony',
+    summary: 'The prince who protected Luther, hiding him at the Wartburg after Worms.',
+    detail: 'Frederick founded the University of Wittenberg and owned one of Germany’s largest relic collections. He never openly embraced Luther’s teaching, but refused to hand him over to Rome — without that protection the Reformation might have ended in 1521. He died in 1525 still, formally, a Catholic.',
+    wiki: 'Frederick_III,_Elector_of_Saxony', aliases: ['Frederick III of Saxony'],
+  }),
+  person({
+    id: 'luther', year: 1483, lifespan: '1483–1546', name: 'Martin Luther', lane: 'protestant', type: 'reformer', region: 'Germany', formerly: 'catholic',
+    persecution: 'Excommunicated by Pope Leo X and outlawed by the Edict of Worms, 1521',
+    role: 'Reformer',
+    summary: 'The Augustinian friar whose Ninety-five Theses began the Protestant Reformation.',
+    detail: '“Here I stand”: at the Diet of Worms in 1521 Luther refused to recant, teaching that sinners are justified by grace through faith alone and that Scripture is the final authority. His German Bible shaped the German language, and his hymns and catechisms shaped Protestant worship. He had been an Augustinian friar and Catholic priest until his excommunication.',
+    wiki: 'Martin_Luther', aliases: ['Luther'],
+  }),
+  person({
+    id: 'melanchthon', year: 1497, lifespan: '1497–1560', name: 'Philip Melanchthon', lane: 'protestant', type: 'theologian', region: 'Germany', formerly: 'catholic',
+    role: 'Reformer',
+    summary: 'Luther’s colleague and the author of the Augsburg Confession.',
+    detail: 'A brilliant humanist scholar, Melanchthon wrote the first Protestant systematic theology (the Loci Communes) and reorganised German schools and universities. Gentler than Luther, he sought agreement with Catholics and Reformed alike. Raised a Catholic, he joined Luther at Wittenberg in 1518.',
+    wiki: 'Philip_Melanchthon', aliases: ['Philipp Melanchthon', 'Melanchthon'],
+  }),
+  person({
+    id: 'bach', year: 1685, lifespan: '1685–1750', name: 'Johann Sebastian Bach', lane: 'protestant', type: 'evangelist', region: 'Germany',
+    role: 'Composer and church musician',
+    summary: 'Lutheran church musician whose cantatas and Passions are among the summits of Christian art.',
+    detail: 'As cantor of St Thomas in Leipzig, Bach wrote a cantata for nearly every Sunday, along with the St Matthew Passion (1727). He signed his scores “Soli Deo gloria” — to God alone the glory.',
+    wiki: 'Johann_Sebastian_Bach', aliases: ['J. S. Bach', 'Bach'],
+  }),
+  person({
+    id: 'bonhoeffer', year: 1906, lifespan: '1906–1945', name: 'Dietrich Bonhoeffer', lane: 'protestant', type: 'theologian', region: 'Germany',
+    persecution: 'Imprisoned for resisting Hitler and hanged at Flossenbürg, April 1945',
+    role: 'Theologian and martyr',
+    summary: 'A Confessing Church pastor executed by the Nazis weeks before the war ended.',
+    detail: 'Bonhoeffer ran an underground seminary for the Confessing Church and wrote The Cost of Discipleship (1937), attacking “cheap grace.” Involved in the resistance to Hitler, he was hanged at Flossenbürg in April 1945. His prison letters have influenced Christians far beyond Lutheranism.',
+    wiki: 'Dietrich_Bonhoeffer', aliases: ['Bonhoeffer'],
+  }),
+
+  /* Reformed & Presbyterian */
+  person({
+    id: 'zwingli', year: 1484, lifespan: '1484–1531', name: 'Huldrych Zwingli', lane: 'reformed', type: 'reformer', region: 'Switzerland', formerly: 'catholic',
+    persecution: 'Killed in battle against the Catholic cantons at Kappel, 1531',
+    role: 'Reformer of Zürich',
+    summary: 'Led the Reformation in Zürich, independently of Luther, and founded the Reformed tradition.',
+    detail: 'Preaching straight through the Gospel of Matthew from 1519, Zwingli persuaded Zürich’s council to abolish the Mass and images. He and Luther failed to agree on the Lord’s Supper at Marburg in 1529, splitting the Reformation. He died in battle at Kappel. He had been a Catholic parish priest before he turned reformer.',
+    wiki: 'Huldrych_Zwingli', aliases: ['Ulrich Zwingli', 'Zwingli'],
+  }),
+  person({
+    id: 'calvin', year: 1509, lifespan: '1509–1564', name: 'John Calvin', lane: 'reformed', type: 'reformer', region: 'Geneva', formerly: 'catholic',
+    role: 'Reformer of Geneva',
+    summary: 'The French reformer whose Institutes and Geneva church became the model for Reformed churches worldwide.',
+    detail: 'Calvin stressed the sovereignty of God, the authority of Scripture and a disciplined church governed by elders. Geneva trained pastors for France, the Netherlands, Scotland and beyond, and Calvinism shaped Presbyterian, Reformed, Puritan and much Baptist theology. Raised a Catholic in France, he broke with Rome in the early 1530s and fled to Switzerland.',
+    wiki: 'John_Calvin', aliases: ['Calvin', 'Jean Calvin'],
+  }),
+  person({
+    id: 'knox', year: 1514, lifespan: 'c. 1514–1572', name: 'John Knox', lane: 'reformed', type: 'reformer', region: 'Scotland', formerly: 'catholic',
+    persecution: 'A galley slave in the French fleet, 1547–49; condemned in his absence and burned in effigy in Edinburgh, 1556',
+    role: 'Reformer of Scotland',
+    summary: 'Led the Scottish Reformation and founded Presbyterianism.',
+    detail: 'A galley slave after the siege of St Andrews, Knox studied with Calvin in Geneva — “the most perfect school of Christ.” Returning to Scotland, he led the Reformation of 1560 and clashed with Mary, Queen of Scots. The Church of Scotland grew from his work. He had been ordained a Catholic priest before he joined the Reformation.',
+    wiki: 'John_Knox', aliases: ['Knox'],
+  }),
+  person({
+    id: 'kuyper', year: 1837, lifespan: '1837–1920', name: 'Abraham Kuyper', lane: 'reformed', type: 'theologian', region: 'Netherlands',
+    role: 'Theologian and prime minister',
+    summary: 'Dutch theologian, founder of the Free University and prime minister of the Netherlands.',
+    detail: '“There is not a square inch in the whole domain of our human existence over which Christ… does not cry: Mine!” Kuyper’s neo-Calvinism, with its idea of “sphere sovereignty”, shaped Christian thinking about politics, education and culture.',
+    wiki: 'Abraham_Kuyper', aliases: ['Kuyper'],
+  }),
+  person({
+    id: 'barth', year: 1886, lifespan: '1886–1968', name: 'Karl Barth', lane: 'reformed', type: 'theologian', region: 'Switzerland',
+    role: 'Theologian',
+    summary: 'The most influential Protestant theologian of the twentieth century, chief author of the Barmen Declaration.',
+    detail: 'Barth broke with liberal theology after the First World War, insisting on God’s self-revelation in Jesus Christ. The Barmen Declaration (1934) rejected Nazi claims over the church. His unfinished Church Dogmatics runs to over nine thousand pages.',
+    wiki: 'Karl_Barth', aliases: ['Barth'],
+  }),
+
+  /* Anglican & Episcopal */
+  person({
+    id: 'wycliffe', year: 1328, lifespan: 'c. 1328–1384', name: 'John Wycliffe', lane: 'anglican', type: 'reformer', affiliation: 'catholic', region: 'England',
+    persecution: 'Condemned as a heretic by the Council of Constance, 1415; his remains were dug up and burned in 1428',
+    role: 'Oxford theologian',
+    summary: 'The “Morning Star of the Reformation”, who inspired the first complete English Bible.',
+    detail: 'Wycliffe attacked papal authority and transubstantiation and taught that Scripture should be available to all. His followers, the Lollards, produced the English Wycliffe Bible. He died peacefully, but was condemned at Constance in 1415 and his bones were later burned.',
+    wiki: 'John_Wycliffe', aliases: ['Wycliffe', 'John Wyclif'],
+  }),
+  person({
+    id: 'henry-viii', year: 1491, lifespan: '1491–1547', name: 'Henry VIII', lane: 'anglican', type: 'ruler', region: 'England', formerly: 'catholic',
+    persecution: 'Excommunicated by Pope Paul III, 1538',
+    role: 'King of England',
+    summary: 'Broke with Rome to annul his marriage, making himself head of the Church of England.',
+    detail: 'Once named “Defender of the Faith” by the pope for attacking Luther, Henry made himself Supreme Head of the church in 1534 and dissolved the monasteries. Theologically he remained largely Catholic; the Protestant Reformation of England came under his son and daughter.',
+    wiki: 'Henry_VIII', aliases: ['King Henry VIII'],
+  }),
+  person({
+    id: 'cranmer', year: 1489, lifespan: '1489–1556', name: 'Thomas Cranmer', lane: 'anglican', type: 'reformer', region: 'England', formerly: 'catholic',
+    persecution: 'Burned as a heretic in Oxford under Mary I, 1556',
+    role: 'Archbishop of Canterbury',
+    summary: 'Architect of the English Reformation and author of the Book of Common Prayer.',
+    detail: 'Cranmer’s English liturgy, with its cadenced prayers, shaped the language of worship across the English-speaking world. Under Mary I he recanted, then withdrew his recantations and was burned in Oxford, thrusting first into the fire the hand that had signed them. Made archbishop with the pope’s approval in 1533, he then led the English church out of communion with Rome.',
+    wiki: 'Thomas_Cranmer', aliases: ['Cranmer'],
+  }),
+  person({
+    id: 'elizabeth-i', year: 1533, lifespan: '1533–1603', name: 'Elizabeth I', lane: 'anglican', type: 'ruler', region: 'England',
+    persecution: 'Excommunicated by Pope Pius V, 1570',
+    role: 'Queen of England',
+    summary: 'Her religious settlement gave the Church of England its lasting Protestant and Catholic-shaped character.',
+    detail: 'Elizabeth restored the royal supremacy and the Prayer Book in 1559, seeking outward conformity rather than to “make windows into men’s souls.” Excommunicated by Pius V in 1570, she reigned 45 years as England became firmly Protestant.',
+    wiki: 'Elizabeth_I', aliases: ['Queen Elizabeth I'],
+  }),
+  person({
+    id: 'wilberforce', year: 1759, lifespan: '1759–1833', name: 'William Wilberforce', lane: 'anglican', type: 'evangelist', region: 'England',
+    role: 'Abolitionist',
+    summary: 'The evangelical MP who led the twenty-year campaign to abolish the British slave trade.',
+    detail: 'Converted in 1785, Wilberforce believed God had set before him “the suppression of the slave trade and the reformation of manners.” With the Clapham Sect he won abolition of the trade in 1807; slavery itself was abolished across the British Empire days before his death.',
+    wiki: 'William_Wilberforce', aliases: ['Wilberforce'],
+  }),
+  person({
+    id: 'cs-lewis', year: 1898, lifespan: '1898–1963', name: 'C. S. Lewis', lane: 'anglican', type: 'theologian', region: 'England',
+    role: 'Writer and apologist',
+    summary: 'Oxford scholar whose Mere Christianity and Narnia stories made him the best-known Christian writer of his century.',
+    detail: 'A former atheist, Lewis came to faith in 1931 partly through conversations with J. R. R. Tolkien. His wartime radio talks became Mere Christianity (1952), a deliberately non-denominational defence of the faith read by Christians of every tradition.',
+    wiki: 'C._S._Lewis', aliases: ['CS Lewis', 'Clive Staples Lewis'],
+  }),
+
+  /* Anabaptist */
+  person({
+    id: 'grebel', year: 1498, lifespan: 'c. 1498–1526', name: 'Conrad Grebel', lane: 'radical', type: 'reformer', region: 'Switzerland', formerly: 'reformed', movement: 'Anabaptist',
+    persecution: 'Imprisoned by the Zürich council, 1525–26',
+    role: 'Founder of the Swiss Brethren',
+    summary: 'Performed the first adult baptism of the Reformation in Zürich in January 1525.',
+    detail: 'Once a follower of Zwingli, Grebel concluded that only believers should be baptised and that the church must be free of the state. He baptised George Blaurock, and the Anabaptist movement began. He died of plague the next year, after imprisonment.',
+    wiki: 'Conrad_Grebel', aliases: ['Grebel'],
+  }),
+  person({
+    id: 'sattler', year: 1490, lifespan: 'c. 1490–1527', name: 'Michael Sattler', lane: 'radical', type: 'theologian', region: 'Germany', formerly: 'catholic', movement: 'Anabaptist',
+    persecution: 'Tortured and burned as a heretic at Rottenburg, 1527',
+    role: 'Anabaptist leader',
+    summary: 'Drafted the Schleitheim Confession and was martyred months later.',
+    detail: 'A former Benedictine prior, Sattler gathered the Swiss Brethren at Schleitheim in 1527 to agree on believer’s baptism, separation from the world and the refusal of the sword and oath. He was tortured and burned at Rottenburg that May.',
+    wiki: 'Michael_Sattler',
+  }),
+  person({
+    id: 'menno', year: 1496, lifespan: '1496–1561', name: 'Menno Simons', lane: 'radical', type: 'reformer', region: 'Netherlands', formerly: 'catholic', movement: 'Mennonite',
+    persecution: 'Outlawed with a price on his head by Charles V, 1542',
+    role: 'Anabaptist leader',
+    summary: 'A Dutch priest who gathered scattered, persecuted Anabaptists into a peaceful movement — the Mennonites.',
+    detail: 'After the violent Münster episode discredited Anabaptism, Menno spent twenty-five years as a hunted itinerant pastor, insisting on nonviolence, discipleship and a church of committed believers. His followers took his name.',
+    wiki: 'Menno_Simons', aliases: ['Menno'],
+  }),
+  person({
+    id: 'ammann', year: 1644, lifespan: '1644 – c. 1730', name: 'Jakob Ammann', lane: 'radical', type: 'reformer', region: 'Switzerland & Alsace', movement: 'Amish',
+    role: 'Founder of the Amish',
+    summary: 'A Swiss Anabaptist elder whose call for stricter discipline produced the Amish.',
+    detail: 'Ammann insisted on shunning excommunicated members, more frequent communion with foot washing, and plain dress. The resulting division of 1693 created the Amish, many of whom later emigrated to Pennsylvania.',
+    wiki: 'Jakob_Ammann',
+  }),
+
+  /* Baptist */
+  person({
+    id: 'smyth', year: 1570, lifespan: 'c. 1570–1612', name: 'John Smyth', lane: 'baptist', type: 'reformer', region: 'England & Amsterdam', formerly: 'anglican',
+    role: 'Founder of the first Baptist church',
+    summary: 'An English Separatist who baptised himself and his congregation in Amsterdam in 1609.',
+    detail: 'Exiled to the Netherlands, Smyth concluded that baptism belonged only to believers, rebaptised himself and his followers, and so formed the first English Baptist church. He later sought to join the Mennonites; Thomas Helwys led the remaining group back to England. He began as a Church of England clergyman before becoming a Separatist.',
+    wiki: 'John_Smyth_(Baptist_minister)', aliases: ['Smyth'],
+  }),
+  person({
+    id: 'helwys', year: 1575, lifespan: 'c. 1575 – c. 1616', name: 'Thomas Helwys', lane: 'baptist', type: 'reformer', region: 'England', formerly: 'anglican',
+    persecution: 'Imprisoned in Newgate by James I, c. 1612, and died there',
+    role: 'Baptist pastor',
+    summary: 'Founded the first Baptist church in England and wrote the first English plea for full religious liberty.',
+    detail: 'Helwys returned from Amsterdam to found a church at Spitalfields, London, in 1612. He sent King James I a copy of his book insisting the king had no power over souls — for any faith, including Jews and Muslims. He died in Newgate prison. He had belonged to the Church of England before joining Smyth’s Separatist congregation.',
+    wiki: 'Thomas_Helwys', aliases: ['Helwys'],
+  }),
+  person({
+    id: 'roger-williams', year: 1603, lifespan: 'c. 1603–1683', name: 'Roger Williams', lane: 'baptist', type: 'reformer', region: 'New England', formerly: 'reformed',
+    persecution: 'Banished from the Massachusetts Bay Colony, 1635',
+    role: 'Founder of Rhode Island',
+    summary: 'Founded Rhode Island on religious liberty and the first Baptist church in America.',
+    detail: 'Banished from Massachusetts for his views, Williams bought land from the Narragansett and founded Providence as a refuge for “persons distressed of conscience.” He helped found the First Baptist Church in America in 1638, and his “wall of separation” anticipated the First Amendment. Ordained in the Church of England, he became a Puritan minister in Massachusetts before his banishment.',
+    wiki: 'Roger_Williams', aliases: ['Williams'],
+  }),
+  person({
+    id: 'carey', year: 1761, lifespan: '1761–1834', name: 'William Carey', lane: 'baptist', type: 'evangelist', region: 'India', formerly: 'anglican',
+    role: 'Missionary to India',
+    summary: 'The “father of modern missions”, who sailed to India in 1793.',
+    detail: '“Expect great things from God; attempt great things for God.” A shoemaker turned pastor, Carey helped found the Baptist Missionary Society, translated the Bible into dozens of Indian languages and campaigned against sati. His example launched the Protestant missionary movement. Raised in the Church of England, he became a Baptist in 1783.',
+    wiki: 'William_Carey_(missionary)', aliases: ['Carey'],
+  }),
+  person({
+    id: 'spurgeon', year: 1834, lifespan: '1834–1892', name: 'Charles Spurgeon', lane: 'baptist', type: 'evangelist', region: 'England',
+    role: 'Preacher',
+    summary: 'The “Prince of Preachers”, who drew thousands weekly to London’s Metropolitan Tabernacle.',
+    detail: 'Spurgeon became a London pastor at nineteen and preached to millions over his lifetime; his printed sermons sold in vast numbers around the world. A Calvinistic Baptist, he founded a pastors’ college and orphanages, and left the Baptist Union in the “Downgrade Controversy” over liberal theology.',
+    wiki: 'Charles_Spurgeon', aliases: ['Charles Haddon Spurgeon', 'C. H. Spurgeon', 'Spurgeon'],
+  }),
+  person({
+    id: 'mlk', year: 1929, lifespan: '1929–1968', name: 'Martin Luther King Jr.', lane: 'baptist', type: 'evangelist', region: 'United States',
+    persecution: 'Jailed some thirty times; assassinated in Memphis, 1968',
+    role: 'Pastor and civil rights leader',
+    summary: 'The Baptist minister who led the American civil rights movement through nonviolent protest.',
+    detail: 'Pastor of Dexter Avenue Baptist Church in Montgomery, King led the bus boycott of 1955–56 and the March on Washington in 1963, grounding the movement in the Hebrew prophets and the Sermon on the Mount. He was assassinated in Memphis in 1968.',
+    wiki: 'Martin_Luther_King_Jr.', aliases: ['Martin Luther King', 'MLK'],
+  }),
+
+  /* Methodist & Wesleyan */
+  person({
+    id: 'john-wesley', year: 1703, lifespan: '1703–1791', name: 'John Wesley', lane: 'methodist', type: 'reformer', region: 'England', affiliation: 'anglican',
+    role: 'Founder of Methodism',
+    summary: 'The Anglican priest whose heart was “strangely warmed” in 1738, launching the Methodist movement.',
+    detail: 'Wesley preached in the open air for over fifty years, riding some 250,000 miles, and organised converts into classes and societies. He stressed assurance and holiness and remained an Anglican priest all his life; Methodism became a separate church after his death.',
+    wiki: 'John_Wesley', aliases: ['Wesley'],
+  }),
+  person({
+    id: 'charles-wesley', year: 1707, lifespan: '1707–1788', name: 'Charles Wesley', lane: 'methodist', type: 'evangelist', region: 'England', affiliation: 'anglican',
+    role: 'Hymn writer',
+    summary: 'Wrote some six thousand hymns, including “Hark! The Herald Angels Sing” and “And Can It Be”.',
+    detail: 'John Wesley’s younger brother experienced his own conversion days before John. His hymns taught Methodist theology to people who could not read it, and are sung across almost every tradition today.',
+    wiki: 'Charles_Wesley',
+  }),
+  person({
+    id: 'asbury', year: 1745, lifespan: '1745–1816', name: 'Francis Asbury', lane: 'methodist', type: 'evangelist', region: 'United States', formerly: 'anglican',
+    role: 'Bishop',
+    summary: 'The circuit-riding bishop who made Methodism the largest church in the young United States.',
+    detail: 'Sent to America by Wesley in 1771, Asbury stayed through the Revolution and was made bishop at the Christmas Conference of 1784. Travelling constantly on horseback, he built a network of circuit riders that carried Methodism to the frontier. Raised in the Church of England, he joined Wesley’s Methodist societies as a young man.',
+    wiki: 'Francis_Asbury', aliases: ['Asbury'],
+  }),
+  person({
+    id: 'richard-allen', year: 1760, lifespan: '1760–1831', name: 'Richard Allen', lane: 'methodist', type: 'reformer', region: 'United States',
+    role: 'Founder of the AME Church',
+    summary: 'A formerly enslaved preacher who founded the African Methodist Episcopal Church.',
+    detail: 'After Black worshippers were pulled from their knees at St George’s Church in Philadelphia, Allen founded Mother Bethel. In 1816 he became the first bishop of the AME Church, the first independent Black denomination in the United States.',
+    wiki: 'Richard_Allen_(bishop)',
+  }),
+  person({
+    id: 'phoebe-palmer', year: 1807, lifespan: '1807–1874', name: 'Phoebe Palmer', lane: 'methodist', type: 'evangelist', region: 'United States',
+    role: 'Holiness evangelist',
+    summary: 'The mother of the Holiness movement, who taught a “shorter way” to entire sanctification.',
+    detail: 'Palmer’s Tuesday Meetings in New York and her book The Way of Holiness (1843) spread Wesleyan perfectionism across America and Britain. She defended women’s preaching, and her teaching fed the Holiness churches and, later, Pentecostalism.',
+    wiki: 'Phoebe_Palmer',
+  }),
+
+  /* Pentecostal & Charismatic */
+  person({
+    id: 'parham', year: 1873, lifespan: '1873–1929', name: 'Charles Parham', lane: 'pentecostal', type: 'reformer', region: 'United States', formerly: 'methodist',
+    role: 'Holiness preacher',
+    summary: 'Taught that speaking in tongues is the evidence of baptism in the Spirit, from his Topeka Bible school in 1901.',
+    detail: 'Parham’s doctrine of “initial evidence” became central to classical Pentecostalism. William Seymour heard him teach in Houston — from outside the classroom, under segregation. Parham later turned against the interracial Azusa Street revival. He began as a Methodist supply pastor before leaving to preach holiness independently.',
+    wiki: 'Charles_Fox_Parham', aliases: ['Charles Fox Parham'],
+  }),
+  person({
+    id: 'seymour', year: 1870, lifespan: '1870–1922', name: 'William J. Seymour', lane: 'pentecostal', type: 'evangelist', region: 'United States',
+    role: 'Leader of Azusa Street',
+    summary: 'The son of formerly enslaved parents who led the Azusa Street Revival.',
+    detail: 'From a former stable on Azusa Street in Los Angeles, Seymour led a revival where Black, white, Latino and Asian worshippers prayed together — “the color line was washed away in the blood.” Visitors carried Pentecostalism around the world within a few years.',
+    wiki: 'William_J._Seymour', aliases: ['William Seymour', 'William Joseph Seymour'],
+  }),
+  person({
+    id: 'mcpherson', year: 1890, lifespan: '1890–1944', name: 'Aimee Semple McPherson', lane: 'pentecostal', type: 'evangelist', region: 'United States',
+    role: 'Evangelist and founder of the Foursquare Church',
+    summary: 'A celebrity evangelist who built Angelus Temple and founded the Foursquare Church.',
+    detail: 'Sister Aimee pioneered Christian radio and dramatic illustrated sermons, and her Los Angeles temple fed thousands during the Depression. The International Church of the Foursquare Gospel now has millions of members worldwide.',
+    wiki: 'Aimee_Semple_McPherson', aliases: ['Sister Aimee'],
+  }),
+  person({
+    id: 'yonggi-cho', year: 1936, lifespan: '1936–2021', name: 'David Yonggi Cho', lane: 'pentecostal', type: 'evangelist', region: 'South Korea',
+    role: 'Pastor',
+    summary: 'Founded Yoido Full Gospel Church in Seoul, which grew to be the largest congregation in the world.',
+    detail: 'Starting in a tent in 1958, Cho organised his church into home cell groups and grew it to some 800,000 members. His ministry symbolises the shift of Pentecostalism’s centre of gravity to the Global South.',
+    wiki: 'David_Yonggi_Cho', aliases: ['Paul Yonggi Cho'],
+  }),
+
+  /* Evangelical & Non-denominational */
+  person({
+    id: 'edwards', year: 1703, lifespan: '1703–1758', name: 'Jonathan Edwards', lane: 'evangelical', type: 'theologian', affiliation: 'reformed', region: 'New England',
+    role: 'Theologian of the Great Awakening',
+    summary: 'The Puritan pastor and philosopher at the centre of the First Great Awakening.',
+    detail: 'A Congregationalist minister in Northampton, Massachusetts, Edwards preached “Sinners in the Hands of an Angry God” in 1741 and wrote careful accounts of revival and of true religious affections. Often called America’s greatest theologian, he died as president of Princeton.',
+    wiki: 'Jonathan_Edwards_(theologian)', aliases: ['Edwards'],
+  }),
+  person({
+    id: 'whitefield', year: 1714, lifespan: '1714–1770', name: 'George Whitefield', lane: 'evangelical', type: 'evangelist', affiliation: 'anglican', region: 'England & America',
+    role: 'Revival preacher',
+    summary: 'The Great Awakening’s most famous preacher, heard by crowds of tens of thousands in Britain and America.',
+    detail: 'An Anglican priest and early Methodist, Whitefield preached in the open air across the colonies; Benjamin Franklin estimated one crowd at thirty thousand. A Calvinist, he parted ways with Wesley over predestination, and became the first transatlantic celebrity.',
+    wiki: 'George_Whitefield', aliases: ['Whitefield'],
+  }),
+  person({
+    id: 'moody', year: 1837, lifespan: '1837–1899', name: 'D. L. Moody', lane: 'evangelical', type: 'evangelist', region: 'United States',
+    role: 'Evangelist',
+    summary: 'A shoe salesman turned evangelist whose mass campaigns set the pattern for modern revivalism.',
+    detail: 'With singer Ira Sankey, Moody filled halls in Britain and America in the 1870s. He founded the Moody Bible Institute in Chicago and the Northfield conferences, which helped launch the Student Volunteer Movement for missions.',
+    wiki: 'Dwight_L._Moody', aliases: ['Dwight L. Moody', 'Dwight Moody'],
+  }),
+  person({
+    id: 'billy-graham', year: 1918, lifespan: '1918–2018', name: 'Billy Graham', lane: 'evangelical', type: 'evangelist', affiliation: 'baptist', region: 'United States',
+    role: 'Evangelist',
+    summary: 'The twentieth century’s best-known evangelist, who preached in person to some 200 million people.',
+    detail: 'An ordained Southern Baptist, Graham led crusades on every continent, from Los Angeles in 1949 to New York’s Madison Square Garden in 1957, and counselled a dozen US presidents. He insisted on integrated audiences, founded Christianity Today and convened the 1974 Lausanne Congress.',
+    wiki: 'Billy_Graham', aliases: ['William Franklin Graham'],
+  }),
+  person({
+    id: 'stott', year: 1921, lifespan: '1921–2011', name: 'John Stott', lane: 'evangelical', type: 'theologian', affiliation: 'anglican', region: 'England',
+    role: 'Pastor and writer',
+    summary: 'Anglican rector and chief architect of the Lausanne Covenant.',
+    detail: 'From All Souls, Langham Place, in London, Stott led a revival of evangelicalism within the Church of England. His books, especially The Cross of Christ, and his insistence that evangelism and social responsibility belong together, shaped global evangelicalism.',
+    wiki: 'John_Stott', aliases: ['John R. W. Stott'],
+  }),
+
+  /* Adventist */
+  person({
+    id: 'william-miller', year: 1782, lifespan: '1782–1849', name: 'William Miller', lane: 'adventist', type: 'evangelist', region: 'United States', formerly: 'baptist',
+    role: 'Baptist preacher',
+    summary: 'Predicted from Daniel’s prophecies that Christ would return around 1843–44.',
+    detail: 'A farmer and Baptist lay preacher, Miller drew perhaps a hundred thousand followers. When Christ did not appear on 22 October 1844 — the Great Disappointment — the movement split; one group became the Seventh-day Adventists.',
+    wiki: 'William_Miller_(preacher)',
+  }),
+  person({
+    id: 'joseph-bates', year: 1792, lifespan: '1792–1872', name: 'Joseph Bates', lane: 'adventist', type: 'reformer', region: 'United States',
+    role: 'Adventist co-founder',
+    summary: 'A retired sea captain who persuaded the early Adventists to keep the seventh-day Sabbath.',
+    detail: 'Bates’s 1846 tract on the Sabbath convinced James and Ellen White, and Sabbath-keeping became the defining mark of the movement. He was also an early temperance and health reformer.',
+    wiki: 'Joseph_Bates_(Adventist)',
+  }),
+  person({
+    id: 'ellen-white', year: 1827, lifespan: '1827–1915', name: 'Ellen G. White', lane: 'adventist', type: 'reformer', region: 'United States', formerly: 'methodist',
+    persecution: 'Her family was expelled from the Methodist church in Portland, 1843',
+    role: 'Adventist co-founder',
+    summary: 'Co-founder of the Seventh-day Adventist Church, regarded by Adventists as a prophetic messenger.',
+    detail: 'Over seventy years Ellen White wrote prolifically on Scripture, health, education and prophecy; Adventists founded hospitals, schools and a worldwide mission on her counsel. She is among the most translated American authors. Raised a Methodist in Portland, Maine, she and her family were expelled in 1843 for accepting Miller’s teaching.',
+    wiki: 'Ellen_G._White', aliases: ['Ellen White', 'Ellen Gould White'],
+  }),
+
+  /* Restoration Movement */
+  person({
+    id: 'barton-stone', year: 1772, lifespan: '1772–1844', name: 'Barton W. Stone', lane: 'restoration', type: 'reformer', region: 'United States', formerly: 'reformed',
+    persecution: 'Suspended by the Presbyterian Synod of Kentucky, 1803',
+    role: 'Revivalist',
+    summary: 'Hosted the great Cane Ridge revival of 1801 and left Presbyterianism to be “Christians only”.',
+    detail: 'Stone and his colleagues dissolved their presbytery in 1804, rejecting creeds as tests of fellowship. In 1832 his “Christians” united with Alexander Campbell’s “Disciples” in Lexington, Kentucky.',
+    wiki: 'Barton_W._Stone', aliases: ['Barton Stone'],
+  }),
+  person({
+    id: 'thomas-campbell', year: 1763, lifespan: '1763–1854', name: 'Thomas Campbell', lane: 'restoration', type: 'reformer', region: 'United States', formerly: 'reformed',
+    persecution: 'Censured by his Presbyterian synod, 1808',
+    role: 'Presbyterian minister',
+    summary: 'Wrote the Declaration and Address (1809): “Where the Scriptures speak, we speak.”',
+    detail: 'An Irish Presbyterian minister in Pennsylvania, Campbell was censured for sharing communion with other Presbyterians. His Declaration and Address called for Christian unity on the basis of the New Testament alone.',
+    wiki: 'Thomas_Campbell_(minister)',
+  }),
+  person({
+    id: 'alexander-campbell', year: 1788, lifespan: '1788–1866', name: 'Alexander Campbell', lane: 'restoration', type: 'reformer', region: 'United States', formerly: 'baptist',
+    role: 'Leader of the Disciples',
+    summary: 'Thomas Campbell’s son, the leading voice of the Restoration Movement.',
+    detail: 'A tireless debater and editor, Campbell taught believer’s baptism by immersion for the remission of sins and weekly communion. He founded Bethany College. Disciples of Christ, Churches of Christ and the Christian Churches all trace their roots to him. For some fifteen years his congregations belonged to Baptist associations, until the Disciples separated around 1830.',
+    wiki: 'Alexander_Campbell_(clergyman)',
+  }),
+
+  /* Latter-day Saints */
+  person({
+    id: 'joseph-smith', year: 1805, lifespan: '1805–1844', name: 'Joseph Smith', lane: 'latter-day-saints', type: 'reformer', region: 'United States',
+    persecution: 'Killed by a mob at Carthage Jail, Illinois, 1844',
+    role: 'Founder of the Latter Day Saint movement',
+    summary: 'Published the Book of Mormon and organised the Church of Christ in 1830.',
+    detail: 'Smith taught that God had restored the true church through him and gave many revelations. His followers moved from New York to Ohio, Missouri and Nauvoo, Illinois, where he was killed by a mob in 1844.',
+    wiki: 'Joseph_Smith', aliases: ['Joseph Smith Jr.'],
+  }),
+  person({
+    id: 'brigham-young', year: 1801, lifespan: '1801–1877', name: 'Brigham Young', lane: 'latter-day-saints', type: 'church-leader', region: 'United States', formerly: 'methodist',
+    role: 'President of the Church',
+    summary: 'Led the Latter-day Saints across the plains to the Salt Lake Valley in 1847.',
+    detail: 'After Joseph Smith’s death, Young led the largest group of Latter-day Saints west and founded Salt Lake City. As church president and first governor of Utah Territory, he directed the settlement of hundreds of communities. He had been a Methodist before joining the Latter-day Saints in 1832.',
+    wiki: 'Brigham_Young',
+  }),
+  person({
+    id: 'wilford-woodruff', year: 1807, lifespan: '1807–1898', name: 'Wilford Woodruff', lane: 'latter-day-saints', type: 'church-leader', region: 'United States',
+    role: 'President of the Church',
+    summary: 'Issued the 1890 Manifesto ending the church’s sanction of plural marriage.',
+    detail: 'Woodruff’s Manifesto, under intense federal pressure, opened the way to Utah statehood in 1896. He also dedicated the Salt Lake Temple in 1893.',
+    wiki: 'Wilford_Woodruff',
+  }),
+
+  /* Jehovah’s Witnesses */
+  person({
+    id: 'russell', year: 1852, lifespan: '1852–1916', name: 'Charles Taze Russell', lane: 'jehovahs-witnesses', type: 'reformer', region: 'United States', formerly: 'reformed',
+    role: 'Founder of the Bible Student movement',
+    summary: 'Began the Bible Student movement and Zion’s Watch Tower magazine in 1879.',
+    detail: 'Russell rejected the Trinity, eternal torment and the immortality of the soul, and taught that Christ’s invisible presence had begun. His Watch Tower Society published his Studies in the Scriptures in millions of copies. Raised a Presbyterian, he left the church as a teenager over the doctrine of eternal torment.',
+    wiki: 'Charles_Taze_Russell', aliases: ['Pastor Russell'],
+  }),
+  person({
+    id: 'rutherford', year: 1869, lifespan: '1869–1942', name: 'Joseph F. Rutherford', lane: 'jehovahs-witnesses', type: 'church-leader', region: 'United States',
+    persecution: 'Imprisoned in Atlanta for obstructing the draft, 1918–19; his conviction was overturned',
+    role: 'President of the Watch Tower Society',
+    summary: 'Reorganised the Bible Students and gave them the name Jehovah’s Witnesses in 1931.',
+    detail: '“Judge” Rutherford centralised authority in the society and made door-to-door witnessing every member’s duty. His leadership caused a split with many of Russell’s followers.',
+    wiki: 'Joseph_Franklin_Rutherford', aliases: ['Joseph Rutherford', 'J. F. Rutherford'],
+  }),
+  person({
+    id: 'knorr', year: 1905, lifespan: '1905–1977', name: 'Nathan H. Knorr', lane: 'jehovahs-witnesses', type: 'church-leader', region: 'United States',
+    role: 'President of the Watch Tower Society',
+    summary: 'Built the Witnesses into a global organisation and oversaw the New World Translation.',
+    detail: 'Knorr founded the Gilead missionary school and launched the New World Translation of the Bible (1950–1961). Membership grew from about 100,000 to over two million during his presidency.',
+    wiki: 'Nathan_Homer_Knorr', aliases: ['Nathan Knorr'],
+  }),
+
+  /* More Protestant pastors, writers and scholars */
+  person({
+    id: 'tyndale', year: 1494, lifespan: 'c. 1494–1536', name: 'William Tyndale', lane: 'anglican', type: 'reformer', region: 'England & the Low Countries', formerly: 'catholic',
+    persecution: 'Strangled and burned as a heretic at Vilvoorde, near Brussels, 1536',
+    role: 'Bible translator',
+    summary: 'Translated the New Testament into English from the Greek, and was executed for it.',
+    detail: 'A Catholic priest refused permission to translate the Bible in England, Tyndale worked in exile in Germany and the Low Countries. His 1526 New Testament was smuggled into England and burned by the bishops, yet much of the King James Version keeps his wording. Betrayed in Antwerp, he is said to have prayed at his execution, “Lord, open the King of England’s eyes.”',
+    wiki: 'William_Tyndale', aliases: ['Tyndale'],
+  }),
+  person({
+    id: 'arminius', year: 1560, lifespan: '1560–1609', name: 'Jacobus Arminius', lane: 'reformed', type: 'theologian', region: 'Netherlands',
+    role: 'Theologian at Leiden',
+    summary: 'Dutch Reformed theologian who questioned strict predestination, giving his name to Arminianism.',
+    detail: 'A professor at Leiden, Arminius taught that God’s grace can be resisted and that election rests on God’s foreknowledge of faith. After his death his followers, the Remonstrants, were condemned at the Synod of Dort (1618–19), but his views lived on in Methodism and much of later evangelicalism.',
+    wiki: 'Jacobus_Arminius', aliases: ['James Arminius', 'Arminius'],
+  }),
+  person({
+    id: 'bunyan', year: 1628, lifespan: '1628–1688', name: 'John Bunyan', lane: 'baptist', type: 'evangelist', region: 'England', formerly: 'anglican',
+    persecution: 'Imprisoned in Bedford for twelve years, 1660–72, for preaching without a licence',
+    role: 'Preacher and author',
+    summary: 'A tinker turned preacher who wrote The Pilgrim’s Progress.',
+    detail: 'Raised in the Church of England, Bunyan joined an independent Bedford congregation of Baptist convictions in the 1650s. Jailed after the Restoration for preaching without a licence, he wrote his spiritual autobiography, Grace Abounding, in prison. The Pilgrim’s Progress (1678), also begun behind bars, became one of the most widely read books in the English language.',
+    wiki: 'John_Bunyan', aliases: ['Bunyan'],
+  }),
+  person({
+    id: 'zinzendorf', year: 1700, lifespan: '1700–1760', name: 'Nicolaus von Zinzendorf', lane: 'protestant', type: 'reformer', region: 'Saxony',
+    persecution: 'Banished from Saxony, 1736–47',
+    role: 'Patron of the Moravian Church',
+    summary: 'A Lutheran count who sheltered Moravian refugees at Herrnhut and launched the first large-scale Protestant missions.',
+    detail: 'In 1722 Zinzendorf let persecuted Moravian Brethren settle on his Saxon estate. After a revival there in 1727 the community kept a round-the-clock prayer watch for a century, and from 1732 sent missionaries to the Caribbean, Greenland and beyond. Moravians later helped lead John Wesley to his conversion.',
+    wiki: 'Nicolaus_Zinzendorf', aliases: ['Nikolaus von Zinzendorf', 'Nicolaus Ludwig von Zinzendorf', 'Count Zinzendorf', 'Zinzendorf'],
+  }),
+  person({
+    id: 'schleiermacher', year: 1768, lifespan: '1768–1834', name: 'Friedrich Schleiermacher', lane: 'reformed', type: 'theologian', region: 'Prussia',
+    role: 'Theologian in Berlin',
+    summary: 'The “father of modern liberal theology”, who grounded faith in the feeling of absolute dependence on God.',
+    detail: 'A Reformed preacher and professor in Berlin, Schleiermacher answered Enlightenment critics in On Religion (1799) and set out his system in The Christian Faith (1821–22). He helped found the University of Berlin and supported the 1817 Prussian Union of Lutheran and Reformed churches.',
+    wiki: 'Friedrich_Schleiermacher', aliases: ['Schleiermacher'],
+  }),
+  person({
+    id: 'finney', year: 1792, lifespan: '1792–1875', name: 'Charles Finney', lane: 'evangelical', type: 'evangelist', region: 'United States', formerly: 'reformed',
+    role: 'Revivalist',
+    summary: 'The leading revivalist of the Second Great Awakening, who made revival a matter of method.',
+    detail: 'A lawyer converted in 1821, Finney was licensed as a Presbyterian preacher and led revivals across upstate New York’s “burned-over district”. His “new measures”, such as the anxious bench, shaped later evangelism. He later became a Congregationalist, taught at Oberlin College and served as its president, and opposed slavery.',
+    wiki: 'Charles_Grandison_Finney', aliases: ['Charles Grandison Finney', 'Charles G. Finney'],
+  }),
+  person({
+    id: 'rauschenbusch', year: 1861, lifespan: '1861–1918', name: 'Walter Rauschenbusch', lane: 'baptist', type: 'theologian', region: 'United States',
+    role: 'Theologian of the Social Gospel',
+    summary: 'A Baptist pastor in New York’s Hell’s Kitchen who became the leading voice of the Social Gospel.',
+    detail: 'Eleven years ministering among the poor of Hell’s Kitchen convinced Rauschenbusch that the kingdom of God must transform society as well as individuals. Christianity and the Social Crisis (1907) and A Theology for the Social Gospel (1917), written while he taught at Rochester Theological Seminary, deeply influenced Martin Luther King Jr.',
+    wiki: 'Walter_Rauschenbusch', aliases: ['Rauschenbusch'],
+  }),
+  person({
+    id: 'lloyd-jones', year: 1899, lifespan: '1899–1981', name: 'Martyn Lloyd-Jones', lane: 'evangelical', type: 'evangelist', region: 'Wales & London', affiliation: 'reformed',
+    role: 'Preacher at Westminster Chapel',
+    summary: 'A Welsh physician who left medicine to preach, and became the leading expository preacher of his generation.',
+    detail: 'Trained at St Bartholomew’s Hospital, Lloyd-Jones became a minister of the Welsh Calvinistic Methodist church in 1927, then preached at Westminster Chapel in London from 1939 to 1968. His long sermon series through Romans and Ephesians shaped Reformed evangelicalism, and in 1966 he urged evangelicals to leave doctrinally mixed denominations.',
+    wiki: 'Martyn_Lloyd-Jones', aliases: ['D. Martyn Lloyd-Jones', 'Lloyd-Jones'],
+  }),
+  person({
+    id: 'packer', year: 1926, lifespan: '1926–2020', name: 'J. I. Packer', lane: 'evangelical', type: 'theologian', region: 'England & Canada', affiliation: 'anglican',
+    role: 'Theologian',
+    summary: 'Anglican theologian whose Knowing God became an evangelical classic.',
+    detail: 'Packer taught in Bristol before moving in 1979 to Regent College in Vancouver. Knowing God (1973) sold over a million copies; he championed the Puritans, served as general editor of the English Standard Version and was a leading voice of Reformed evangelicalism.',
+    wiki: 'J._I._Packer', aliases: ['J.I. Packer', 'James Innell Packer', 'Packer'],
+  }),
+  person({
+    id: 'nt-wright', year: 1948, lifespan: 'b. 1948', name: 'N. T. Wright', lane: 'anglican', type: 'theologian', region: 'England',
+    role: 'New Testament scholar',
+    summary: 'New Testament scholar and former Bishop of Durham, known for his work on Jesus, Paul and the resurrection.',
+    detail: 'Wright’s multi-volume Christian Origins and the Question of God reads the New Testament within first-century Judaism, and his work on Paul is central to the “New Perspective” debates. Bishop of Durham from 2003 to 2010, he later taught at St Andrews, and popular books such as Surprised by Hope reach a wide audience.',
+    wiki: 'N._T._Wright', aliases: ['N.T. Wright', 'Tom Wright', 'Nicholas Thomas Wright'],
+  }),
+  person({
+    id: 'keller', year: 1950, lifespan: '1950–2023', name: 'Tim Keller', lane: 'reformed', type: 'evangelist', region: 'United States',
+    role: 'Pastor in New York',
+    summary: 'Founded Redeemer Presbyterian Church in Manhattan and wrote The Reason for God.',
+    detail: 'Keller planted Redeemer in 1989 among New York’s young professionals, and it grew to several thousand worshippers. A pastor in the Presbyterian Church in America, he co-founded The Gospel Coalition and the Redeemer City to City church-planting network, and his books, especially The Reason for God (2008), made him a leading apologist.',
+    wiki: 'Tim_Keller_(pastor)', aliases: ['Timothy Keller'],
+  }),
+
+  /* Dispensationalism */
+  person({
+    id: 'darby', year: 1800, lifespan: '1800–1882', name: 'John Nelson Darby', lane: 'evangelical', type: 'reformer', region: 'Ireland & England', formerly: 'anglican',
+    role: 'Plymouth Brethren leader',
+    summary: 'The Anglo-Irish Brethren leader who devised dispensationalism and the secret pre-tribulation rapture.',
+    detail: 'A Church of Ireland priest who left to help lead the Plymouth Brethren, Darby taught that the institutional churches were in ruin and gathered believers into simple assemblies. His insistence on purity split the movement in 1848, and his Exclusive Brethren divided repeatedly. Through tours of North America and tireless writing, his scheme of dispensations and a rapture before the tribulation reached far beyond the Brethren — though it had little precedent in earlier Christian teaching.',
+    wiki: 'John_Nelson_Darby', aliases: ['J. N. Darby', 'Darby'],
+  }),
+  person({
+    id: 'scofield', year: 1843, lifespan: '1843–1921', name: 'Cyrus I. Scofield', lane: 'evangelical', type: 'theologian', region: 'United States',
+    role: 'Editor of the Scofield Reference Bible',
+    summary: 'A Kansas lawyer turned Congregationalist minister whose annotated Bible made dispensationalism mainstream.',
+    detail: 'Scofield’s early life sits uneasily with his later authority. Appointed US Attorney for Kansas at 29, he was forced to resign the same year, 1873, “under a cloud of scandal” over his finances, and he abandoned his wife and two daughters; she divorced him for desertion in 1883. Persistent accounts say he was jailed on forgery charges around the time of his conversion in 1879, though no public record of it survives. Ordained a Congregationalist minister in 1883 while the divorce was still pending, he pastored in Dallas, and from the 1890s styled himself “C. I. Scofield, D.D.”, although no institution is known to have granted him the degree. His Reference Bible of 1909 carried Darby’s system to millions of readers who often could not tell his notes from Scripture.',
+    wiki: 'Cyrus_I._Scofield', aliases: ['C. I. Scofield', 'Cyrus Scofield', 'Scofield'],
+  }),
+  person({
+    id: 'tim-lahaye', year: 1926, lifespan: '1926–2016', name: 'Tim LaHaye', lane: 'evangelical', type: 'evangelist', region: 'United States', affiliation: 'baptist',
+    role: 'Pastor and co-author of Left Behind',
+    summary: 'A San Diego Baptist pastor and Religious Right organiser who co-wrote the Left Behind novels.',
+    detail: 'LaHaye pastored Scott Memorial Baptist Church in San Diego for nearly 25 years, urged Jerry Falwell to found the Moral Majority and served as one of its directors, co-founded the Council for National Policy in 1981, and warned of a “secular humanist” plot to make America an amoral country. With Jerry B. Jenkins he wrote the Left Behind series, which made dispensational prophecy a mass-market genre and tied it closely to conservative American politics.',
+    wiki: 'Tim_LaHaye', aliases: ['Timothy LaHaye'],
+  }),
+  person({
+    id: 'hal-lindsey', year: 1929, lifespan: '1929–2024', name: 'Hal Lindsey', lane: 'evangelical', type: 'evangelist', region: 'United States',
+    role: 'Prophecy writer',
+    summary: 'Author of The Late Great Planet Earth, the most popular prophecy book of the twentieth century.',
+    detail: 'A former Mississippi tugboat captain and Dallas Theological Seminary graduate, Lindsey read the headlines of the Cold War and the Middle East as fulfilled prophecy. His suggestion that the end could come within a generation of Israel’s founding in 1948, which many readers took to mean by 1988, did not come to pass, but he kept writing and broadcasting on prophecy for another half-century.',
+    wiki: 'Hal_Lindsey', aliases: ['Harold Lee Lindsey'],
+  }),
+
+  /* The new evangelicals and after */
+  person({
+    id: 'carl-henry', year: 1913, lifespan: '1913–2003', name: 'Carl F. H. Henry', lane: 'evangelical', type: 'theologian', region: 'United States', affiliation: 'baptist',
+    role: 'Theologian and founding editor of Christianity Today',
+    summary: 'The leading theologian of the post-war “new evangelicals”, who urged fundamentalists to engage the world they had withdrawn from.',
+    detail: 'Henry’s The Uneasy Conscience of Modern Fundamentalism (1947) rebuked fundamentalists for abandoning social concern and became a manifesto for a more engaged evangelicalism. He served as acting dean in Fuller Theological Seminary’s first year, then as the first editor of Christianity Today, founded by Billy Graham in 1956, and later set out his theology in the six volumes of God, Revelation and Authority.',
+    wiki: 'Carl_F._H._Henry', aliases: ['Carl Henry', 'Carl F.H. Henry'],
+  }),
+  person({
+    id: 'chuck-smith', year: 1927, lifespan: '1927–2013', name: 'Chuck Smith', lane: 'evangelical', type: 'reformer', region: 'United States', formerly: 'pentecostal',
+    role: 'Founder of the Calvary Chapel movement',
+    summary: 'A Foursquare-trained pastor who opened his Costa Mesa church to the hippies of the Jesus Movement.',
+    detail: 'Smith took over Calvary Chapel Costa Mesa, a congregation of 25, in 1965. From 1968, working with the young evangelist Lonnie Frisbee, he welcomed barefoot hippies, held mass baptisms in the Pacific and encouraged the worship music that grew into contemporary Christian music. His simple verse-by-verse Bible teaching became the model for more than a thousand Calvary Chapels in the United States and hundreds more abroad.',
+    wiki: 'Chuck_Smith_(pastor)', aliases: ['Charles Ward Smith', 'Pastor Chuck Smith'],
+  }),
+  person({
+    id: 'jerry-falwell', year: 1933, lifespan: '1933–2007', name: 'Jerry Falwell', lane: 'evangelical', type: 'church-leader', region: 'United States', affiliation: 'baptist',
+    role: 'Pastor and founder of the Moral Majority',
+    summary: 'A Lynchburg Baptist pastor who founded Liberty University and the Moral Majority and made the Religious Right a fixture of American politics.',
+    detail: 'Falwell founded Thomas Road Baptist Church in 1956 and Liberty University in 1971. In the 1950s and 60s he defended segregation: his 1958 sermon “Segregation or Integration: Which?” opposed school desegregation, the Lynchburg Christian Academy he opened in 1967 was described locally as a school for white students, and in 1965 he preached against ministers marching for civil rights, a sermon he retracted in 1980. After the 11 September 2001 attacks he blamed feminists, gays and abortion providers among others, then apologised.',
+    wiki: 'Jerry_Falwell', aliases: ['Jerry Falwell Sr.', 'Jerry Falwell Sr'],
+  }),
+  person({
+    id: 'rick-warren', year: 1954, lifespan: 'b. 1954', name: 'Rick Warren', lane: 'evangelical', type: 'evangelist', region: 'United States', formerly: 'baptist',
+    role: 'Founding pastor of Saddleback Church',
+    summary: 'Founded the Saddleback megachurch and wrote The Purpose Driven Life, one of the best-selling Christian books ever.',
+    detail: 'Warren started Saddleback Church in Orange County in 1980 and built it into one of America’s largest congregations, teaching other pastors his “purpose driven” model. The Purpose Driven Life (2002) has sold some 50 million copies. He gave the invocation at Barack Obama’s 2009 inauguration and retired in 2022. After Saddleback ordained women as pastors, the Southern Baptist Convention expelled the church in 2023.',
+    wiki: 'Rick_Warren', aliases: ['Richard Duane Warren'],
+  }),
+
+  /* Anglican to Catholic */
+  person({
+    id: 'newman', year: 1801, lifespan: '1801–1890', name: 'John Henry Newman', lane: 'catholic', type: 'theologian', region: 'England', formerly: 'anglican',
+    role: 'Oxford Movement leader and cardinal',
+    summary: 'The Anglican priest who led the Oxford Movement, became a Roman Catholic and was named a Doctor of the Church.',
+    detail: 'A celebrated Oxford preacher, Newman wrote many of the Tracts for the Times; his Tract 90 (1841), arguing that the Thirty-Nine Articles could be read in a Catholic sense, caused uproar. He was received into the Catholic Church in 1845, wrote the Essay on the Development of Christian Doctrine and the Apologia Pro Vita Sua, and was made a cardinal in 1879. He was canonised in 2019, and in 2025 Pope Leo XIV proclaimed him a Doctor of the Church.',
+    wiki: 'John_Henry_Newman', aliases: ['Cardinal Newman', 'St John Henry Newman', 'Saint John Henry Newman'],
+  }),
+
+  person({
+    id: 'genghis-khan', year: 1162, lifespan: 'c. 1162–1227', name: 'Genghis Khan', lane: 'world', type: 'ruler', region: 'Mongolia',
+    role: 'Founder of the Mongol Empire',
+    summary: 'United the Mongol tribes in 1206 and began the conquests that built the largest contiguous land empire in history.',
+    detail: 'Born Temüjin, he rose from a fatherless outcast to Great Khan. His campaigns across China, Central Asia and Persia were extraordinarily destructive, yet his empire protected trade and tolerated many faiths, including the Church of the East Christians among his allies and his sons’ wives.',
+    wiki: 'Genghis_Khan', aliases: ['Temüjin', 'Chinggis Khan'],
+  }),
+  /* Anabaptists */
+  person({
+    id: 'jakob-hutter', year: 1500, lifespan: 'c. 1500–1536', name: 'Jakob Hutter', lane: 'radical', type: 'reformer', region: 'Tyrol & Moravia',
+    persecution: 'Burned at the stake in Innsbruck, 1536', movement: 'Hutterite', aliases: ['Jacob Hutter'],
+    role: 'Founder of the Hutterites',
+    summary: 'An Anabaptist hatmaker whose leadership gave the communal Hutterite Brethren their name.',
+    detail: 'Hutter organised persecuted Anabaptists from the Tyrol into communities in Moravia that held all goods in common, following the church in Acts. Hutterites still live this way in colonies across the Canadian prairies and the northern United States.',
+    wiki: 'Jakob_Hutter',
+  }),
+  person({
+    id: 'dirk-willems', year: 1569, lifespan: 'd. 1569', name: 'Dirk Willems', lane: 'radical', type: 'evangelist', region: 'Netherlands',
+    persecution: 'Burned at Asperen after saving his pursuer, 1569', movement: 'Mennonite',
+    role: 'Anabaptist martyr',
+    summary: 'A Dutch Anabaptist who escaped across the ice, then turned back to save the man chasing him.',
+    detail: 'When his pursuer fell through the ice of a frozen pond, Willems went back and pulled him out. He was recaptured and executed. Told in the Martyrs Mirror, his story became the best-known image of Anabaptist love of enemies.',
+    wiki: 'Dirk_Willems',
+  }),
+  person({
+    id: 'alexander-mack', year: 1679, lifespan: '1679–1735', name: 'Alexander Mack', lane: 'radical', type: 'reformer', region: 'Germany & Pennsylvania', formerly: 'reformed', movement: 'Brethren',
+    role: 'Founder of the Brethren',
+    summary: 'The Palatinate miller who led the first Brethren baptisms at Schwarzenau in 1708.',
+    detail: 'Raised in the Reformed church and drawn to radical Pietism, Mack concluded that believers should be baptised and gathered into a disciplined church. He led the Brethren to Pennsylvania in 1729, where the Church of the Brethren grew from his congregation in Germantown.',
+    wiki: 'Alexander_Mack',
+  }),
+  person({
+    id: 'george-fox', year: 1624, lifespan: '1624–1691', name: 'George Fox', lane: 'quaker', type: 'reformer', region: 'England',
+    persecution: 'Imprisoned eight times for his preaching', aliases: ['Fox'],
+    role: 'Founder of the Quakers',
+    summary: 'The English shoemaker’s apprentice who founded the Religious Society of Friends.',
+    detail: 'After years of spiritual searching, Fox taught that “there is one, even Christ Jesus, that can speak to thy condition” directly, without priests or steeple-houses. His Journal is a classic of spiritual autobiography.',
+    wiki: 'George_Fox',
+  }),
+  person({
+    id: 'margaret-fell', year: 1614, lifespan: '1614–1702', name: 'Margaret Fell', lane: 'quaker', type: 'reformer', region: 'England',
+    persecution: 'Imprisoned in Lancaster for four years, 1664–68',
+    role: '“Mother of Quakerism”',
+    summary: 'Hostess, organiser and defender of the early Quakers, and later George Fox’s wife.',
+    detail: 'Fell turned Swarthmoor Hall into the movement’s headquarters, coordinated its preachers by letter and argued for women’s right to preach in Women’s Speaking Justified (1666).',
+    wiki: 'Margaret_Fell',
+  }),
+  person({
+    id: 'william-penn', year: 1644, lifespan: '1644–1718', name: 'William Penn', lane: 'quaker', type: 'church-leader', region: 'England & Pennsylvania',
+    persecution: 'Imprisoned in the Tower of London, 1668–69', formerly: 'anglican',
+    role: 'Founder of Pennsylvania',
+    summary: 'The admiral’s son who became a Quaker and founded Pennsylvania as a refuge of religious liberty.',
+    detail: 'Penn wrote No Cross, No Crown while imprisoned in the Tower of London and later won a royal charter for Pennsylvania, where he guaranteed freedom of worship. His colony sheltered Quakers, Mennonites, Amish and Brethren alike.',
+    wiki: 'William_Penn',
+  }),
+  person({
+    id: 'mary-dyer', year: 1611, lifespan: 'c. 1611–1660', name: 'Mary Dyer', lane: 'quaker', type: 'evangelist', region: 'England & New England',
+    persecution: 'Hanged on Boston Common, 1660',
+    role: 'Quaker martyr',
+    summary: 'A Quaker who returned to Puritan Boston in defiance of its ban, knowing she would be hanged.',
+    detail: 'Banished from Massachusetts for her faith, Dyer came back to protest its anti-Quaker laws. Her execution on Boston Common helped turn opinion against the persecution, and her statue now stands outside the Massachusetts State House.',
+    wiki: 'Mary_Dyer',
+  }),
+  person({
+    id: 'ann-lee', year: 1736, lifespan: '1736–1784', name: 'Ann Lee', lane: 'quaker', type: 'reformer', region: 'England & New York',
+    persecution: 'Jailed in Manchester and in New York for her preaching and pacifism', movement: 'Shaker', aliases: ['Mother Ann Lee'],
+    role: 'Leader of the Shakers',
+    summary: 'A Manchester mill worker who led the Shakers to America, where they built celibate communal villages.',
+    detail: 'After losing four children in infancy, Lee came to see celibacy as the way to holiness. Her followers called her Mother Ann and believed Christ’s spirit had appeared again in her. She founded the first Shaker community near Albany, New York.',
+    wiki: 'Ann_Lee',
+  }),
+  person({
+    id: 'elizabeth-fry', year: 1780, lifespan: '1780–1845', name: 'Elizabeth Fry', lane: 'quaker', type: 'evangelist', region: 'England',
+    role: 'Prison reformer',
+    summary: 'A Quaker minister who transformed the treatment of women in British prisons.',
+    detail: 'Fry visited the women’s wards of Newgate prison, set up schools and work for prisoners, and campaigned for humane conditions and against the death penalty. Her reforms influenced prisons across Europe, and she appeared on the Bank of England’s £5 note.',
+    wiki: 'Elizabeth_Fry',
+  }),
+  /* Unitarian Universalists and Christian Science */
+  person({
+    id: 'servetus', year: 1511, lifespan: 'c. 1511–1553', name: 'Michael Servetus', lane: 'unitarian-universalist', type: 'theologian', region: 'Spain & France', formerly: 'catholic', movement: 'Anti-Trinitarian',
+    persecution: 'Burned as a heretic in Geneva, with John Calvin’s support, 1553',
+    role: 'Physician and anti-Trinitarian theologian',
+    summary: 'A Spanish physician whose attack on the doctrine of the Trinity made him a heretic to Catholics and Protestants alike.',
+    detail: 'Servetus described the pulmonary circulation of the blood and published On the Errors of the Trinity (1531). Escaping the Catholic Inquisition in France, he was arrested in Geneva, tried and burned. His death became a rallying point for early advocates of religious toleration such as Sebastian Castellio.',
+    wiki: 'Michael_Servetus',
+  }),
+  person({
+    id: 'francis-david', year: 1510, lifespan: 'c. 1510–1579', name: 'Francis David', lane: 'unitarian-universalist', type: 'reformer', region: 'Transylvania', formerly: 'reformed', movement: 'Unitarian', aliases: ['Ferenc Dávid', 'Ferenc David'],
+    persecution: 'Condemned for “innovation” and died in prison at Déva, 1579',
+    role: 'Founder of the Unitarian Church of Transylvania',
+    summary: 'The Transylvanian reformer who moved from Catholic to Lutheran to Reformed to Unitarian.',
+    detail: 'As court preacher to John Sigismund, David helped secure the Edict of Torda and led the first church to call itself Unitarian. When he went on to teach that Christ should not be worshipped, he was tried for innovation.',
+    wiki: 'Ferenc_Dávid',
+  }),
+  person({
+    id: 'hosea-ballou', year: 1771, lifespan: '1771–1852', name: 'Hosea Ballou', lane: 'unitarian-universalist', type: 'theologian', region: 'United States', formerly: 'baptist', movement: 'Universalist',
+    role: 'Universalist preacher',
+    summary: 'The leading Universalist preacher of his age, who taught that God’s love would finally save every soul.',
+    detail: 'Raised a Baptist in New Hampshire, Ballou became the most influential Universalist theologian with A Treatise on Atonement (1805), which rejected both the Trinity and the idea that Christ’s death paid a penalty to God.',
+    wiki: 'Hosea_Ballou',
+  }),
+  person({
+    id: 'william-ellery-channing', year: 1780, lifespan: '1780–1842', name: 'William Ellery Channing', lane: 'unitarian-universalist', type: 'theologian', region: 'United States', formerly: 'reformed', movement: 'Unitarian',
+    role: 'Unitarian minister',
+    summary: 'The Boston minister whose sermon “Unitarian Christianity” defined the American Unitarian movement.',
+    detail: 'A Congregational minister at Boston’s Federal Street church, Channing argued for reason, the moral goodness of God and the dignity of human nature, and became an influential voice against slavery and war.',
+    wiki: 'William_Ellery_Channing',
+  }),
+  person({
+    id: 'mary-baker-eddy', year: 1821, lifespan: '1821–1910', name: 'Mary Baker Eddy', lane: 'christian-science', type: 'reformer', region: 'United States', formerly: 'reformed',
+    role: 'Founder of Christian Science',
+    summary: 'The New England writer and teacher who founded Christian Science and The Christian Science Monitor.',
+    detail: 'Raised a Congregationalist and long in poor health, Eddy built Christian Science from a single book into a worldwide church with tightly controlled institutions, and was one of the most prominent American women of her time. Supporters revere her as a discoverer of spiritual healing; critics, including Mark Twain, attacked her authority and teaching.',
+    wiki: 'Mary_Baker_Eddy',
+  }),
+  person({
+    id: 'phineas-quimby', year: 1802, lifespan: '1802–1866', name: 'Phineas Quimby', lane: 'christian-science', type: 'world', region: 'United States',
+    role: 'Mental healer',
+    summary: 'A Maine clockmaker turned mesmerist and mental healer who treated Mary Baker Eddy in the 1860s.',
+    detail: 'Quimby taught that disease arose from mistaken beliefs and could be cured by changing them. He is regarded as a founder of the New Thought movement, and his influence on Eddy’s teaching has been debated since the 1880s.',
+    wiki: 'Phineas_Quimby',
+  }),
+  person({
+    id: 'augusta-stetson', year: 1842, lifespan: '1842–1928', name: 'Augusta Emma Stetson', lane: 'christian-science', type: 'church-leader', region: 'United States',
+    persecution: 'Excommunicated by the Mother Church, 1909',
+    role: 'Christian Science leader in New York',
+    summary: 'The founder of New York’s First Church of Christ, Scientist, once seen by many as Eddy’s likely successor.',
+    detail: 'Stetson built one of the movement’s largest and wealthiest congregations, but her independence alarmed the church’s leaders, who charged her with insubordination and false teaching.',
+    wiki: 'Augusta_Emma_Stetson',
+  }),
+  /* Latter-day Saints and Jehovah’s Witnesses */
+  person({
+    id: 'emma-smith', year: 1804, lifespan: '1804–1879', name: 'Emma Smith', lane: 'latter-day-saints', type: 'church-leader', region: 'United States', formerly: 'methodist', movement: 'Community of Christ',
+    role: 'Wife of Joseph Smith',
+    summary: 'Joseph Smith’s first wife, a scribe for the Book of Mormon and the first president of the Relief Society.',
+    detail: 'Emma Hale Smith compiled the church’s first hymnal and led the women’s Relief Society, founded in 1842. She opposed plural marriage, stayed in Illinois after her husband’s death and joined her son Joseph Smith III in the Reorganized church, now the Community of Christ.',
+    wiki: 'Emma_Smith',
+  }),
+  person({
+    id: 'spencer-w-kimball', year: 1895, lifespan: '1895–1985', name: 'Spencer W. Kimball', lane: 'latter-day-saints', type: 'church-leader', region: 'United States',
+    role: 'President of the Church',
+    summary: 'The church president who announced the end of the priesthood ban and sent missionaries across the world.',
+    detail: 'President from 1973, Kimball urged every worthy young man to serve a mission, oversaw a surge in temple building and in 1978 announced the revelation extending the priesthood to all worthy men regardless of race.',
+    wiki: 'Spencer_W._Kimball',
+  }),
+  person({
+    id: 'frederick-franz', year: 1893, lifespan: '1893–1992', name: 'Frederick W. Franz', lane: 'jehovahs-witnesses', type: 'church-leader', region: 'United States', aliases: ['Fred Franz'],
+    role: 'President of the Watch Tower Society',
+    summary: 'The movement’s leading theologian for decades and its president from 1977 to 1992.',
+    detail: 'Franz is widely believed to have been the principal translator of the New World Translation, though the Society keeps its committee anonymous, and his writing shaped the 1975 expectation.',
+    wiki: 'Frederick_William_Franz',
+  }),
+  person({
+    id: 'raymond-franz', year: 1922, lifespan: '1922–2010', name: 'Raymond Franz', lane: 'jehovahs-witnesses', type: 'church-leader', region: 'United States',
+    persecution: 'Removed from the Governing Body in 1980 and later disfellowshipped',
+    role: 'Former Governing Body member',
+    summary: 'A member of the Witnesses’ Governing Body who was expelled and became the movement’s best-known critic.',
+    detail: 'Frederick Franz’s nephew served on the Governing Body from 1971. Removed in 1980 amid an internal investigation of dissent and later disfellowshipped, he described the leadership’s decision-making in Crisis of Conscience (1983).',
+    wiki: 'Raymond_Franz',
+  }),
+  /* Adventists */
+  person({
+    id: 'james-white', year: 1821, lifespan: '1821–1881', name: 'James White', lane: 'adventist', type: 'church-leader', region: 'United States',
+    role: 'Co-founder of the Seventh-day Adventist Church',
+    summary: 'Ellen White’s husband and partner, who built the church’s publishing work and organisation.',
+    detail: 'A former Christian Connexion preacher and Millerite, White founded the Review and Herald, pressed the scattered Sabbath-keepers to organise as a church in 1863 and served three times as president of its General Conference.',
+    wiki: 'James_Springer_White',
+  }),
+  person({
+    id: 'john-harvey-kellogg', year: 1852, lifespan: '1852–1943', name: 'John Harvey Kellogg', lane: 'adventist', type: 'world', region: 'United States',
+    persecution: 'Disfellowshipped by his Battle Creek congregation, 1907',
+    role: 'Physician and health reformer',
+    summary: 'The surgeon who ran the Battle Creek Sanitarium and popularised Adventist ideas about diet and health.',
+    detail: 'Kellogg turned Battle Creek into a world-famous health resort and, with his brother Will, developed flaked breakfast cereals. He also promoted eugenics and harsh views on sexuality. Disputes with church leaders over his theology and control of the sanitarium led to his expulsion from the church.',
+    wiki: 'John_Harvey_Kellogg',
+  }),
+  person({
+    id: 'desmond-ford', year: 1929, lifespan: '1929–2019', name: 'Desmond Ford', lane: 'adventist', type: 'theologian', region: 'Australia',
+    persecution: 'Ministerial credentials withdrawn after the Glacier View review, 1980',
+    role: 'Adventist theologian',
+    summary: 'An Australian Adventist theologian whose challenge to the 1844 sanctuary doctrine divided the church.',
+    detail: 'A popular lecturer at Avondale College, Ford argued for a gospel-centred reading of Daniel and Hebrews. After Glacier View he founded Good News Unlimited and continued preaching across Adventist and evangelical audiences.',
+    wiki: 'Desmond_Ford',
+  }),
+]
 
 export const SEED_EVENTS: TimelineEvent[] = [
   {
@@ -1494,5 +2952,1183 @@ export const SEED_EVENTS: TimelineEvent[] = [
     keyFigures: ['Bartholomew I'],
     links: [{ label: 'Pan-Orthodox Council — Wikipedia', url: wiki('Pan-Orthodox_Council') }],
   },
+  /* Dispensationalism: from the Brethren to the bestseller lists */
+  {
+    id: 'dispensationalism',
+    year: 1830,
+    dateLabel: 'c. 1830s',
+    title: 'Darby and the rise of dispensationalism',
+    tradition: 'evangelical',
+    parents: ['great-awakening'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Split' },
+    summary:
+      'John Nelson Darby and the Plymouth Brethren teach that history runs in distinct “dispensations”, with a secret rapture of the church before a coming tribulation.',
+    detail:
+      'Darby divided God’s dealings with humanity into separate eras, kept Israel and the church as two distinct peoples with separate destinies, and taught that believers would be snatched away before seven years of tribulation. Spread through Bible conferences in Britain and North America, the system gave ordinary readers a confident key to prophecy.\n\nIt was also new. Critics, from Reformed covenant theologians to Catholic and Orthodox scholars, point out that a pre-tribulation rapture appears nowhere in the church’s first eighteen centuries, and that splitting Israel from the church cuts against the New Testament’s own reading of the Old. Defenders answer that Darby recovered what a consistently literal reading of Scripture always taught.',
+    keyFigures: ['John Nelson Darby'],
+    links: [{ label: 'Dispensationalism — Wikipedia', url: wiki('Dispensationalism') }],
+  },
+  {
+    id: 'scofield-reference-bible',
+    year: 1909,
+    dateLabel: '1909',
+    title: 'The Scofield Reference Bible',
+    tradition: 'evangelical',
+    parents: ['dispensationalism'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'BookOpen' },
+    summary:
+      'Oxford University Press publishes Cyrus Scofield’s annotated King James Bible, carrying dispensational teaching into millions of homes.',
+    detail:
+      'Scofield printed his notes on the same page as the biblical text, along with Archbishop Ussher’s dates (creation in 4004 BC) and the “gap theory” of Genesis. For generations of readers in fundamentalist churches, Bible colleges and Dallas Theological Seminary (1924), the notes became hard to tell apart from Scripture itself.\n\nThat was the heart of the criticism: a single, recent interpretation sat beside the text with the authority of a respected publisher, and many readers absorbed it without knowing that most of the church’s history read the same passages very differently. Sales passed two million by the end of the Second World War; revised in 1917 and again in 1967, it remains in print.',
+    keyFigures: ['Cyrus I. Scofield', 'Lewis Sperry Chafer'],
+    links: [{ label: 'Scofield Reference Bible — Wikipedia', url: wiki('Scofield_Reference_Bible') }],
+  },
+  {
+    id: 'late-great-planet-earth',
+    year: 1970,
+    dateLabel: '1970',
+    title: 'The Late Great Planet Earth',
+    tradition: 'evangelical',
+    parents: ['scofield-reference-bible'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Globe' },
+    summary:
+      'Hal Lindsey’s prophecy bestseller reads the Cold War, the Middle East and Israel’s founding as signs of an imminent end.',
+    detail:
+      'The New York Times called it the best-selling nonfiction book of the 1970s. Lindsey matched biblical prophecies to current events — the Soviet Union, the European Common Market, the 1948 founding of Israel — and suggested that the end could come within a generation, forty years, of 1948. Many readers took that to mean by 1988, and in 1980 Lindsey wrote that the decade “could very well be the last decade of history as we know it.”\n\nThe decade passed without fulfilment. Critics argue that this habit of newspaper exegesis has repeatedly discredited Christian witness, encouraged fatalism about peace and the environment, and shaped an uncritical American evangelical politics of the Middle East that often overlooks Palestinian Christians.',
+    keyFigures: ['Hal Lindsey'],
+    links: [{ label: 'The Late Great Planet Earth — Wikipedia', url: wiki('The_Late_Great_Planet_Earth') }],
+  },
+  {
+    id: 'left-behind',
+    year: 1995,
+    dateLabel: '1995–2007',
+    title: 'The Left Behind novels',
+    tradition: 'evangelical',
+    parents: ['late-great-planet-earth'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Printer' },
+    summary:
+      'Tim LaHaye and Jerry B. Jenkins turn the dispensational end times into a sixteen-book thriller series selling some 65 million copies.',
+    detail:
+      'Beginning with millions of believers vanishing from cars and aeroplanes, the series dramatised the rapture, the Antichrist and the battle of Armageddon, and spawned films, children’s books and a video game. For many readers it was their only picture of what the Bible says about the future.\n\nCritics from many traditions, among them the Lutheran theologian Barbara Rossing and William Hull, a former dean of Southern Baptist Theological Seminary, faulted its relish for violence, its treatment of the end as entertainment and its fusion of prophecy with American politics. In 2001 N. T. Wright argued that it misreads Paul’s imagery and the New Testament’s hope for a renewed creation.',
+    keyFigures: ['Tim LaHaye', 'Jerry B. Jenkins'],
+    links: [{ label: 'Left Behind — Wikipedia', url: wiki('Left_Behind') }],
+  },
+  /* Evangelicalism: revival, fundamentalism and the new evangelicals */
+  {
+    id: 'second-great-awakening',
+    year: 1795,
+    dateLabel: 'c. 1790s–1840s',
+    title: 'The Second Great Awakening',
+    tradition: 'evangelical',
+    parents: ['great-awakening'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Tent' },
+    summary:
+      'Camp meetings and revivals remake American Protestantism, swelling the Methodists and Baptists and launching a wave of missions and reform.',
+    detail:
+      'From frontier camp meetings such as Cane Ridge (1801) to Charles Finney’s urban revivals, preachers called for an immediate, personal decision for Christ. Methodist circuit riders and Baptist farmer-preachers grew fastest, and revival energy poured into mission boards, Bible and tract societies, Sunday schools, temperance and the abolition of slavery.\n\nCritics then and since worried about its emotionalism and its tendency to treat conversion as something technique could produce. Upstate New York was revived so often it became known as the “burned-over district”, and the same soil produced new movements well outside evangelical orthodoxy, including the Latter-day Saints and the Millerites.',
+    keyFigures: ['Charles Finney', 'Barton W. Stone', 'Francis Asbury'],
+    links: [{ label: 'Second Great Awakening — Wikipedia', url: wiki('Second_Great_Awakening') }],
+  },
+  {
+    id: 'the-fundamentals',
+    year: 1910,
+    dateLabel: '1910–1925',
+    title: 'The Fundamentals and the fundamentalist–modernist controversy',
+    tradition: 'evangelical',
+    parents: ['second-great-awakening'],
+    kind: 'schism',
+    icon: { type: 'lucide', name: 'ScrollText' },
+    summary:
+      'Conservative Protestants defend biblical inerrancy and the miraculous against liberal theology, and the word “fundamentalist” is born.',
+    detail:
+      'Funded by the oil magnate Lyman Stewart and his brother Milton, The Fundamentals (1910–15) collected 90 essays in 12 volumes, and some three million copies were mailed free to pastors and missionaries. In 1920 the Baptist editor Curtis Lee Laws coined “fundamentalist” for those ready to do “battle royal” for these doctrines, and fierce struggles followed in the Northern Baptist and Presbyterian churches.\n\nThe 1925 Scopes trial over teaching evolution in Dayton, Tennessee, made fundamentalism a national joke. Many fundamentalists withdrew from the mainline denominations into their own Bible institutes, radio programmes and independent churches, a separatism the “new evangelicals” of the 1940s would later reject.',
+    keyFigures: ['Lyman Stewart', 'Curtis Lee Laws', 'J. Gresham Machen', 'William Jennings Bryan'],
+    links: [{ label: 'The Fundamentals — Wikipedia', url: wiki('The_Fundamentals') }],
+  },
+  {
+    id: 'graham-los-angeles-crusade',
+    year: 1949,
+    dateLabel: 'Sep–Nov 1949',
+    title: 'Billy Graham’s Los Angeles crusade',
+    tradition: 'evangelical',
+    parents: ['nae-founded'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Tent' },
+    summary:
+      'Eight weeks of tent meetings make a young Billy Graham a national figure and launch the era of mass evangelism.',
+    detail:
+      'Planned for three weeks, the meetings in a circus tent in downtown Los Angeles ran from 25 September to 20 November 1949 and drew some 350,000 people. The Hearst newspapers gave the revival banner headlines; the story that William Randolph Hearst ordered his editors to “puff Graham” is famous, though Graham’s own family says it may be part legend.\n\nGraham went on to preach to millions on every continent. His decision to work with mainline churches, most visibly at the 1957 New York crusade, completed the break between the cooperative “new evangelicals” and separatist fundamentalists.',
+    keyFigures: ['Billy Graham'],
+    links: [{ label: 'Billy Graham Library — the 1949 Los Angeles crusade', url: 'https://billygrahamlibrary.org/blog-looking-back-at-1949-los-angeles-crusade/' }],
+  },
+  {
+    id: 'moral-majority',
+    year: 1979,
+    dateLabel: '1979–1989',
+    title: 'The Moral Majority and the rise of the Religious Right',
+    tradition: 'evangelical',
+    parents: ['graham-los-angeles-crusade'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Flag' },
+    summary:
+      'Jerry Falwell’s Moral Majority mobilises conservative evangelicals as a political bloc, helping elect Ronald Reagan in 1980.',
+    detail:
+      'Founded in 1979 with encouragement from Tim LaHaye and the conservative strategist Paul Weyrich, the Moral Majority registered voters and campaigned on abortion, school prayer and “family values” before dissolving in 1989. Its successors made white evangelicals one of the most reliable constituencies in American politics.\n\nSupporters saw a long-overdue defence of faith in public life. Critics, including many evangelicals, argued that it tied the gospel to one party’s fortunes; some historians trace the movement’s origins as much to battles over the tax-exempt status of segregated Christian schools as to abortion.',
+    keyFigures: ['Jerry Falwell', 'Tim LaHaye', 'Paul Weyrich'],
+    links: [{ label: 'Moral Majority — Wikipedia', url: wiki('Moral_Majority') }],
+  },
+  /* Major moments across the Protestant branches */
+  {
+    id: 'diet-of-worms',
+    year: 1521,
+    dateLabel: 'Apr 1521',
+    title: 'Luther at the Diet of Worms',
+    tradition: 'protestant',
+    parents: ['ninety-five-theses'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Gavel' },
+    summary:
+      'Before the emperor and the princes of the Empire, Luther refuses to recant his writings and is declared an outlaw.',
+    detail:
+      'Summoned before Charles V, Luther said he could not go against conscience unless refuted by Scripture and plain reason; the famous “Here I stand” may be a later addition to the record. The Edict of Worms banned his books and made him an outlaw, but Frederick the Wise had him hidden at the Wartburg, where he translated the New Testament into German in about eleven weeks.\n\nFor Protestants, Worms became the defining image of conscience bound to Scripture standing against church and empire. For Catholics, it marked the moment a call for reform hardened into a rejection of the church’s teaching authority.',
+    keyFigures: ['Martin Luther', 'Charles V', 'Frederick the Wise'],
+    links: [{ label: 'Diet of Worms — Wikipedia', url: wiki('Diet_of_Worms') }],
+  },
+  {
+    id: 'peace-of-augsburg',
+    year: 1555,
+    dateLabel: '25 Sep 1555',
+    title: 'Peace of Augsburg',
+    tradition: 'protestant',
+    parents: ['augsburg-confession'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Handshake' },
+    summary:
+      'The Holy Roman Empire accepts Lutheranism alongside Catholicism, letting each prince choose his territory’s faith.',
+    detail:
+      'The settlement ended decades of religious war in Germany on the principle later summed up as cuius regio, eius religio — whose realm, his religion. Subjects who disagreed could emigrate.\n\nIt was a real step towards coexistence, but a narrow one: it recognised only Lutherans and Catholics, leaving Reformed Christians and Anabaptists outside the law, and its unresolved tensions broke out again in the Thirty Years’ War in 1618.',
+    keyFigures: ['Charles V', 'Ferdinand I'],
+    links: [{ label: 'Peace of Augsburg — Wikipedia', url: wiki('Peace_of_Augsburg') }],
+  },
+  {
+    id: 'barmen-declaration',
+    year: 1934,
+    dateLabel: 'May 1934',
+    title: 'The Barmen Declaration',
+    tradition: 'protestant',
+    parents: [],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'ScrollText' },
+    summary:
+      'German Protestants of the Confessing Church declare that Christ alone, not the state or the Nazi-backed “German Christians”, is Lord of the church.',
+    detail:
+      'Meeting at Barmen in Wuppertal, Lutheran, Reformed and United church leaders adopted six theses drafted largely by Karl Barth, rejecting the idea that the church should take its message or order from political ideology. The Confessing Church that formed around it trained pastors in secret seminaries, one of them led by Dietrich Bonhoeffer.\n\nBarmen became a model for Christian resistance to totalitarianism, and later for church statements against apartheid. Its limits are also remembered: it said nothing about the persecution of the Jews, and most German Protestants went along with the regime.',
+    keyFigures: ['Karl Barth', 'Dietrich Bonhoeffer', 'Martin Niemöller'],
+    links: [{ label: 'Barmen Declaration — Wikipedia', url: wiki('Barmen_Declaration') }],
+  },
+  {
+    id: 'st-bartholomew-massacre',
+    year: 1572,
+    dateLabel: '24 Aug 1572',
+    title: 'St Bartholomew’s Day massacre',
+    tradition: 'reformed',
+    parents: ['institutes'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Swords' },
+    summary:
+      'Catholic mobs and soldiers kill thousands of French Protestants (Huguenots) in Paris and across France.',
+    detail:
+      'Days after the wedding of the Protestant Henry of Navarre to the king’s Catholic sister, the killing of Huguenot leaders in Paris turned into weeks of massacres; estimates range from about 5,000 to 30,000 dead. Pope Gregory XIII celebrated the news with a Te Deum, a reaction later Catholics regretted.\n\nThe massacre hardened Protestant fears of Catholic power for generations and shaped Reformed thinking on resisting tyrants. France’s wars of religion ended with the Edict of Nantes (1598), whose toleration Louis XIV revoked in 1685, driving many Huguenots abroad.',
+    keyFigures: ['Catherine de’ Medici', 'Gaspard de Coligny', 'Henry of Navarre'],
+    links: [{ label: 'St Bartholomew’s Day massacre — Wikipedia', url: wiki('St._Bartholomew%27s_Day_massacre') }],
+  },
+  {
+    id: 'synod-of-dort',
+    year: 1618,
+    dateLabel: '1618–19',
+    title: 'Synod of Dort',
+    tradition: 'reformed',
+    parents: ['institutes'],
+    kind: 'council',
+    icon: { type: 'lucide', name: 'Scale' },
+    summary:
+      'An international Reformed synod rejects Arminius’s followers and defines the doctrines later summarised as the “five points of Calvinism”.',
+    detail:
+      'Delegates from across Reformed Europe met at Dordrecht to judge the Remonstrants, who taught that grace can be resisted and that election rests on foreseen faith. The Canons of Dort affirmed unconditional election, particular redemption and the perseverance of the saints, and remain a confessional standard for many Reformed churches.\n\nThe outcome was bound up with Dutch politics: some 200 Remonstrant ministers were deposed and many banished, and their political patron Johan van Oldenbarnevelt was executed in 1619. Arminian theology survived, and later flourished in Methodism.',
+    keyFigures: ['Jacobus Arminius', 'Franciscus Gomarus'],
+    links: [{ label: 'Synod of Dort — Wikipedia', url: wiki('Synod_of_Dort') }],
+  },
+  {
+    id: 'king-james-bible',
+    year: 1611,
+    dateLabel: '1611',
+    title: 'The King James Bible',
+    tradition: 'anglican',
+    parents: ['elizabethan-settlement'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'BookOpen' },
+    summary:
+      'Some fifty scholars commissioned by James I produce the Authorized Version, the English Bible for three centuries.',
+    detail:
+      'Agreed at the Hampton Court Conference of 1604, the translation was made by companies of scholars working from the Hebrew and Greek, drawing heavily on William Tyndale’s earlier work. Its cadences shaped English prose, hymnody and oratory, from Milton to Lincoln and Martin Luther King Jr.\n\nIt was also a political project, meant to replace the Puritan-favoured Geneva Bible and its marginal notes questioning royal power. Its Greek text predates the oldest manuscripts discovered since, and modern translations have largely replaced it outside churches that hold it to be uniquely authoritative.',
+    keyFigures: ['James I', 'Lancelot Andrewes', 'William Tyndale'],
+    links: [{ label: 'King James Version — Wikipedia', url: wiki('King_James_Version') }],
+  },
+  {
+    id: 'slave-trade-abolished',
+    year: 1807,
+    dateLabel: '25 Mar 1807',
+    title: 'Britain abolishes the slave trade',
+    tradition: 'anglican',
+    parents: [],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Scale' },
+    summary:
+      'After a twenty-year campaign led by evangelical Anglicans and Quakers, Parliament outlaws the British slave trade.',
+    detail:
+      'Quakers began the organised campaign, and the evangelical Anglicans of the Clapham Sect, led in Parliament by William Wilberforce, carried it. Their petitions, boycotts and testimony from formerly enslaved people such as Olaudah Equiano made abolition one of the first mass movements of modern politics. Slavery itself was abolished across most of the empire in 1833.\n\nThe Church of England was also implicated in what it opposed: from 1710 its missionary society owned the Codrington plantations in Barbados, where for a time enslaved people were branded with the word “Society”. In 2023 the Church Commissioners acknowledged their historic links to the trade and committed £100 million in response.',
+    keyFigures: ['William Wilberforce', 'Thomas Clarkson', 'Olaudah Equiano'],
+    links: [{ label: 'Slave Trade Act 1807 — Wikipedia', url: wiki('Slave_Trade_Act_1807') }],
+  },
+  {
+    id: 'oxford-movement',
+    year: 1833,
+    dateLabel: '1833–45',
+    title: 'The Oxford Movement',
+    tradition: 'anglican',
+    parents: ['book-of-common-prayer'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Feather' },
+    summary:
+      'Oxford clergy call the Church of England back to its Catholic heritage of sacraments, priesthood and tradition.',
+    detail:
+      'Sparked by John Keble’s Assize Sermon of July 1833 and spread through the Tracts for the Times, the movement insisted that the Church of England was a branch of the one Catholic Church rather than a department of state. Its heirs, the Anglo-Catholics, restored religious orders, richer worship and pastoral work in the slums.\n\nOpponents saw it as Rome in disguise, and bitter ritual controversies followed. The movement’s leading mind, John Henry Newman, became a Roman Catholic in 1845, followed by others.',
+    keyFigures: ['John Keble', 'John Henry Newman', 'Edward Bouverie Pusey'],
+    links: [{ label: 'Oxford Movement — Wikipedia', url: wiki('Oxford_Movement') }],
+  },
+  {
+    id: 'munster-rebellion',
+    year: 1534,
+    dateLabel: '1534–35',
+    title: 'The Münster Rebellion',
+    tradition: 'radical',
+    parents: ['zurich-baptisms'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Swords' },
+    summary:
+      'Radical apocalyptic Anabaptists seize the city of Münster and proclaim it the New Jerusalem, until it is besieged and retaken.',
+    detail:
+      'Under Jan Matthys and then John of Leiden, who declared himself king, the city expelled those who refused rebaptism, held goods in common and introduced polygamy. After a long siege it fell in June 1535; its leaders were executed and their bodies hung in iron cages from the tower of St Lambert’s Church, where the cages still hang.\n\nMünster was unrepresentative of a movement that was overwhelmingly peaceful, but for generations it was used to justify persecuting all Anabaptists. It pushed survivors such as Menno Simons to insist all the more firmly on nonviolence.',
+    keyFigures: ['John of Leiden', 'Jan Matthys'],
+    links: [{ label: 'Münster rebellion — Wikipedia', url: wiki('Münster_rebellion') }],
+  },
+  {
+    id: 'martyrs-mirror',
+    year: 1660,
+    dateLabel: '1660',
+    title: 'The Martyrs Mirror',
+    tradition: 'radical',
+    parents: ['mennonite-movement-formed'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'BookOpen' },
+    summary:
+      'A Dutch Mennonite minister gathers the stories of thousands of Christians, above all Anabaptists, who died for their faith.',
+    detail:
+      'Thieleman J. van Braght’s great martyrology traced believers’ baptism back to the early church and recorded the trials, letters and deaths of Anabaptists burned, drowned and beheaded by Catholic and Protestant authorities alike. The 1685 edition added Jan Luyken’s etchings, including Dirk Willems turning back to rescue his pursuer from the ice.\n\nAfter the Bible, it is still the most treasured book in many Amish and Mennonite homes, a reminder that the Radical Reformation was persecuted by every other church of its day.',
+    keyFigures: ['Thieleman J. van Braght', 'Dirk Willems'],
+    links: [{ label: 'Martyrs Mirror — Wikipedia', url: wiki('Martyrs_Mirror') }],
+  },
+  {
+    id: 'baptist-missionary-society',
+    year: 1792,
+    dateLabel: '2 Oct 1792',
+    title: 'Baptist Missionary Society founded',
+    tradition: 'baptist',
+    parents: ['baptists'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Globe' },
+    summary:
+      'A group of English Baptist ministers form a society to send missionaries overseas, launching the modern Protestant missionary movement.',
+    detail:
+      'Meeting in Kettering, William Carey, Andrew Fuller and others founded the society after Carey argued that the Great Commission still bound the church. Carey sailed for India in 1793. Within a decade the London, Church and other missionary societies followed, and Protestant missions spread across Asia, Africa and the Pacific.\n\nMissionaries founded schools, hospitals and Bible translations that many former colonies still use, and some opposed colonial abuses; others travelled with colonial power and assumed Western culture was Christian culture, a legacy churches in the Global South continue to work through.',
+    keyFigures: ['William Carey', 'Andrew Fuller'],
+    links: [{ label: 'BMS World Mission — Wikipedia', url: wiki('BMS_World_Mission') }],
+  },
+  {
+    id: 'civil-rights-movement',
+    year: 1955,
+    dateLabel: '1955–68',
+    title: 'Black churches and the civil rights movement',
+    tradition: 'baptist',
+    parents: ['national-baptist-convention-founded'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Flag' },
+    summary:
+      'The Montgomery bus boycott, led by a young Baptist pastor, begins a movement for civil rights rooted in Black churches.',
+    detail:
+      'Martin Luther King Jr., pastor of Dexter Avenue Baptist Church, led the year-long Montgomery bus boycott from December 1955. Black churches, many of them Baptist, became the movement’s meeting halls, training grounds and voice, and paid for it: four girls were killed in the 1963 bombing of the Sixteenth Street Baptist Church in Birmingham.\n\nMany white churches in the South stayed silent or resisted desegregation. In 1995 the Southern Baptist Convention formally apologised for its defence of slavery and its record on racism.',
+    keyFigures: ['Martin Luther King Jr.', 'Ralph Abernathy', 'Fred Shuttlesworth'],
+    links: [{ label: 'Civil rights movement — Wikipedia', url: wiki('Civil_rights_movement') }],
+  },
+  {
+    id: 'sbc-conservative-resurgence',
+    year: 1979,
+    dateLabel: '1979–2000',
+    title: 'The Southern Baptist conservative resurgence',
+    tradition: 'baptist',
+    parents: ['southern-baptist-convention-founded'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Gavel' },
+    summary:
+      'Conservatives win control of the Southern Baptist Convention’s presidency, agencies and seminaries over two decades.',
+    detail:
+      'Beginning with Adrian Rogers’s election as president in 1979, a campaign organised by Paul Pressler and Paige Patterson used the convention’s appointment powers to replace moderate leadership with leaders committed to biblical inerrancy. The 2000 Baptist Faith and Message confined the office of pastor to men.\n\nSupporters call it a recovery of biblical authority that kept the largest Protestant denomination in America from following the mainline into decline. Moderates called it a fundamentalist takeover at odds with Baptist traditions of liberty and local autonomy; many left to form the Cooperative Baptist Fellowship in 1991.',
+    keyFigures: ['Adrian Rogers', 'Paul Pressler', 'Paige Patterson'],
+    links: [{ label: 'Southern Baptist Convention conservative resurgence — Wikipedia', url: wiki('Southern_Baptist_Convention_conservative_resurgence') }],
+  },
+  {
+    id: 'ame-church-founded',
+    year: 1816,
+    dateLabel: 'Apr 1816',
+    title: 'African Methodist Episcopal Church founded',
+    tradition: 'methodist',
+    parents: ['christmas-conference'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Church' },
+    summary:
+      'Black Methodists in Philadelphia and nearby cities form the first independent Black denomination in the United States, with Richard Allen as bishop.',
+    detail:
+      'Allen and Absalom Jones had walked out of St George’s Methodist Church after Black worshippers were pulled from their knees during prayer. Allen’s Bethel congregation fought for years to control its own affairs, and in April 1816 it united with other Black Methodist congregations to form the AME Church.\n\nThe AME Church became a pillar of Black life, founding schools, colleges and newspapers and spreading to Africa and the Caribbean. Its Emanuel church in Charleston, where nine worshippers were murdered by a white supremacist in 2015, has long stood as a symbol of both suffering and resilience.',
+    keyFigures: ['Richard Allen', 'Absalom Jones'],
+    links: [{ label: 'African Methodist Episcopal Church — Wikipedia', url: wiki('African_Methodist_Episcopal_Church') }],
+  },
+  {
+    id: 'umc-separation',
+    year: 2019,
+    dateLabel: '2019–24',
+    title: 'The United Methodist separation',
+    tradition: 'methodist',
+    parents: ['united-methodist-church-formed'],
+    kind: 'schism',
+    icon: { type: 'lucide', name: 'Split' },
+    summary:
+      'After decades of debate over sexuality, about a quarter of US United Methodist congregations leave the denomination.',
+    detail:
+      'A special General Conference in 2019 reaffirmed bans on same-sex weddings and openly gay clergy, while opening a path for congregations to leave with their property. By the end of 2023 some 7,600 churches had gone, many joining the Global Methodist Church launched in May 2022. In 2024 the General Conference removed the bans.\n\nTraditionalists saw themselves as keeping faith with Scripture and with the global church, much of it in Africa; progressives saw the changes as overdue justice for LGBTQ Christians. Both sides grieved a split in one of America’s largest Protestant churches.',
+    keyFigures: ['Keith Boyette'],
+    links: [{ label: 'United Methodist Church schism — Wikipedia', url: wiki('United_Methodist_Church_schism') }],
+  },
+  {
+    id: 'pentecostal-global-south',
+    year: 1970,
+    dateLabel: '1970s onward',
+    title: 'Pentecostalism spreads across the Global South',
+    tradition: 'pentecostal',
+    parents: ['assemblies-of-god'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Globe' },
+    summary:
+      'Pentecostal and charismatic churches grow explosively in Latin America, Africa and Asia, reshaping world Christianity.',
+    detail:
+      'From Brazil’s Assemblies of God to Nigeria’s Redeemed Christian Church of God and Seoul’s Yoido Full Gospel Church, Spirit-filled churches led by local pastors spread faster than any missionary agency planned. By 2011 the Pew Research Center counted Pentecostals and charismatics as more than a quarter of the world’s Christians.\n\nIts appeal lies in vivid worship, prayer for healing and deliverance, and close-knit congregations that give the poor dignity and discipline. Critics, including many Pentecostals, worry about authoritarian leaders, financial scandals and the spread of prosperity teaching.',
+    keyFigures: ['David Yonggi Cho', 'Enoch Adeboye'],
+    links: [{ label: 'Pentecostalism — Wikipedia', url: wiki('Pentecostalism') }],
+  },
+  {
+    id: 'prosperity-gospel',
+    year: 1975,
+    dateLabel: '1970s onward',
+    title: 'The prosperity gospel',
+    tradition: 'pentecostal',
+    parents: ['charismatic-renewal'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Crown' },
+    summary:
+      'Teachers of the “Word of Faith” movement promise health and wealth to believers who give and confess with enough faith.',
+    detail:
+      'Drawing on Kenneth Hagin’s Word of Faith teaching and Oral Roberts’s “seed faith”, televangelists taught that God wills material prosperity and healing for the faithful. Spread by television and megachurches, it took deep root in parts of Africa, Latin America and Asia as well as the United States.\n\nSupporters say it offers hope and a sense of agency to people in poverty. Critics across the church, including an African group of the evangelical Lausanne Movement in 2008–09, called its extreme forms a false gospel that enriches preachers, blames the sick for their illness and turns faith into a transaction; the televangelist scandals of the late 1980s deepened the distrust.',
+    keyFigures: ['Kenneth Hagin', 'Oral Roberts', 'Kenneth Copeland'],
+    links: [{ label: 'Prosperity theology — Wikipedia', url: wiki('Prosperity_theology') }],
+  },
+  {
+    id: 'adventist-health-reform',
+    year: 1866,
+    dateLabel: '1866',
+    title: 'Adventist health reform',
+    tradition: 'adventist',
+    parents: ['sda-organized'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Heart' },
+    summary:
+      'Adventists open a health institute in Battle Creek, Michigan, making healthy living part of their faith.',
+    detail:
+      'Following Ellen White’s teaching on diet, rest and abstinence from alcohol and tobacco, Adventists opened the Western Health Reform Institute in 1866. Under Dr John Harvey Kellogg it became the famous Battle Creek Sanitarium, and his brother’s breakfast cereal grew out of its kitchen; Kellogg himself was later expelled from the church after theological and institutional disputes.\n\nThe health message produced a worldwide network of Adventist hospitals and Loma Linda University, and studies of Adventists have consistently found longer than average lives.',
+    keyFigures: ['Ellen G. White', 'John Harvey Kellogg'],
+    links: [{ label: 'Battle Creek Sanitarium — Wikipedia', url: wiki('Battle_Creek_Sanitarium') }],
+  },
+  {
+    id: 'cane-ridge-revival',
+    year: 1801,
+    dateLabel: 'Aug 1801',
+    title: 'The Cane Ridge revival',
+    tradition: 'restoration',
+    parents: [],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Tent' },
+    summary:
+      'A frontier communion gathering in Kentucky becomes the largest camp meeting of the Second Great Awakening.',
+    detail:
+      'Hosted by Barton W. Stone at his Presbyterian meeting house, the week-long gathering drew perhaps 10,000 to 20,000 people, with Presbyterian, Methodist and Baptist preachers speaking at once from stumps and wagons. Accounts describe people falling, shaking and crying out.\n\nFor admirers it was a mighty work of God; for critics, including many Presbyterians, it was disorder. Stone and his allies soon left their presbytery to be “Christians only”, starting one of the streams of the Restoration Movement.',
+    keyFigures: ['Barton W. Stone'],
+    links: [{ label: 'Cane Ridge Revival — Wikipedia', url: wiki('Cane_Ridge_Revival') }],
+  },
+  /* World-shaping moments in Catholic and Oriental history */
+  {
+    id: 'first-crusade',
+    year: 1095,
+    dateLabel: '1095–1099',
+    title: 'The First Crusade',
+    tradition: 'catholic',
+    parents: [],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Swords' },
+    summary:
+      'Pope Urban II calls Western knights to aid Byzantium and free Jerusalem; crusaders take the city in 1099 amid a massacre.',
+    detail:
+      'Responding to an appeal from the Byzantine emperor Alexios I after Seljuk Turkish advances, Urban preached the crusade at Clermont in 1095 as an armed pilgrimage. On the way, crusading mobs massacred Jewish communities in the Rhineland. When Jerusalem fell on 15 July 1099, its Muslim and Jewish inhabitants were slaughtered. Crusader states held parts of the Levant until Saladin retook Jerusalem in 1187 and Acre fell in 1291; the Fourth Crusade turned on Christian Constantinople.\n\nTo many medieval Christians the crusades were a defence of Eastern Christians and holy places; to Muslims and many Eastern Christians they were an invasion, and they left a lasting legacy of bitterness. In 2000 Pope John Paul II asked forgiveness for violence committed by Christians in the service of the faith.',
+    keyFigures: ['Pope Urban II', 'Alexios I Komnenos', 'Saladin'],
+    links: [{ label: 'First Crusade — Wikipedia', url: wiki('First_Crusade') }],
+  },
+  {
+    id: 'kongo-conversion',
+    year: 1491,
+    dateLabel: '1491',
+    title: 'The Kingdom of Kongo becomes Christian',
+    tradition: 'catholic',
+    parents: [],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Church' },
+    summary:
+      'The king of Kongo in west-central Africa is baptised, beginning one of Africa’s oldest Catholic kingdoms.',
+    detail:
+      'After contact with Portuguese sailors, King Nzinga a Nkuwu was baptised as João I in 1491. His son Afonso I made Catholicism the religion of the kingdom, and Afonso’s son Henrique was consecrated a bishop in 1518, the first Black African bishop of modern times. In 1526 Afonso wrote to the king of Portugal protesting that Portuguese traders were seizing and enslaving his own subjects.\n\nKongolese Christianity grew its own forms, including the Antonian movement of the prophetess Kimpa Vita, who was burned as a heretic in 1706.',
+    keyFigures: ['Afonso I of Kongo', 'Kimpa Vita'],
+    links: [{ label: 'Kingdom of Kongo — Wikipedia', url: wiki('Kingdom_of_Kongo') }],
+  },
+  {
+    id: 'our-lady-of-guadalupe',
+    year: 1531,
+    dateLabel: 'Dec 1531',
+    title: 'Our Lady of Guadalupe',
+    tradition: 'catholic',
+    parents: [],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Heart' },
+    summary:
+      'An Indigenous convert, Juan Diego, reports visions of the Virgin Mary near Mexico City; her image becomes the heart of Mexican Catholicism.',
+    detail:
+      'According to tradition, Mary appeared to Juan Diego on the hill of Tepeyac, speaking in Nahuatl, and left her image on his cloak. The image, now in the Basilica of Guadalupe, draws millions of pilgrims a year, and Juan Diego was canonised in 2002.\n\nThe devotion is widely credited with drawing Indigenous Mexicans into the church on their own terms. Sceptics, including some historians and clergy, note that the earliest detailed written account was published only in 1649.',
+    keyFigures: ['Juan Diego'],
+    links: [{ label: 'Our Lady of Guadalupe — Wikipedia', url: wiki('Our_Lady_of_Guadalupe') }],
+  },
+  {
+    id: 'armenian-genocide',
+    year: 1915,
+    dateLabel: '1915–1923',
+    title: 'The Armenian genocide',
+    tradition: 'oriental',
+    parents: [],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Skull' },
+    summary:
+      'The Ottoman government deports and massacres its Armenian Christian population; most scholars estimate that a million or more died.',
+    detail:
+      'Beginning with the arrest of Armenian leaders in Constantinople on 24 April 1915, Armenians were killed or driven on death marches into the Syrian desert. Assyrian and Greek Christians were also targeted. Estimates of Armenian deaths range from about 600,000 to 1.5 million. Some Muslim Turks and Kurds risked their lives to shelter Armenians.\n\nMost historians and many countries recognise the killings as genocide; Turkey rejects the term. In 2015 the Armenian Apostolic Church canonised the victims as martyrs.',
+    keyFigures: [],
+    links: [{ label: 'Armenian genocide — Wikipedia', url: wiki('Armenian_genocide') }],
+  },
+  /* Anabaptist and peace churches */
+  {
+    id: 'pennsylvania-mennonites-amish',
+    year: 1683,
+    dateLabel: '1683–1750s',
+    title: 'Mennonites and Amish settle in Pennsylvania',
+    tradition: 'radical',
+    parents: ['mennonite-movement-formed'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Ship' },
+    summary:
+      'Persecuted in Europe, Mennonites and then Amish accept William Penn’s offer of religious freedom and farmland in Pennsylvania.',
+    detail:
+      'Mennonite families helped found Germantown in 1683, and in 1737 the ship Charming Nancy brought the first sizeable group of Amish families to Philadelphia. Dozens more households followed, settling in Lancaster County and beyond.\n\nPennsylvania’s guarantee of liberty of conscience let these communities farm, worship and refuse military service in peace, and it remains the heart of Amish and Mennonite life in North America.',
+    keyFigures: ['William Penn'],
+    links: [{ label: 'Mennonites in the United States — Wikipedia', url: wiki('Mennonites_in_the_United_States') }],
+  },
+  {
+    id: 'schwarzenau-brethren',
+    year: 1708,
+    dateLabel: '1708',
+    title: 'The Schwarzenau Brethren',
+    tradition: 'radical',
+    parents: ['zurich-baptisms'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Droplet' },
+    summary:
+      'Eight believers are baptised in the River Eder in Germany, founding the Brethren, a blend of Pietism and Anabaptism.',
+    detail:
+      'Led by Alexander Mack, the group baptised one another by triple immersion, earning the nickname “Dunkers”. Persecuted in Germany, nearly all emigrated to Pennsylvania between 1719 and 1729. Their descendants include the Church of the Brethren and several smaller Brethren bodies, which share the Mennonites’ commitment to peace and simple living.',
+    keyFigures: ['Alexander Mack'],
+    links: [{ label: 'Schwarzenau Brethren — Wikipedia', url: wiki('Schwarzenau_Brethren') }],
+  },
+  {
+    id: 'mennonites-in-russia',
+    year: 1789,
+    dateLabel: '1789–1920s',
+    title: 'Mennonites in the Russian Empire',
+    tradition: 'radical',
+    parents: ['mennonite-movement-formed'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Wheat' },
+    summary:
+      'Invited by Catherine the Great, Prussian Mennonites build prosperous farming colonies in what is now Ukraine.',
+    detail:
+      'From the Chortitza colony of 1789 and Molotschna in 1804, Mennonites created self-governing villages, schools and churches, exempt from military service. When Russia ended the exemption in the 1870s, thousands moved to Kansas, Nebraska and Manitoba.\n\nThose who stayed were devastated by revolution, civil war and famine after 1917. North American Mennonites formed the Mennonite Central Committee in 1920 to send them relief, and it remains a worldwide aid agency; under Stalin many who remained were deported or killed.',
+    keyFigures: ['Catherine the Great'],
+    links: [{ label: 'Russian Mennonites — Wikipedia', url: wiki('Russian_Mennonites') }],
+  },
+  {
+    id: 'old-order-amish',
+    year: 1862,
+    dateLabel: '1862–1878',
+    title: 'The Old Order Amish separate',
+    tradition: 'radical',
+    parents: ['amish'],
+    kind: 'schism',
+    icon: { type: 'lucide', name: 'Split' },
+    summary:
+      'National ministers’ meetings fail to settle disputes over change, and tradition-minded congregations become the Old Order Amish.',
+    detail:
+      'As America industrialised, Amish ministers met yearly from 1862 to debate questions such as meetinghouses, dress and baptism in streams. Congregations open to change gradually became Amish Mennonites and merged into Mennonite bodies; those who held to the old ways became the Old Order Amish, deciding questions of technology and dress congregation by congregation.\n\nThe Old Order Amish now number around 400,000, mostly in the United States, and their population roughly doubles every twenty years.',
+    keyFigures: [],
+    links: [{ label: 'Old Order Amish — Wikipedia', url: wiki('Old_Order_Amish') }],
+  },
+  {
+    id: 'civilian-public-service',
+    year: 1941,
+    dateLabel: '1941–47',
+    title: 'Civilian Public Service',
+    tradition: 'radical',
+    parents: ['zurich-baptisms'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Heart' },
+    summary:
+      'During the Second World War, about 12,000 American conscientious objectors do unpaid “work of national importance” instead of military service.',
+    detail:
+      'The peace churches, Mennonites, Brethren and Quakers, ran most of the camps, and Mennonites made up the largest group of workers. Men fought forest fires, built soil conservation projects and served in mental hospitals, where their reports of abuse helped spur reform. Many faced public scorn as cowards or traitors.',
+    keyFigures: [],
+    links: [{ label: 'Civilian Public Service — Wikipedia', url: wiki('Civilian_Public_Service') }],
+  },
+  {
+    id: 'wisconsin-v-yoder',
+    year: 1972,
+    dateLabel: '1972',
+    title: 'Wisconsin v. Yoder',
+    tradition: 'radical',
+    parents: ['old-order-amish'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Gavel' },
+    summary:
+      'The US Supreme Court rules that Amish families may end formal schooling after the eighth grade.',
+    detail:
+      'Wisconsin had prosecuted Amish parents for keeping their children out of high school. The Court held that compulsory schooling beyond the eighth grade violated their free exercise of religion, since Amish community life itself prepares children for adulthood. The case remains a landmark of American religious liberty law.',
+    keyFigures: ['Warren Burger'],
+    links: [{ label: 'Wisconsin v. Yoder — Wikipedia', url: wiki('Wisconsin_v._Yoder') }],
+  },
+  {
+    id: 'nickel-mines',
+    year: 2006,
+    dateLabel: '2 Oct 2006',
+    title: 'Forgiveness at Nickel Mines',
+    tradition: 'radical',
+    parents: ['old-order-amish'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Heart' },
+    summary:
+      'After a gunman kills five Amish schoolgirls in Pennsylvania, the Amish community publicly forgives him.',
+    detail:
+      'Within hours, Amish neighbours visited the killer’s family to offer forgiveness; many attended his funeral and some gave money to his widow and children. Their response drew worldwide attention to Anabaptist teaching on forgiveness, though the Amish themselves stressed that forgiving did not mean forgetting the girls or the grief.',
+    keyFigures: [],
+    links: [{ label: 'West Nickel Mines School shooting — Wikipedia', url: wiki('West_Nickel_Mines_School_shooting') }],
+  },
+  {
+    id: 'quakers-founded',
+    year: 1652,
+    dateLabel: '1652',
+    title: 'The Quakers emerge',
+    tradition: 'quaker',
+    parents: ['westminster'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Sun' },
+    summary:
+      'George Fox gathers “Children of the Light” in northern England, teaching that the Spirit of Christ speaks directly to every person.',
+    detail:
+      'Emerging from the religious ferment of the English Civil War and Puritan England, Fox’s Religious Society of Friends met in silence without clergy or sacraments, refused oaths and hat-honour, and soon renounced all war. They are not Anabaptists, but share many of their convictions, and together with the Mennonites and Brethren are known as the historic peace churches.\n\nEarly Friends were jailed by the thousand in England, and four were hanged in Boston, among them Mary Dyer in 1660.',
+    keyFigures: ['George Fox', 'Margaret Fell', 'Mary Dyer'],
+    links: [{ label: 'Quakers — Wikipedia', url: wiki('Quakers') }],
+  },
+  {
+    id: 'pennsylvania-holy-experiment',
+    year: 1681,
+    dateLabel: '1681',
+    title: 'Penn’s “Holy Experiment”',
+    tradition: 'quaker',
+    parents: ['quakers-founded'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Landmark' },
+    summary:
+      'The Quaker William Penn receives a royal charter for Pennsylvania and makes it a haven of religious freedom.',
+    detail:
+      'Penn promised liberty of conscience to all who believed in God, and made a treaty with the Lenape that Quakers long remembered for its fairness. Philadelphia, the “city of brotherly love”, drew Quakers, Mennonites, Amish, Brethren and many others persecuted in Europe.',
+    keyFigures: ['William Penn'],
+    links: [{ label: 'Province of Pennsylvania — Wikipedia', url: wiki('Province_of_Pennsylvania') }],
+  },
+  {
+    id: 'quaker-antislavery',
+    year: 1688,
+    dateLabel: '1688–1787',
+    title: 'Quakers turn against slavery',
+    tradition: 'quaker',
+    parents: ['quakers-founded'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Scale' },
+    summary:
+      'From the 1688 Germantown protest onward, Quakers become the first church to reject slaveholding among its members.',
+    detail:
+      'Some early Quakers owned slaves, but campaigners such as John Woolman and Anthony Benezet persuaded their meetings that slavery could not be reconciled with the Light in every person. Philadelphia Quakers barred slaveholders from membership by 1776, and Quakers made up most of the founders of Britain’s abolition committee in 1787.',
+    keyFigures: ['John Woolman', 'Anthony Benezet'],
+    links: [{ label: 'Quakers in the abolition movement — Wikipedia', url: wiki('Quakers_in_the_abolition_movement') }],
+  },
+  {
+    id: 'shakers',
+    year: 1774,
+    dateLabel: '1774',
+    title: 'The Shakers come to America',
+    tradition: 'quaker',
+    parents: ['quakers-founded'],
+    kind: 'schism',
+    icon: { type: 'lucide', name: 'Wind' },
+    summary:
+      'Ann Lee and a handful of followers of the “Shaking Quakers” arrive in New York and found a celibate, communal church.',
+    detail:
+      'The movement grew out of a Quaker revival in Manchester, where worshippers trembled and danced in ecstasy. Ann Lee, revered by followers as the second appearing of Christ in female form, led them to America. The Shakers held property in common, practised celibacy and equality of the sexes, and became famous for their furniture and songs such as “Simple Gifts”.\n\nAt their height in the mid-1800s they numbered several thousand in about twenty villages. Because they did not marry, they depended on converts and adoptions, and only a handful of members remain, at Sabbathday Lake in Maine.',
+    keyFigures: ['Ann Lee'],
+    links: [{ label: 'Shakers — Wikipedia', url: wiki('Shakers') }],
+  },
+  {
+    id: 'quaker-separations',
+    year: 1827,
+    dateLabel: '1827',
+    title: 'The great Quaker separations',
+    tradition: 'quaker',
+    parents: ['quakers-founded'],
+    kind: 'schism',
+    icon: { type: 'lucide', name: 'Split' },
+    summary:
+      'American Quakers split over the teachings of Elias Hicks, the first of several divisions that shaped Quakerism today.',
+    detail:
+      'The “Hicksites” stressed the Inner Light above Scripture and creed; the “Orthodox” held to evangelical doctrine. Further splits followed, and some Orthodox Friends adopted revival meetings and paid pastors. Today’s Quakers range from silent, liberal meetings to evangelical Friends churches; the largest numbers now live in Kenya and Burundi.',
+    keyFigures: ['Elias Hicks', 'Joseph John Gurney'],
+    links: [{ label: 'Quaker branches — Wikipedia', url: wiki('Quakers') }],
+  },
+  {
+    id: 'quaker-nobel-peace-prize',
+    year: 1947,
+    dateLabel: '1947',
+    title: 'Quakers win the Nobel Peace Prize',
+    tradition: 'quaker',
+    parents: ['quaker-separations'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Feather' },
+    summary:
+      'The British and American Quaker service committees receive the Nobel Peace Prize for relief work in both world wars.',
+    detail:
+      'Friends fed starving children in Germany and Russia after the First World War, helped refugees escape Nazi Europe and organised relief and reconstruction after 1945. The prize honoured the American Friends Service Committee and Britain’s Friends Service Council on behalf of Quakers worldwide.',
+    keyFigures: [],
+    links: [{ label: 'American Friends Service Committee — Wikipedia', url: wiki('American_Friends_Service_Committee') }],
+  },
+  /* Unitarian Universalists and Christian Science */
+  {
+    id: 'edict-of-torda',
+    year: 1568,
+    dateLabel: 'Jan 1568',
+    title: 'Edict of Torda and the Transylvanian Unitarians',
+    tradition: 'unitarian-universalist',
+    parents: ['institutes'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Scale' },
+    summary:
+      'Transylvania’s diet grants preachers freedom to teach their own faith, and a Unitarian church denying the Trinity takes shape under Francis David.',
+    detail:
+      'Under the Unitarian prince John Sigismund, the Diet of Torda declared that no one should be persecuted for their religion, one of Europe’s earliest decrees of toleration. Francis David, who had passed from Catholicism through Lutheran and Reformed churches, led a church that rejected the Trinity, and Polish Brethren taught similar views until their expulsion in 1658.\n\nToleration did not last: David was condemned for refusing worship to Christ and died in prison in 1579. The Unitarian Church of Transylvania survives today in Romania and Hungary.',
+    keyFigures: ['Francis David', 'John Sigismund Zápolya'],
+    links: [{ label: 'Edict of Torda — Wikipedia', url: wiki('Edict_of_Torda') }],
+  },
+  {
+    id: 'universalists-organize',
+    year: 1793,
+    dateLabel: '1790s',
+    title: 'Universalists organise in America',
+    tradition: 'unitarian-universalist',
+    parents: ['edict-of-torda'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Sun' },
+    summary:
+      'Preachers of universal salvation, teaching that God will in the end save every soul, form their own churches in the new United States.',
+    detail:
+      'John Murray, who arrived from England in 1770, gathered the first Universalist congregation in Gloucester, Massachusetts, and conventions of Universalists met from the 1790s. Hosea Ballou later moved the movement away from the Trinity. Universalists were early supporters of the abolition of slavery and of women in ministry; most other churches regarded their denial of eternal punishment as heresy.',
+    keyFigures: ['John Murray', 'Hosea Ballou'],
+    links: [{ label: 'Universalist Church of America — Wikipedia', url: wiki('Universalist_Church_of_America') }],
+  },
+  {
+    id: 'american-unitarian-association',
+    year: 1825,
+    dateLabel: '1825',
+    title: 'American Unitarian Association',
+    tradition: 'unitarian-universalist',
+    parents: ['westminster', 'edict-of-torda'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Landmark' },
+    summary:
+      'Liberal Congregational churches of New England, rejecting the Trinity and Calvinist doctrines of sin, organise as Unitarians.',
+    detail:
+      'William Ellery Channing’s 1819 sermon “Unitarian Christianity” gave the liberals a manifesto, and many of the oldest churches of Massachusetts, along with Harvard, went with them. In 1838 Ralph Waldo Emerson’s Divinity School Address pushed further, beyond the Bible and miracles, into Transcendentalism. Orthodox Congregationalists saw the movement as a departure from the Christian faith.',
+    keyFigures: ['William Ellery Channing', 'Ralph Waldo Emerson'],
+    links: [{ label: 'American Unitarian Association — Wikipedia', url: wiki('American_Unitarian_Association') }],
+  },
+  {
+    id: 'uua-merger',
+    year: 1961,
+    dateLabel: 'May 1961',
+    title: 'Unitarians and Universalists merge',
+    tradition: 'unitarian-universalist',
+    parents: ['american-unitarian-association', 'universalists-organize'],
+    kind: 'reunion',
+    icon: { type: 'lucide', name: 'Handshake' },
+    summary:
+      'The two liberal traditions unite as the Unitarian Universalist Association, a creedless body open to people of many beliefs.',
+    detail:
+      'By the 20th century both movements had moved well beyond their Christian origins, and the merged association welcomed humanists, theists and others. Unitarian Universalists were active in the civil rights movement; the minister James Reeb was murdered after answering Martin Luther King Jr.’s call to Selma in 1965. In 2024 the General Assembly replaced the association’s Seven Principles with seven shared values centred on love.\n\nMost Christian churches do not regard Unitarian Universalism as Christian, and many of its own members would agree.',
+    keyFigures: ['James Reeb'],
+    links: [{ label: 'Unitarian Universalist Association — Wikipedia', url: wiki('Unitarian_Universalist_Association') }],
+  },
+  {
+    id: 'science-and-health',
+    year: 1875,
+    dateLabel: '1875',
+    title: 'Science and Health',
+    tradition: 'christian-science',
+    parents: ['westminster'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'BookOpen' },
+    summary:
+      'Mary Baker Eddy publishes the book that teaches sickness and sin can be healed by understanding God as wholly good Spirit.',
+    detail:
+      'Eddy dated her discovery to 1866, when she recovered from a severe fall while reading of Jesus’s healings. Science and Health with Key to the Scriptures taught that matter, sickness and death are not ultimately real, and that prayerful understanding of God heals. Critics then and since have argued that she drew heavily on the mental healer Phineas Quimby, which her followers deny. The book, revised many times, has sold millions of copies.',
+    keyFigures: ['Mary Baker Eddy', 'Phineas Quimby'],
+    links: [{ label: 'Science and Health — Wikipedia', url: wiki('Science_and_Health_with_Key_to_the_Scriptures') }],
+  },
+  {
+    id: 'church-of-christ-scientist',
+    year: 1879,
+    dateLabel: '1879',
+    title: 'Church of Christ, Scientist founded',
+    tradition: 'christian-science',
+    parents: ['science-and-health'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Church' },
+    summary:
+      'Eddy and her students charter a church in Boston “to reinstate primitive Christianity and its lost element of healing”.',
+    detail:
+      'Reorganised in 1892 around the Mother Church in Boston, the church has no clergy: services are led by elected Readers who read from the Bible and Science and Health, and members turn to trained practitioners for healing through prayer. Branch churches and Reading Rooms spread across the United States and beyond.\n\nBecause its teaching departs from the historic creeds on God, Christ and the reality of matter, most other churches do not regard Christian Science as orthodox Christianity.',
+    keyFigures: ['Mary Baker Eddy'],
+    links: [{ label: 'Church of Christ, Scientist — Wikipedia', url: wiki('Church_of_Christ,_Scientist') }],
+  },
+  {
+    id: 'christian-science-monitor',
+    year: 1908,
+    dateLabel: '1908',
+    title: 'The Christian Science Monitor',
+    tradition: 'christian-science',
+    parents: ['church-of-christ-scientist'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Printer' },
+    summary:
+      'At 87, Mary Baker Eddy founds a daily newspaper with the motto “to injure no man, but to bless all mankind”.',
+    detail:
+      'Conceived partly as an answer to sensational journalism, the Monitor built a reputation for careful international reporting and has won several Pulitzer Prizes. It ended its daily print edition in 2009 and continues online with a weekly magazine.',
+    keyFigures: ['Mary Baker Eddy'],
+    links: [{ label: 'The Christian Science Monitor — Wikipedia', url: wiki('The_Christian_Science_Monitor') }],
+  },
+  {
+    id: 'christian-science-courts',
+    year: 1985,
+    dateLabel: '1980s–1990s',
+    title: 'Prayer, medicine and the courts',
+    tradition: 'christian-science',
+    parents: ['church-of-christ-scientist'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Gavel' },
+    summary:
+      'The deaths of children whose parents relied on prayer instead of doctors bring prosecutions and a national debate over religious exemptions.',
+    detail:
+      'Several Christian Science parents were charged with manslaughter or neglect; in the best-known case, a Massachusetts couple convicted in 1990 over the death of their two-year-old son had the verdict overturned on appeal in 1993. Many states narrowed religious exemptions in child-protection laws. The church says members are free to choose medical care and that its healing record is widely misunderstood; critics argue that its teaching left children at risk.\n\nThe movement has declined since the mid-20th century: in the United States, branch churches fell from about 1,300 in 1995 to about 800 by 2015.',
+    keyFigures: [],
+    links: [{ label: 'Christian Science — Wikipedia', url: wiki('Christian_Science') }],
+  },
+  /* Latter-day Saints and Jehovah’s Witnesses */
+  {
+    id: 'first-vision',
+    year: 1820,
+    dateLabel: 'c. 1820',
+    title: 'Joseph Smith’s First Vision',
+    tradition: 'latter-day-saints',
+    parents: [],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Sun' },
+    summary:
+      'A teenage Joseph Smith later recounts seeing God the Father and Jesus Christ in a grove in upstate New York, who told him to join none of the churches.',
+    detail:
+      'Latter-day Saints regard the First Vision as the beginning of the restoration of the true church. Smith recorded several accounts of it from 1832 onward, which differ in their details; the church holds that they complement one another, while critics see the differences as signs of a developing story.',
+    keyFigures: ['Joseph Smith'],
+    links: [{ label: 'First Vision — Wikipedia', url: wiki('First_Vision') }],
+  },
+  {
+    id: 'book-of-mormon',
+    year: 1830,
+    dateLabel: 'Mar 1830',
+    title: 'The Book of Mormon published',
+    tradition: 'latter-day-saints',
+    parents: ['first-vision'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'BookOpen' },
+    summary:
+      'Joseph Smith publishes the Book of Mormon, which he said he translated from golden plates revealed by an angel.',
+    detail:
+      'The book tells of ancient Israelites who sailed to the Americas and of the risen Christ’s visit to them. Latter-day Saints accept it as scripture alongside the Bible, and missionaries have distributed well over a hundred million copies. Most historians, archaeologists and geneticists find no evidence for the civilisations it describes, and other Christians do not accept it as scripture.',
+    keyFigures: ['Joseph Smith'],
+    links: [{ label: 'Book of Mormon — Wikipedia', url: wiki('Book_of_Mormon') }],
+  },
+  {
+    id: 'nauvoo',
+    year: 1839,
+    dateLabel: '1839–1844',
+    title: 'Nauvoo and the death of Joseph Smith',
+    tradition: 'latter-day-saints',
+    parents: ['lds-church-organized'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Flame' },
+    summary:
+      'After violent expulsion from Missouri, the Saints build Nauvoo, Illinois; there Smith secretly introduces plural marriage and is killed by a mob in 1844.',
+    detail:
+      'Nauvoo grew into one of the largest cities in Illinois, with its own militia and temple. Smith’s private teaching of plural marriage and his order to destroy a newspaper that exposed it led to his arrest; on 27 June 1844 a mob stormed Carthage Jail and killed him and his brother Hyrum.\n\nA succession crisis followed. Most followed Brigham Young west, while others, including Smith’s widow Emma and his son Joseph Smith III, later formed the Reorganized church, now the Community of Christ.',
+    keyFigures: ['Joseph Smith', 'Hyrum Smith', 'Emma Smith'],
+    links: [{ label: 'Nauvoo, Illinois — Wikipedia', url: wiki('Nauvoo,_Illinois') }],
+  },
+  {
+    id: 'mormon-trek-utah',
+    year: 1846,
+    dateLabel: '1846–1847',
+    title: 'The trek to the Salt Lake Valley',
+    tradition: 'latter-day-saints',
+    parents: ['nauvoo'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Mountain' },
+    summary:
+      'Driven from Illinois, thousands of Latter-day Saints cross the plains under Brigham Young and settle beyond the Rocky Mountains.',
+    detail:
+      'Young’s advance company reached the Salt Lake Valley in July 1847, and some 70,000 Saints followed over the next two decades, some pulling handcarts; the Willie and Martin handcart companies lost about 200 people in the snows of 1856. The exodus remains central to Latter-day Saint identity and is celebrated each year on Pioneer Day.',
+    keyFigures: ['Brigham Young'],
+    links: [{ label: 'Mormon pioneers — Wikipedia', url: wiki('Mormon_pioneers') }],
+  },
+  {
+    id: 'mountain-meadows-massacre',
+    year: 1857,
+    dateLabel: '11 Sep 1857',
+    title: 'The Mountain Meadows Massacre',
+    tradition: 'latter-day-saints',
+    parents: ['mormon-trek-utah'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Skull' },
+    summary:
+      'Latter-day Saint militiamen in southern Utah, aided by some Paiute allies, murder about 120 members of an emigrant wagon train.',
+    detail:
+      'Amid war fever as a US army marched on Utah, local church and militia leaders lured the Baker–Fancher party from their defences under a flag of truce and killed all but seventeen young children. Only one man, John D. Lee, was ever convicted; he was executed at the site in 1877.\n\nFor generations the church minimised its members’ role. In 2007 it acknowledged that local leaders bore responsibility and expressed profound regret, and church historians have since published detailed accounts of the massacre.',
+    keyFigures: ['John D. Lee', 'Brigham Young'],
+    links: [{ label: 'Mountain Meadows Massacre — Wikipedia', url: wiki('Mountain_Meadows_Massacre') }],
+  },
+  {
+    id: 'manifesto-1890',
+    year: 1890,
+    dateLabel: '1890',
+    title: 'The Manifesto ends plural marriage',
+    tradition: 'latter-day-saints',
+    parents: ['mormon-trek-utah'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'ScrollText' },
+    summary:
+      'Under federal pressure that threatened the church’s property and temples, President Wilford Woodruff announces an end to new plural marriages.',
+    detail:
+      'Congress had disincorporated the church and imprisoned polygamists. The Manifesto opened the way to Utah statehood in 1896, though some leaders quietly continued plural marriages until a second manifesto in 1904. Fundamentalist groups that rejected the change, such as the FLDS, still practise polygamy and are not part of the church.',
+    keyFigures: ['Wilford Woodruff'],
+    links: [{ label: '1890 Manifesto — Wikipedia', url: wiki('1890_Manifesto') }],
+  },
+  {
+    id: 'priesthood-ban-ended',
+    year: 1978,
+    dateLabel: 'Jun 1978',
+    title: 'The priesthood ban ends',
+    tradition: 'latter-day-saints',
+    parents: ['manifesto-1890'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Key' },
+    summary:
+      'A revelation announced by President Spencer W. Kimball opens the priesthood and temple ordinances to Black members.',
+    detail:
+      'From Brigham Young’s time Black men had been barred from the priesthood, and Black members from temple ordinances. Its end in 1978 was welcomed with relief across the church and opened the way for rapid growth in Africa and Brazil. In 2013 the church disavowed the racial theories once offered to explain the ban.',
+    keyFigures: ['Spencer W. Kimball'],
+    links: [{ label: 'Black people and Mormon priesthood — Wikipedia', url: wiki('Black_people_and_Mormon_priesthood') }],
+  },
+  {
+    id: 'jw-1914',
+    year: 1914,
+    dateLabel: '1914',
+    title: '1914 and the end of the Gentile Times',
+    tradition: 'jehovahs-witnesses',
+    parents: ['bible-students-begin'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Sun' },
+    summary:
+      'Russell’s followers expect 1914 to bring the end of the present world order; the First World War seems to confirm the date.',
+    detail:
+      'When the end did not come as expected, Bible Students came to teach that Christ had begun to rule invisibly from heaven in 1914, and that the generation alive then would see Armageddon. Later dates were also anticipated, including Rutherford’s 1925 and the 1975 expectation, and the “generation” teaching has been revised several times.',
+    keyFigures: ['Charles Taze Russell', 'Joseph F. Rutherford'],
+    links: [{ label: 'Eschatology of Jehovah’s Witnesses — Wikipedia', url: wiki('Eschatology_of_Jehovah%27s_Witnesses') }],
+  },
+  {
+    id: 'jw-persecution',
+    year: 1933,
+    dateLabel: '1933–1945',
+    title: 'Persecution in Nazi Germany and the courts of America',
+    tradition: 'jehovahs-witnesses',
+    parents: ['jehovahs-witnesses-name'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Swords' },
+    summary:
+      'Refusing to salute Hitler or serve in his army, Jehovah’s Witnesses are imprisoned in concentration camps, while in America their flag-salute cases reshape civil liberties.',
+    detail:
+      'The Nazis banned the Witnesses in 1933 and marked them in the camps with a purple triangle; unlike other prisoners, they could go free by renouncing their faith, and few did. About 1,400 died in camps and prisons, among them nearly 300 executed for conscientious objection.\n\nIn the United States, mobs attacked Witnesses who would not salute the flag, until the Supreme Court’s 1943 Barnette decision upheld their right to refuse. Their many court cases helped establish modern American protections for free speech and religion.',
+    keyFigures: ['Joseph F. Rutherford'],
+    links: [{ label: 'Persecution of Jehovah’s Witnesses in Nazi Germany — Wikipedia', url: wiki('Persecution_of_Jehovah%27s_Witnesses_in_Nazi_Germany') }],
+  },
+  {
+    id: 'jw-blood',
+    year: 1945,
+    dateLabel: '1945',
+    title: 'The ban on blood transfusions',
+    tradition: 'jehovahs-witnesses',
+    parents: ['jehovahs-witnesses-name'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Droplet' },
+    summary:
+      'The Watchtower teaches that the Bible’s command to “abstain from blood” forbids transfusions; accepting one later becomes grounds for expulsion.',
+    detail:
+      'Witnesses carry cards refusing blood, and their stance has led to deaths, especially of mothers and children, and to court cases over whether doctors may transfuse minors. It also spurred advances in bloodless surgery now used far beyond the movement. Since 2000 some blood fractions have been left to individual conscience.',
+    keyFigures: [],
+    links: [{ label: 'Jehovah’s Witnesses and blood transfusions — Wikipedia', url: wiki('Jehovah%27s_Witnesses_and_blood_transfusions') }],
+  },
+  {
+    id: 'new-world-translation',
+    year: 1950,
+    dateLabel: '1950–1961',
+    title: 'The New World Translation',
+    tradition: 'jehovahs-witnesses',
+    parents: ['jehovahs-witnesses-name'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'BookOpen' },
+    summary:
+      'The Watch Tower Society publishes its own Bible translation, restoring the name Jehovah throughout and now available in over 200 languages.',
+    detail:
+      'The anonymous translation committee rendered the New Testament from 1950 and the whole Bible by 1961. Its readability and use of God’s name are valued by Witnesses. Most biblical scholars criticise choices that support Witness doctrine, above all John 1:1, which it translates “the Word was a god”.',
+    keyFigures: ['Frederick W. Franz'],
+    links: [{ label: 'New World Translation — Wikipedia', url: wiki('New_World_Translation') }],
+  },
+  {
+    id: 'jw-1975',
+    year: 1975,
+    dateLabel: '1975',
+    title: 'The 1975 expectation',
+    tradition: 'jehovahs-witnesses',
+    parents: ['jw-1914'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Moon' },
+    summary:
+      'Watch Tower publications suggest that 6,000 years of human history may end in 1975, and many Witnesses sell homes and delay careers.',
+    detail:
+      'Numbers grew sharply in the years before 1975, then fell when nothing happened, and hundreds of thousands are reported to have left. In 1980 The Watchtower acknowledged that statements about 1975 had raised “considerable expectation”, but placed much of the responsibility on members.',
+    keyFigures: ['Frederick W. Franz', 'Raymond Franz'],
+    links: [{ label: '1975 and Jehovah’s Witnesses — Wikipedia', url: wiki('Eschatology_of_Jehovah%27s_Witnesses') }],
+  },
+  {
+    id: 'jw-abuse-inquiries',
+    year: 2015,
+    dateLabel: '2015',
+    title: 'Child abuse inquiries',
+    tradition: 'jehovahs-witnesses',
+    parents: ['jehovahs-witnesses-name'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Gavel' },
+    summary:
+      'Australia’s Royal Commission finds that Jehovah’s Witness elders had recorded more than 1,000 alleged child abusers since 1950 and reported none to the police.',
+    detail:
+      'The inquiry criticised the requirement of two witnesses before elders would act, the questioning of victims in front of accused abusers and the shunning of those who left. Similar lawsuits and inquiries have followed in other countries. The organisation says it abhors child abuse, follows reporting laws and has revised its policies.',
+    keyFigures: [],
+    links: [{ label: 'Jehovah’s Witnesses and child sex abuse — Wikipedia', url: wiki('Jehovah%27s_Witnesses_and_child_sex_abuse') }],
+  },
+  {
+    id: 'jw-russia-ban',
+    year: 2017,
+    dateLabel: '20 Apr 2017',
+    title: 'Russia bans Jehovah’s Witnesses',
+    tradition: 'jehovahs-witnesses',
+    parents: ['jehovahs-witnesses-name'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'BrickWall' },
+    summary:
+      'Russia’s Supreme Court labels Jehovah’s Witnesses an “extremist” organisation, dissolving their headquarters and hundreds of congregations.',
+    detail:
+      'Since the ban, hundreds of Witnesses have been charged for meeting to pray and read the Bible, and many have been imprisoned, including the Danish citizen Dennis Christensen. Human rights groups and many churches that reject Witness teaching have condemned the ban as religious persecution.',
+    keyFigures: ['Dennis Christensen'],
+    links: [{ label: 'Persecution of Jehovah’s Witnesses in Russia — Wikipedia', url: wiki('Persecution_of_Jehovah%27s_Witnesses_in_Russia') }],
+  },
+  /* Adventists */
+  {
+    id: 'sabbath-and-sanctuary',
+    year: 1846,
+    dateLabel: '1844–1846',
+    title: 'The Sabbath and the sanctuary',
+    tradition: 'adventist',
+    parents: ['great-disappointment'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Sun' },
+    summary:
+      'Disappointed Millerites conclude that in 1844 Christ began a new work in heaven, and adopt the seventh-day Sabbath.',
+    detail:
+      'Hiram Edson taught that Miller had the right date but the wrong event: Christ had entered the most holy place of the heavenly sanctuary, beginning an “investigative judgment”. Seventh Day Baptists introduced some Adventists to Saturday worship, and Joseph Bates’s 1846 tract on the Sabbath won over James and Ellen White.\n\nThe Sabbath and the sanctuary became the distinctive pillars of Seventh-day Adventism. Other Christians, and later some Adventist scholars, have questioned the biblical basis of the investigative judgment.',
+    keyFigures: ['Hiram Edson', 'Joseph Bates', 'James White', 'Ellen G. White'],
+    links: [{ label: 'Investigative judgment — Wikipedia', url: wiki('Investigative_judgment') }],
+  },
+  {
+    id: 'adventist-missions',
+    year: 1874,
+    dateLabel: '1874',
+    title: 'Adventism goes worldwide',
+    tradition: 'adventist',
+    parents: ['sda-organized'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Globe' },
+    summary:
+      'John Nevins Andrews sails for Switzerland as the church’s first official overseas missionary.',
+    detail:
+      'From a few thousand members in New England and the Midwest, Adventists built a worldwide network of churches, schools, hospitals and publishing houses. Today most of the church’s more than 20 million members live in Africa, Latin America and Asia, making it one of the most widespread Protestant denominations.',
+    keyFigures: ['John Nevins Andrews'],
+    links: [{ label: 'Seventh-day Adventist Church — Wikipedia', url: wiki('Seventh-day_Adventist_Church') }],
+  },
+  {
+    id: 'minneapolis-1888',
+    year: 1888,
+    dateLabel: '1888',
+    title: 'The Minneapolis General Conference',
+    tradition: 'adventist',
+    parents: ['sda-organized'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'ScrollText' },
+    summary:
+      'Young preachers urge the church to put righteousness by faith in Christ at the centre of its message, provoking fierce debate.',
+    detail:
+      'Alonzo T. Jones and Ellet J. Waggoner argued that the church had become legalistic, stressing the law and the Sabbath over grace. Ellen White largely supported them against senior leaders. Adventists still debate the conference’s meaning; many see it as the moment the church began to grasp the gospel more fully.',
+    keyFigures: ['Alonzo T. Jones', 'Ellet J. Waggoner', 'Ellen G. White'],
+    links: [{ label: '1888 Minneapolis General Conference — Wikipedia', url: wiki('1888_Minneapolis_General_Conference') }],
+  },
+  {
+    id: 'questions-on-doctrine',
+    year: 1957,
+    dateLabel: '1957',
+    title: 'Questions on Doctrine',
+    tradition: 'adventist',
+    parents: ['minneapolis-1888'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Handshake' },
+    summary:
+      'After dialogue with evangelical leaders, Adventist scholars publish a book stressing what they share with other Protestants.',
+    detail:
+      'Conversations with the evangelicals Walter Martin and Donald Grey Barnhouse led many evangelicals to stop calling Adventism a cult and accept it as a Christian denomination. Within the church, traditionalists such as M. L. Andreasen protested that it compromised Adventist teaching about Christ’s human nature and the atonement, and the book remained controversial for decades.',
+    keyFigures: ['Walter Martin', 'Donald Grey Barnhouse', 'M. L. Andreasen'],
+    links: [{ label: 'Questions on Doctrine — Wikipedia', url: wiki('Questions_on_Doctrine') }],
+  },
+  {
+    id: 'glacier-view',
+    year: 1980,
+    dateLabel: 'Aug 1980',
+    title: 'The Glacier View crisis',
+    tradition: 'adventist',
+    parents: ['sabbath-and-sanctuary'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Gavel' },
+    summary:
+      'Church leaders reject theologian Desmond Ford’s challenge to the investigative judgment and withdraw his ministerial credentials.',
+    detail:
+      'Ford, a popular Australian teacher, argued that the 1844 sanctuary doctrine lacked biblical support and obscured the gospel. After a review at Glacier View, Colorado, he lost his credentials and his teaching post, and many pastors and teachers sympathetic to him left or were forced out. At about the same time Walter Rea’s The White Lie (1982) documented Ellen White’s extensive borrowing from other authors, deepening the turmoil.',
+    keyFigures: ['Desmond Ford', 'Walter Rea'],
+    links: [{ label: 'Desmond Ford — Wikipedia', url: wiki('Desmond_Ford') }],
+  },
+  {
+    id: 'waco-siege',
+    year: 1993,
+    dateLabel: 'Feb–Apr 1993',
+    title: 'The Waco siege',
+    tradition: 'adventist',
+    parents: ['great-disappointment'],
+    kind: 'schism',
+    icon: { type: 'lucide', name: 'Flame' },
+    summary:
+      'A standoff between US federal agents and the Branch Davidians, a splinter group the Adventist church had long disowned, ends with 76 dead.',
+    detail:
+      'The Davidians began in 1929 when Victor Houteff, expelled from the Seventh-day Adventist Church, gathered followers near Waco, Texas; the Branch Davidians later split from them and came under David Koresh. A raid on 28 February 1993 left four federal agents and six Davidians dead, and on 19 April, after a 51-day siege, fire destroyed the compound, killing 76 people, many of them children. Who started the fire remains disputed.\n\nThe Seventh-day Adventist Church emphasised that the group had not been part of it for decades.',
+    keyFigures: ['David Koresh', 'Victor Houteff'],
+    links: [{ label: 'Waco siege — Wikipedia', url: wiki('Waco_siege') }],
+  },
+  {
+    id: 'sda-womens-ordination-vote',
+    year: 2015,
+    dateLabel: 'Jul 2015',
+    title: 'The vote on ordaining women',
+    tradition: 'adventist',
+    parents: ['adventist-missions'],
+    kind: 'event',
+    icon: { type: 'lucide', name: 'Scale' },
+    summary:
+      'The world church votes 1,381 to 977 against letting its regions decide for themselves whether to ordain women as pastors.',
+    detail:
+      'Supporters, mostly in North America, Europe and Australia, argued that Scripture does not forbid women in ministry and that Ellen White herself was a leading voice in the church. Opponents, especially in Africa and Latin America, held that ordination is reserved to men and that unity required one worldwide practice. Several unions in North America and Europe continued to ordain women, keeping the question unresolved.',
+    keyFigures: [],
+    links: [{ label: 'Ordination of women in the Seventh-day Adventist Church — Wikipedia', url: wiki('Ordination_of_women_and_the_Seventh-day_Adventist_Church') }],
+  },
   ...FOUNDATION_EVENTS,
+  ...WORLD_EVENTS,
+  ...PEOPLE,
 ]
